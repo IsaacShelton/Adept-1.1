@@ -1,0 +1,49 @@
+# depslib dependency file v1.0
+1477699233 source:c:\users\isaac\google drive\adept\src\main.cpp
+	<chrono>
+	<string>
+	<stdio.h>
+	<fstream>
+	<sstream>
+	<stdlib.h>
+	<iostream>
+	"../include/lexer.h"
+
+1477619899 c:\users\isaac\google drive\adept\include\lexer.h
+	<vector>
+	"tokens.h"
+
+1477752548 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+	<string>
+	<iostream>
+	<sstream>
+	<fstream>
+	<stdlib.h>
+	"../include/lexer.h"
+	"../include/strings.h"
+
+1477752012 c:\users\isaac\google drive\adept\include\tokens.h
+	<string>
+
+1477751878 source:c:\users\isaac\google drive\adept\src\tokens.cpp
+	<iostream>
+	"../include/tokens.h"
+	"../include/strings.h"
+
+1477752316 source:c:\users\isaac\google drive\adept\src\strings.cpp
+	<sstream>
+	<algorithm>
+	"../include/strings.h"
+
+1477752317 c:\users\isaac\google drive\adept\include\strings.h
+	<string>
+	<fstream>
+	<stdlib.h>
+
+1477353454 c:\users\isaac\google drive\adept\include\parse.h
+	<string>
+	<vector>
+	"tokens.h"
+
+1477750617 source:c:\users\isaac\google drive\adept\src\parse.cpp
+
