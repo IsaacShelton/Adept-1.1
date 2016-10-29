@@ -15,7 +15,8 @@ int main(int argc, char** argv) {
     std::vector<Token> tokens;
 
     if(argc != 2){
-        std::cerr << "adept <filename>" << std::endl;
+        std::cerr << "Adept Copyright (c) 2016 Isaac Shelton" << std::endl;
+        std::cerr << "Usage: adept <filename>" << std::endl;
         return 1;
     }
 
