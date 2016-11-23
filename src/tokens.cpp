@@ -49,6 +49,12 @@ void Token::free(){
     case TOKENID_KEYWORD:
         delete static_cast<std::string*>(data);
         break;
+    case TOKENID_INT:
+        delete static_cast<int32_t*>(data);
+        break;
+    case TOKENID_FLOAT:
+        delete static_cast<double*>(data);
+        break;
     }
 
     data = NULL;

@@ -1,13 +1,13 @@
 # depslib dependency file v1.0
-1479863629 source:c:\users\isaac\google drive\adept\src\main.cpp
+1479863754 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<stdio.h>
 	<stdlib.h>
 	<iostream>
-	"../include/adept.h"
 	"../include/lexer.h"
 	"../include/parse.h"
 	"../include/assemble.h"
+	"../include/finalize.h"
 
 1478959190 c:\users\isaac\google drive\adept\include\lexer.h
 	<vector>
@@ -77,15 +77,15 @@
 	<iostream>
 	"../include/statement.h"
 
-1479863241 c:\users\isaac\google drive\adept\include\assemble.h
+1479864388 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
-	"config.h"
 	"parse.h"
+	"config.h"
 	"asmcontext.h"
 
-1479863570 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1479864001 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -111,9 +111,8 @@
 	"llvm/Support/TargetSelect.h"
 	"llvm/Support/FileSystem.h"
 	"../include/die.h"
-	"../include/adept.h"
-	"../include/validate.h"
 	"../include/assemble.h"
+	"../include/validate.h"
 
 1467138445 c:\llvm\include\llvm\ir\irbuilder.h
 	"llvm/ADT/ArrayRef.h"
@@ -1227,6 +1226,20 @@
 	"../include/assemble.h"
 
 1479863530 c:\users\isaac\google drive\adept\include\adept.h
+	"../include/parse.h"
+	"../include/config.h"
+	"../include/tokens.h"
+	"../include/asmcontext.h"
+
+1479863709 source:c:\users\isaac\google drive\adept\src\finalize.cpp
+	"../include/jit.h"
+	"../include/lexer.h"
+	"../include/parse.h"
+	"../include/config.h"
+	"../include/assemble.h"
+	"../include/finalize.h"
+
+1479863530 c:\users\isaac\google drive\adept\include\finalize.h
 	"../include/parse.h"
 	"../include/config.h"
 	"../include/tokens.h"

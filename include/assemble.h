@@ -6,11 +6,10 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
-#include "config.h"
 #include "parse.h"
+#include "config.h"
 #include "asmcontext.h"
 
-void assemble_init();
 int assemble(AssembleContext& context, Configuration& config, Program& program);
 int assemble_structure(AssembleContext& context, Configuration& config, Program& program, Structure& structure);
 int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func);
