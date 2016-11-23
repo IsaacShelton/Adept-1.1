@@ -7,10 +7,8 @@
 #include "../include/lexer.h"
 #include "../include/strings.h"
 
-int tokenize(std::string filename, std::vector<Token>& tokens){
+int tokenize(Configuration& config, std::string filename, std::vector<Token>& tokens){
     std::ifstream adept;
-    std::string code;
-    size_t code_size;
 
     adept.open(filename.c_str());
     if(!adept.is_open()){
@@ -20,11 +18,18 @@ int tokenize(std::string filename, std::vector<Token>& tokens){
 
     std::string line;
     while( std::getline(adept, line) ){
-        code += line + "\n";
+        tokenize_string(line + "\n", tokens);
     }
 
     adept.close();
-    code_size = code.size();
+
+    // Print Lexer Time
+    config.clock.print_since("Lexer Finished");
+    config.clock.remember();
+    return 0;
+}
+int tokenize_string(const std::string& code, std::vector<Token>& tokens){
+    size_t code_size = code.size();
 
     char prefix_char;
     std::string until_space;
@@ -37,13 +42,13 @@ int tokenize(std::string filename, std::vector<Token>& tokens){
             tokens.push_back(TOKEN_NEWLINE);
         }
         else if( (prefix_char>=65&&prefix_char<=90) || (prefix_char>=97&&prefix_char<=122) || (prefix_char==95) ){
-            std::string* word = new std::string;
+            std::string word;
 
             while( (prefix_char>=65 && prefix_char<=90)
             ||  (prefix_char>=48 && prefix_char<=57)
             ||  (prefix_char>=97 && prefix_char<=122)
             ||  (prefix_char==95) ){
-                *word += prefix_char;
+                word += prefix_char;
                 if(++i != code_size) {
                     prefix_char = code[i];
                 } else {
@@ -51,7 +56,12 @@ int tokenize(std::string filename, std::vector<Token>& tokens){
                 }
             }
 
-            tokens.push_back( TOKEN_WORD(word) );
+            if(word == "return" or word == "def" or word == "type" or word == "extern"){
+                tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
+            }
+            else {
+                tokens.push_back( TOKEN_WORD( new std::string(word) ) );
+            }
             i--;
         }
         else if(prefix_char == '('){
@@ -76,43 +86,60 @@ int tokenize(std::string filename, std::vector<Token>& tokens){
             tokens.push_back(TOKEN_ADD);
         }
         else if(prefix_char == '-'){
-            if(i + 1 < code_size){
-                if(code[++i] == '>'){
-                    tokens.push_back(TOKEN_RETIND);
-                } else {
-                    i--;
-                    tokens.push_back(TOKEN_SUBTRACT);
-                }
-            } else {
-                tokens.push_back(TOKEN_SUBTRACT);
-            }
+            tokens.push_back(TOKEN_SUBTRACT);
         }
         else if(prefix_char == '*'){
             tokens.push_back(TOKEN_MULTIPLY);
         }
         else if(prefix_char == '/'){
-            tokens.push_back(TOKEN_DIVIDE);
+            if(i + 1 < code_size){
+                if(code[++i] == '/'){
+                    while(i != code.size() and code[i] != '\n') i++;
+                } else {
+                    i--;
+                    tokens.push_back(TOKEN_DIVIDE);
+                }
+            } else {
+                tokens.push_back(TOKEN_DIVIDE);
+            }
         }
         else if(prefix_char == '.'){
             tokens.push_back(TOKEN_MEMBER);
         }
-        else if(prefix_char == ':'){
-            if(i + 1 != code_size){
-                if(code[++i] == ':'){
-                    tokens.push_back(TOKEN_NAMESPACE);
-                } else {
-                    i--;
-                    tokens.push_back(TOKEN_TYPEIND);
-                }
-            } else {
-                tokens.push_back(TOKEN_TYPEIND);
-            }
-        }
         else if(prefix_char >= 48 and prefix_char <= 57){
             std::string content;
-            content += string_iter_until_or(code, i, " \n(){}[]<>=!");
-            tokens.push_back( TOKEN_INT( to_int(content) ) );
-            i--;
+
+            while(prefix_char >= 48 and prefix_char <= 57){
+                content += prefix_char;
+                if(++i != code_size) {
+                    prefix_char = code[i];
+                } else {
+                    break;
+                }
+            }
+
+            if(prefix_char == '.'){
+                if(++i != code_size) {
+                    prefix_char = code[i];
+                }
+                else break;
+
+                content += ".";
+                while(prefix_char >= 48 and prefix_char <= 57){
+                    content += prefix_char;
+                    if(++i != code_size) {
+                        prefix_char = code[i];
+                    } else {
+                        break;
+                    }
+                }
+
+                tokens.push_back( TOKEN_FLOAT( to_double(content) ) );
+                i--;
+            } else {
+                tokens.push_back( TOKEN_INT( to_int(content) ) );
+                i--;
+            }
         }
         else if(prefix_char == '"'){
             std::string* content = new std::string;
@@ -122,16 +149,8 @@ int tokenize(std::string filename, std::vector<Token>& tokens){
             tokens.push_back( TOKEN_STRING(content) );
         }
         else {
-            until_space = string_itertest_until(code, i, ' ');
-
-            if(until_space == "return"){
-                tokens.push_back( TOKEN_KEYWORD("return") );
-                i += 6;
-            }
-            else {
-                std::cerr << "lexer error: " + code.substr(i, 1) <<  std::endl;
-                return 1;
-            }
+            std::cerr << "lexer error: " + code.substr(i, 1) <<  std::endl;
+            return 1;
         }
     }
 

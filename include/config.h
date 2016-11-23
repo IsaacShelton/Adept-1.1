@@ -2,6 +2,13 @@
 #ifndef CONFIG_H_INCLUDED
 #define CONFIG_H_INCLUDED
 
-void configure();
+#include "clock.h"
+
+struct Configuration {
+    Clock clock;
+    bool jit;
+};
+
+int configure(Configuration& config, int argc, char** argv);
 
 #endif // CONFIG_H_INCLUDED

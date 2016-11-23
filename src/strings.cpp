@@ -79,7 +79,7 @@ std::string string_get_until_or(std::string parent_string, std::string character
     }
 }
 
-std::string string_iter_until(std::string& code, size_t& i, char character){
+std::string string_iter_until(const std::string& code, size_t& i, char character){
     std::string content;
     while(code[i] != character and i < code.length()){
         content += code[i];
@@ -88,7 +88,7 @@ std::string string_iter_until(std::string& code, size_t& i, char character){
     return content;
 }
 
-std::string string_iter_until_or(std::string& code, size_t& i, std::string characters){
+std::string string_iter_until_or(const std::string& code, size_t& i, std::string characters){
     std::string content;
     while( i < code.length() and !string_contains(characters, code.substr(i, 1)) ){
         content += code[i];
@@ -97,7 +97,7 @@ std::string string_iter_until_or(std::string& code, size_t& i, std::string chara
     return content;
 }
 
-std::string string_itertest_until(std::string& code, size_t i, char character){
+std::string string_itertest_until(const std::string& code, size_t i, char character){
     std::string content;
     while(code[i] != character and i < code.length()){
         content += code[i];
@@ -106,7 +106,7 @@ std::string string_itertest_until(std::string& code, size_t i, char character){
     return content;
 }
 
-std::string string_itertest_until_or(std::string& code, size_t i, std::string characters){
+std::string string_itertest_until_or(const std::string& code, size_t i, std::string characters){
     std::string content;
     while( i < code.length() and !string_contains(characters, code.substr(i, 1)) ){
         content += code[i];

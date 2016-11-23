@@ -60,6 +60,16 @@ void Token::reset(){
 }
 
 std::string Token::getString(){
+    return *( static_cast<std::string*>(data) );
+}
+int32_t Token::getInt(){
+    return *( static_cast<int32_t*>(data) );
+}
+double Token::getFloat(){
+    return *( static_cast<double*>(data) );
+}
+
+std::string Token::toString(){
     std::string str;
 
     switch(id){
@@ -67,24 +77,24 @@ std::string Token::getString(){
         str = "none";
         break;
     case 1:
-        str = "string : ";
-        str += *( static_cast<std::string*>(data) );
+        str = "string : \"";
+        str += *( static_cast<std::string*>(data) ) + "\"";
         break;
     case 2:
-        str = "int : ";
-        str += to_str( *( static_cast<int32_t*>(data) ) );
+        str = "int : \"";
+        str += to_str( *( static_cast<int32_t*>(data) ) ) + "\"";
         break;
     case 3:
-        str = "float : ";
-        str += to_str( *( static_cast<double*>(data) ) );
+        str = "float : \"";
+        str += to_str( *( static_cast<double*>(data) ) ) + "\"";
         break;
     case 4:
-        str = "word : ";
-        str += *( static_cast<std::string*>(data) );
+        str = "word : \"";
+        str += *( static_cast<std::string*>(data) ) + "\"";
         break;
     case 5:
-        str = "keyword : ";
-        str += *( static_cast<std::string*>(data) );
+        str = "keyword : \"";
+        str += *( static_cast<std::string*>(data) ) + "\"";
         break;
     case 6:
         str = "open";
@@ -98,8 +108,8 @@ std::string Token::getString(){
     case 9:
         str = "end";
         break;
-    case 10:
-        str = "return indicator";
+    case 10: // UNUSED
+        // str = "return indicator";
         break;
     case 11:
         str = "newline";
@@ -107,11 +117,11 @@ std::string Token::getString(){
     case 12:
         str = "member";
         break;
-    case 13:
-        str = "namespace";
+    case 13: // UNUSED
+        // str = "namespace";
         break;
-    case 14:
-        str = "type indicator";
+    case 14: // UNUSED
+        // str = "type indicator";
         break;
     case 15:
         str = "add";
@@ -134,4 +144,17 @@ std::string Token::getString(){
     }
 
     return str;
+}
+
+int Token::getPrecedence(){
+    switch(id){
+    case TOKENID_ADD:
+    case TOKENID_SUBTRACT:
+        return 2;
+    case TOKENID_MULTIPLY:
+    case TOKENID_DIVIDE:
+        return 3;
+    default:
+        return 0;
+    }
 }

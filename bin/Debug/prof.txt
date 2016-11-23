@@ -1,0 +1,741 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 20.71      5.76     5.76                             (anonymous namespace)::Verifier::visitCallInst(llvm::CallInst&)
+ 19.81     11.27     5.51                             llvm::User::getOperand(unsigned int) const
+ 17.94     16.26     4.99                             (anonymous namespace)::Verifier::visitInstruction(llvm::Instruction&)
+ 10.54     19.19     2.93                             (anonymous namespace)::Verifier::verify(llvm::Function const&) [clone .constprop.1164]
+  6.26     20.93     1.74                             llvm::BasicBlock::getTerminator()
+  4.28     22.12     1.19                             llvm::Function::getReturnType() const
+  3.06     22.97     0.85                             llvm::Value::assertModuleIsMaterialized() const
+  2.70     23.72     0.75                             llvm::SmallPtrSetImplBase::insert_imp(void const*)
+  2.12     24.31     0.59                             llvm::cast_retty<llvm::DbgInfoIntrinsic, llvm::Instruction*>::ret_type llvm::dyn_cast<llvm::DbgInfoIntrinsic, llvm::Instruction>(llvm::Instruction*)
+  1.98     24.86     0.55                             (anonymous namespace)::Verifier::visitTerminatorInst(llvm::TerminatorInst&)
+  1.91     25.39     0.53                             llvm::cast_retty<llvm::GlobalValue, llvm::Value*>::ret_type llvm::dyn_cast<llvm::GlobalValue, llvm::Value>(llvm::Value*)
+  1.80     25.89     0.50                             llvm::SmallPtrSetIteratorImpl::AdvanceIfNotValid()
+  1.44     26.29     0.40                             llvm::ReturnInst::getOperand(unsigned int) const
+  1.37     26.67     0.38                             llvm::cast_retty<llvm::Function const, llvm::Value const*>::ret_type llvm::dyn_cast<llvm::Function const, llvm::Value const>(llvm::Value const*)
+  1.19     27.00     0.33                             llvm::cast_retty<llvm::Instruction const, llvm::Value const*>::ret_type llvm::cast<llvm::Instruction const, llvm::Value const>(llvm::Value const*)
+  1.15     27.32     0.32                             llvm::cast_retty<llvm::Argument, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Argument, llvm::Value>(llvm::Value*)
+  0.93     27.58     0.26                             llvm::SmallPtrSetImplBase::clear()
+  0.36     27.68     0.10                             _mcount_private
+  0.11     27.71     0.03                             __fentry__
+  0.04     27.72     0.01  1001035     0.00     0.00  Token::Token(Token const&)
+  0.04     27.73     0.01   100368     0.00     0.00  tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&)
+  0.04     27.74     0.01    50184     0.00     0.00  llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFAdd(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*)
+  0.04     27.75     0.01    25092     0.00     0.00  OperatorExp::assemble(Program&, Function&, AssembleContext&)
+  0.04     27.76     0.01       20     0.50     0.76  void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&)
+  0.04     27.77     0.01                             llvm::ValueSymbolTable::makeUniqueName(llvm::Value*, llvm::SmallString<256u>&)
+  0.04     27.78     0.01                             llvm::APFloat::divideSignificand(llvm::APFloat const&)
+  0.04     27.79     0.01                             llvm::APFloat::roundAwayFromZero(llvm::APFloat::roundingMode, llvm::lostFraction, unsigned int) const
+  0.04     27.80     0.01                             llvm::Function::getFunctionType() const
+  0.02     27.81     0.01   100368     0.00     0.00  Token::getFloat()
+  0.02     27.81     0.01                             Token::toString[abi:cxx11]()
+  0.00     27.81     0.00  1477783     0.00     0.00  Token::free()
+  0.00     27.81     0.00  1477783     0.00     0.00  Token::~Token()
+  0.00     27.81     0.00   547911     0.00     0.00  tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&)
+  0.00     27.81     0.00   476748     0.00     0.00  string_iter_kill_whitespace(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long long&)
+  0.00     27.81     0.00   476748     0.00     0.00  void std::vector<Token, std::allocator<Token> >::emplace_back<Token>(Token&&)
+  0.00     27.81     0.00   401472     0.00     0.00  DoubleExp::~DoubleExp()
+  0.00     27.81     0.00   301104     0.00     0.00  OperatorExp::~OperatorExp()
+  0.00     27.81     0.00   301104     0.00     0.00  llvm::isa_impl_cl<llvm::Constant, llvm::Value const*>::doit(llvm::Value const*)
+  0.00     27.81     0.00   301104     0.00     0.00  DoubleExp::clone()
+  0.00     27.81     0.00   276012     0.00     0.00  Token::Token(unsigned short)
+  0.00     27.81     0.00   225828     0.00     0.00  OperatorExp::clone()
+  0.00     27.81     0.00   225828     0.00     0.00  OperatorExp::OperatorExp(OperatorExp const&)
+  0.00     27.81     0.00   200736     0.00     0.00  OperatorExp::~OperatorExp()
+  0.00     27.81     0.00   200736     0.00     0.00  Token::getPrecedence()
+  0.00     27.81     0.00   200736     0.00     0.00  Token::Token(unsigned short, void*)
+  0.00     27.81     0.00   200736     0.00     0.00  DoubleExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+  0.00     27.81     0.00   150552     0.00     0.00  llvm::cast_retty<llvm::Constant, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Constant, llvm::Value>(llvm::Value*)
+  0.00     27.81     0.00   125461     0.00     0.00  llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00     27.81     0.00   125461     0.00     0.00  llvm::Twine::isValid() const
+  0.00     27.81     0.00   100368     0.00     0.00  parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**)
+  0.00     27.81     0.00   100368     0.00     0.00  to_double(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00     27.81     0.00   100368     0.00     0.00  ReturnStatement::~ReturnStatement()
+  0.00     27.81     0.00   100368     0.00     0.00  Token::getString[abi:cxx11]()
+  0.00     27.81     0.00   100368     0.00     0.00  DoubleExp::assemble(Program&, Function&, AssembleContext&)
+  0.00     27.81     0.00   100368     0.00     0.00  DoubleExp::DoubleExp(double)
+  0.00     27.81     0.00    75276     0.00     0.00  parse_token(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&)
+  0.00     27.81     0.00    75276     0.00     0.00  OperatorExp::OperatorExp(unsigned short, PlainExp*, PlainExp*)
+  0.00     27.81     0.00    75276     0.00     0.00  ReturnStatement::ReturnStatement(ReturnStatement const&)
+  0.00     27.81     0.00    75276     0.00     0.00  Statement::free()
+  0.00     27.81     0.00    75276     0.00     0.00  Statement::~Statement()
+  0.00     27.81     0.00    57859     0.00     0.00  llvm::operator<(llvm::StringRef, llvm::StringRef)
+  0.00     27.81     0.00    50184     0.00     0.00  OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+  0.00     27.81     0.00    50184     0.00     0.00  Statement::Statement(Statement const&)
+  0.00     27.81     0.00    25092     0.00     0.00  parse_block(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&)
+  0.00     27.81     0.00    25092     0.00     0.00  parse_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&)
+  0.00     27.81     0.00    25092     0.00     0.00  parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&)
+  0.00     27.81     0.00    25092     0.00     0.00  parse_expression(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**)
+  0.00     27.81     0.00    25092     0.00     0.00  assemble_function(AssembleContext&, Configuration&, Program&, Function&)
+  0.00     27.81     0.00    25092     0.00     0.00  assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&)
+  0.00     27.81     0.00    25092     0.00     0.00  parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00     27.81     0.00    25092     0.00     0.00  validate_return_statement(Program&, ReturnStatement const&, Function&)
+  0.00     27.81     0.00    25092     0.00     0.00  parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**)
+  0.00     27.81     0.00    25092     0.00     0.00  ReturnStatement::ReturnStatement(PlainExp*)
+  0.00     27.81     0.00    25092     0.00     0.00  llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFDiv(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*)
+  0.00     27.81     0.00    25092     0.00     0.00  Statement::Statement(unsigned short, void*)
+  0.00     27.81     0.00    25092     0.00     0.00  llvm::IRBuilderBase::SetInstDebugLocation(llvm::Instruction*) const
+  0.00     27.81     0.00    25092     0.00     0.00  llvm::ReturnInst* llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::Insert<llvm::ReturnInst>(llvm::ReturnInst*, llvm::Twine const&) const
+  0.00     27.81     0.00    25092     0.00     0.00  void std::vector<Field, std::allocator<Field> >::_M_emplace_back_aux<Field>(Field&&)
+  0.00     27.81     0.00    25092     0.00     0.00  void std::vector<Statement, std::allocator<Statement> >::emplace_back<Statement>(Statement&&)
+  0.00     27.81     0.00    25092     0.00     0.00  void std::vector<Statement, std::allocator<Statement> >::_M_emplace_back_aux<Statement>(Statement&&)
+  0.00     27.81     0.00       16     0.00     0.11  void std::vector<Function, std::allocator<Function> >::_M_emplace_back_aux<Function>(Function&&)
+  0.00     27.81     0.00        5     0.00     0.00  Clock::remember()
+  0.00     27.81     0.00        4     0.00     0.00  parse_block_call(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00     27.81     0.00        4     0.00     0.00  Type::Type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type*)
+  0.00     27.81     0.00        4     0.00     0.00  Clock::since()
+  0.00     27.81     0.00        4     0.00     0.00  void std::vector<Type, std::allocator<Type> >::emplace_back<Type>(Type&&)
+  0.00     27.81     0.00        3     0.00     0.00  void std::vector<Type, std::allocator<Type> >::_M_emplace_back_aux<Type>(Type&&)
+  0.00     27.81     0.00        3     0.00     0.00  __gnu_cxx::__enable_if<std::__is_char<char>::__value, bool>::__type std::operator==<char>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  0.00     27.81     0.00        2     0.00     0.00  llvm::Function::CheckLazyArguments() const
+  0.00     27.81     0.00        1     0.00     0.00  assemble_run(AssembleContext&)
+  0.00     27.81     0.00        1     0.00     0.00  assemble_init()
+  0.00     27.81     0.00        1     0.00    15.04  parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&)
+  0.00     27.81     0.00        1     0.00    20.00  assemble(AssembleContext&, Configuration&, Program&)
+  0.00     27.81     0.00        1     0.00     0.00  configure(Configuration&, int, char**)
+  0.00     27.81     0.00        1     0.00     0.00  AssembleContext::AssembleContext()
+  0.00     27.81     0.00        1     0.00     0.00  Clock::since_start()
+  0.00     27.81     0.00        1     0.00     0.00  Clock::start()
+  0.00     27.81     0.00        1     0.00     0.00  Program::generate_types(AssembleContext&)
+  0.00     27.81     0.00        1     0.00     0.00  Program::find_type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type**)
+  0.00     27.81     0.00        1     0.00     4.12  void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*)
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+ 
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this 
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2014 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 0.04% of 27.81 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     20.7    5.76    0.00                 (anonymous namespace)::Verifier::visitCallInst(llvm::CallInst&) [1]
+-----------------------------------------------
+                                                 <spontaneous>
+[2]     19.8    5.51    0.00                 llvm::User::getOperand(unsigned int) const [2]
+-----------------------------------------------
+                                                 <spontaneous>
+[3]     17.9    4.99    0.00                 (anonymous namespace)::Verifier::visitInstruction(llvm::Instruction&) [3]
+-----------------------------------------------
+                                                 <spontaneous>
+[4]     10.5    2.93    0.00                 (anonymous namespace)::Verifier::verify(llvm::Function const&) [clone .constprop.1164] [4]
+-----------------------------------------------
+                                                 <spontaneous>
+[5]      6.3    1.74    0.00                 llvm::BasicBlock::getTerminator() [5]
+-----------------------------------------------
+                                                 <spontaneous>
+[6]      4.3    1.19    0.00                 llvm::Function::getReturnType() const [6]
+-----------------------------------------------
+                                                 <spontaneous>
+[7]      3.1    0.85    0.00                 llvm::Value::assertModuleIsMaterialized() const [7]
+-----------------------------------------------
+                                                 <spontaneous>
+[8]      2.7    0.75    0.00                 llvm::SmallPtrSetImplBase::insert_imp(void const*) [8]
+-----------------------------------------------
+                                                 <spontaneous>
+[9]      2.1    0.59    0.00                 llvm::cast_retty<llvm::DbgInfoIntrinsic, llvm::Instruction*>::ret_type llvm::dyn_cast<llvm::DbgInfoIntrinsic, llvm::Instruction>(llvm::Instruction*) [9]
+-----------------------------------------------
+                                                 <spontaneous>
+[10]     2.0    0.55    0.00                 (anonymous namespace)::Verifier::visitTerminatorInst(llvm::TerminatorInst&) [10]
+-----------------------------------------------
+                                                 <spontaneous>
+[11]     1.9    0.53    0.00                 llvm::cast_retty<llvm::GlobalValue, llvm::Value*>::ret_type llvm::dyn_cast<llvm::GlobalValue, llvm::Value>(llvm::Value*) [11]
+-----------------------------------------------
+                                                 <spontaneous>
+[12]     1.8    0.50    0.00                 llvm::SmallPtrSetIteratorImpl::AdvanceIfNotValid() [12]
+-----------------------------------------------
+                                                 <spontaneous>
+[13]     1.4    0.40    0.00                 llvm::ReturnInst::getOperand(unsigned int) const [13]
+-----------------------------------------------
+                                                 <spontaneous>
+[14]     1.4    0.38    0.00                 llvm::cast_retty<llvm::Function const, llvm::Value const*>::ret_type llvm::dyn_cast<llvm::Function const, llvm::Value const>(llvm::Value const*) [14]
+-----------------------------------------------
+                                                 <spontaneous>
+[15]     1.2    0.33    0.00                 llvm::cast_retty<llvm::Instruction const, llvm::Value const*>::ret_type llvm::cast<llvm::Instruction const, llvm::Value const>(llvm::Value const*) [15]
+-----------------------------------------------
+                                                 <spontaneous>
+[16]     1.2    0.32    0.00                 llvm::cast_retty<llvm::Argument, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Argument, llvm::Value>(llvm::Value*) [16]
+-----------------------------------------------
+                                                 <spontaneous>
+[17]     0.9    0.26    0.00                 llvm::SmallPtrSetImplBase::clear() [17]
+-----------------------------------------------
+                                                 <spontaneous>
+[18]     0.4    0.10    0.00                 _mcount_private [18]
+-----------------------------------------------
+                                                 <spontaneous>
+[19]     0.1    0.00    0.04                 main [19]
+                0.00    0.02       1/1           assemble(AssembleContext&, Configuration&, Program&) [26]
+                0.00    0.02       1/1           parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&) [32]
+                0.00    0.00       1/1           void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*) [46]
+                0.00    0.00       5/547911      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00  476748/1477783     Token::free() [311]
+                0.00    0.00  476748/1477783     Token::~Token() [312]
+                0.00    0.00       2/5           Clock::remember() [348]
+                0.00    0.00       1/1           AssembleContext::AssembleContext() [359]
+                0.00    0.00       1/1           configure(Configuration&, int, char**) [358]
+                0.00    0.00       1/1           Program::generate_types(AssembleContext&) [362]
+                0.00    0.00       1/1           Clock::since_start() [360]
+                0.00    0.00       1/1           assemble_init() [357]
+                0.00    0.00       1/1           assemble_run(AssembleContext&) [356]
+                0.00    0.00       1/4           Clock::since() [351]
+-----------------------------------------------
+                0.00    0.00       5/547911      main [19]
+                0.00    0.00   25092/547911      void std::vector<Statement, std::allocator<Statement> >::_M_emplace_back_aux<Statement>(Statement&&) [49]
+                0.00    0.00   32783/547911      void std::vector<Function, std::allocator<Function> >::_M_emplace_back_aux<Function>(Function&&) [48]
+                0.00    0.00   75276/547911      void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*) [46]
+                0.00    0.01  125460/547911      parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+                0.00    0.02  289295/547911      __tcf_0 [27]
+[20]     0.1    0.00    0.03  547911         tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.01    0.02  100368/100368      tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+                0.00    0.00       1/4           Clock::since() [351]
+                0.00    0.00       1/5           Clock::remember() [348]
+-----------------------------------------------
+                0.01    0.02  100368/100368      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+[21]     0.1    0.01    0.02  100368         tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+                0.01    0.01      20/20          void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&) [28]
+                0.00    0.00  476748/476748      void std::vector<Token, std::allocator<Token> >::emplace_back<Token>(Token&&) [45]
+                0.00    0.00  476748/476748      string_iter_kill_whitespace(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long long&) [313]
+                0.00    0.00  476748/1477783     Token::free() [311]
+                0.00    0.00  476748/1477783     Token::~Token() [312]
+                0.00    0.00  276012/276012      Token::Token(unsigned short) [318]
+                0.00    0.00  200736/200736      Token::Token(unsigned short, void*) [323]
+                0.00    0.00  100368/100368      to_double(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [328]
+-----------------------------------------------
+                                                 <spontaneous>
+[22]     0.1    0.03    0.00                 __fentry__ [22]
+-----------------------------------------------
+                0.00    0.02   25092/25092       assemble(AssembleContext&, Configuration&, Program&) [26]
+[23]     0.1    0.00    0.02   25092         assemble_function(AssembleContext&, Configuration&, Program&, Function&) [23]
+                0.00    0.02   25092/25092       assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+                0.00    0.00   25093/125461      llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [326]
+                0.00    0.00       2/2           llvm::Function::CheckLazyArguments() const [355]
+                0.00    0.00       1/1           Program::find_type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type**) [363]
+-----------------------------------------------
+                0.00    0.02   25092/25092       assemble_function(AssembleContext&, Configuration&, Program&, Function&) [23]
+[24]     0.1    0.00    0.02   25092         assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+                0.01    0.01   25092/25092       OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+                0.00    0.00   25092/75276       ReturnStatement::ReturnStatement(ReturnStatement const&) [334]
+                0.00    0.00   25092/25092       validate_return_statement(Program&, ReturnStatement const&, Function&) [340]
+                0.00    0.00   25092/125461      llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [326]
+                0.00    0.00   25092/25092       llvm::ReturnInst* llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::Insert<llvm::ReturnInst>(llvm::ReturnInst*, llvm::Twine const&) const [345]
+                0.00    0.00   25092/100368      OperatorExp::~OperatorExp() <cycle 1> [321]
+                0.00    0.00   25092/100368      ReturnStatement::~ReturnStatement() [329]
+-----------------------------------------------
+                               50184             OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+                0.01    0.01   25092/25092       assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+[25]     0.1    0.01    0.01   25092+50184   OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+                0.01    0.00   50184/50184       llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFAdd(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [34]
+                0.00    0.00  100368/100368      DoubleExp::assemble(Program&, Function&, AssembleContext&) [331]
+                0.00    0.00   75276/125461      llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [326]
+                0.00    0.00   50184/200736      DoubleExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [324]
+                0.00    0.00   25092/50184       OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [338]
+                0.00    0.00   25092/25092       llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFDiv(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [342]
+                               50184             OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+-----------------------------------------------
+                0.00    0.02       1/1           main [19]
+[26]     0.1    0.00    0.02       1         assemble(AssembleContext&, Configuration&, Program&) [26]
+                0.00    0.02   25092/25092       assemble_function(AssembleContext&, Configuration&, Program&, Function&) [23]
+                0.00    0.00       1/4           Clock::since() [351]
+                0.00    0.00       1/5           Clock::remember() [348]
+-----------------------------------------------
+                                                 <spontaneous>
+[27]     0.1    0.00    0.02                 __tcf_0 [27]
+                0.00    0.02  289295/547911      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00   25092/75276       Statement::free() [335]
+                0.00    0.00   25092/75276       Statement::~Statement() [336]
+-----------------------------------------------
+                0.01    0.01      20/20          tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+[28]     0.1    0.01    0.01      20         void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&) [28]
+                0.01    0.00  524307/1001035     Token::Token(Token const&) [33]
+                0.00    0.00  524287/1477783     Token::free() [311]
+                0.00    0.00  524287/1477783     Token::~Token() [312]
+-----------------------------------------------
+                0.00    0.02   75276/75276       parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&) [32]
+[29]     0.1    0.00    0.02   75276         parse_token(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [29]
+                0.00    0.02   25092/25092       parse_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [30]
+-----------------------------------------------
+                0.00    0.02   25092/25092       parse_token(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [29]
+[30]     0.1    0.00    0.02   25092         parse_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [30]
+                0.00    0.02   25092/25092       parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+                0.00    0.00   25092/100368      Token::getString[abi:cxx11]() [330]
+-----------------------------------------------
+                0.00    0.02   25092/25092       parse_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [30]
+[31]     0.1    0.00    0.02   25092         parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+                0.00    0.01  125460/547911      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.01   25092/25092       parse_block(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&) [39]
+                0.00    0.00      16/16          void std::vector<Function, std::allocator<Function> >::_M_emplace_back_aux<Function>(Function&&) [48]
+                0.00    0.00   50184/100368      Token::getString[abi:cxx11]() [330]
+                0.00    0.00   25092/25092       void std::vector<Field, std::allocator<Field> >::_M_emplace_back_aux<Field>(Field&&) [346]
+                0.00    0.00   25092/50184       Statement::Statement(Statement const&) [339]
+                0.00    0.00   25076/57859       llvm::operator<(llvm::StringRef, llvm::StringRef) [337]
+-----------------------------------------------
+                0.00    0.02       1/1           main [19]
+[32]     0.1    0.00    0.02       1         parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&) [32]
+                0.00    0.02   75276/75276       parse_token(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [29]
+                0.00    0.00       1/4           Clock::since() [351]
+                0.00    0.00       1/5           Clock::remember() [348]
+-----------------------------------------------
+                0.00    0.00  476728/1001035     void std::vector<Token, std::allocator<Token> >::emplace_back<Token>(Token&&) [45]
+                0.01    0.00  524307/1001035     void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&) [28]
+[33]     0.0    0.01    0.00 1001035         Token::Token(Token const&) [33]
+-----------------------------------------------
+                0.01    0.00   50184/50184       OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+[34]     0.0    0.01    0.00   50184         llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFAdd(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [34]
+                0.00    0.00  100368/150552      llvm::cast_retty<llvm::Constant, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Constant, llvm::Value>(llvm::Value*) [325]
+-----------------------------------------------
+                                                 <spontaneous>
+[35]     0.0    0.01    0.00                 llvm::ValueSymbolTable::makeUniqueName(llvm::Value*, llvm::SmallString<256u>&) [35]
+-----------------------------------------------
+                                                 <spontaneous>
+[36]     0.0    0.01    0.00                 llvm::APFloat::divideSignificand(llvm::APFloat const&) [36]
+-----------------------------------------------
+                                                 <spontaneous>
+[37]     0.0    0.01    0.00                 llvm::APFloat::roundAwayFromZero(llvm::APFloat::roundingMode, llvm::lostFraction, unsigned int) const [37]
+-----------------------------------------------
+                                                 <spontaneous>
+[38]     0.0    0.01    0.00                 llvm::Function::getFunctionType() const [38]
+-----------------------------------------------
+                0.00    0.01   25092/25092       parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+[39]     0.0    0.00    0.01   25092         parse_block(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&) [39]
+                0.00    0.01   25092/25092       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+                0.00    0.00   25092/100368      Token::getString[abi:cxx11]() [330]
+-----------------------------------------------
+                0.00    0.01   25092/25092       parse_block(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&) [39]
+[40]     0.0    0.00    0.01   25092         parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+                0.00    0.01   25092/25092       parse_expression(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [43]
+                0.00    0.00   25092/25092       void std::vector<Statement, std::allocator<Statement> >::_M_emplace_back_aux<Statement>(Statement&&) [49]
+                0.00    0.00   25092/25092       ReturnStatement::ReturnStatement(PlainExp*) [341]
+                0.00    0.00   25092/25092       Statement::Statement(unsigned short, void*) [343]
+                0.00    0.00   25092/25092       void std::vector<Statement, std::allocator<Statement> >::emplace_back<Statement>(Statement&&) [347]
+                0.00    0.00   25092/75276       Statement::free() [335]
+                0.00    0.00   25092/75276       Statement::~Statement() [336]
+-----------------------------------------------
+                0.00    0.00   25092/100368      parse_expression(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [43]
+                0.00    0.00   75276/100368      parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+[41]     0.0    0.00    0.01  100368         parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [41]
+                0.01    0.00  100368/100368      Token::getFloat() [42]
+                0.00    0.00  100368/100368      DoubleExp::DoubleExp(double) [332]
+-----------------------------------------------
+                0.01    0.00  100368/100368      parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [41]
+[42]     0.0    0.01    0.00  100368         Token::getFloat() [42]
+-----------------------------------------------
+                0.00    0.01   25092/25092       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+[43]     0.0    0.00    0.01   25092         parse_expression(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [43]
+                0.00    0.00   25092/25092       parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+                0.00    0.00   25092/100368      parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [41]
+-----------------------------------------------
+                                                 <spontaneous>
+[44]     0.0    0.01    0.00                 Token::toString[abi:cxx11]() [44]
+-----------------------------------------------
+                0.00    0.00  476748/476748      tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+[45]     0.0    0.00    0.00  476748         void std::vector<Token, std::allocator<Token> >::emplace_back<Token>(Token&&) [45]
+                0.00    0.00  476728/1001035     Token::Token(Token const&) [33]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[46]     0.0    0.00    0.00       1         void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*) [46]
+                0.00    0.00   75276/547911      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00   25092/75276       Statement::free() [335]
+                0.00    0.00   25092/75276       Statement::~Statement() [336]
+-----------------------------------------------
+                               25092             parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+                0.00    0.00   25092/25092       parse_expression(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [43]
+[47]     0.0    0.00    0.00   25092+25092   parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+                0.00    0.00   75276/100368      parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [41]
+                0.00    0.00  200736/200736      Token::getPrecedence() [322]
+                0.00    0.00   75276/75276       OperatorExp::OperatorExp(unsigned short, PlainExp*, PlainExp*) [333]
+                               25092             parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+-----------------------------------------------
+                0.00    0.00      16/16          parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+[48]     0.0    0.00    0.00      16         void std::vector<Function, std::allocator<Function> >::_M_emplace_back_aux<Function>(Function&&) [48]
+                0.00    0.00   32783/547911      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00   32783/57859       llvm::operator<(llvm::StringRef, llvm::StringRef) [337]
+-----------------------------------------------
+                0.00    0.00   25092/25092       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+[49]     0.0    0.00    0.00   25092         void std::vector<Statement, std::allocator<Statement> >::_M_emplace_back_aux<Statement>(Statement&&) [49]
+                0.00    0.00   25092/547911      tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00   25092/50184       Statement::Statement(Statement const&) [339]
+-----------------------------------------------
+[50]     0.0    0.00    0.00  100368+401472  <cycle 1 as a whole> [50]
+                0.00    0.00  200736+100368      OperatorExp::~OperatorExp() <cycle 1> [321]
+                0.00    0.00  301104             OperatorExp::~OperatorExp() <cycle 1> [315]
+-----------------------------------------------
+[51]     0.0    0.00    0.00   75276+376380  <cycle 2 as a whole> [51]
+                0.00    0.00  225828             OperatorExp::clone() <cycle 2> [319]
+                0.00    0.00  225828             OperatorExp::OperatorExp(OperatorExp const&) <cycle 2> [320]
+-----------------------------------------------
+                0.00    0.00  476748/1477783     tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+                0.00    0.00  476748/1477783     main [19]
+                0.00    0.00  524287/1477783     void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&) [28]
+[311]    0.0    0.00    0.00 1477783         Token::free() [311]
+-----------------------------------------------
+                0.00    0.00  476748/1477783     tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+                0.00    0.00  476748/1477783     main [19]
+                0.00    0.00  524287/1477783     void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&) [28]
+[312]    0.0    0.00    0.00 1477783         Token::~Token() [312]
+-----------------------------------------------
+                0.00    0.00  476748/476748      tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+[313]    0.0    0.00    0.00  476748         string_iter_kill_whitespace(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long long&) [313]
+-----------------------------------------------
+                0.00    0.00  200736/401472      OperatorExp::~OperatorExp() <cycle 1> [315]
+                0.00    0.00  200736/401472      OperatorExp::~OperatorExp() <cycle 1> [321]
+[314]    0.0    0.00    0.00  401472         DoubleExp::~DoubleExp() [314]
+-----------------------------------------------
+                              301104             OperatorExp::~OperatorExp() <cycle 1> [321]
+[315]    0.0    0.00    0.00  301104         OperatorExp::~OperatorExp() <cycle 1> [315]
+                0.00    0.00  200736/401472      DoubleExp::~DoubleExp() [314]
+                              100368             OperatorExp::~OperatorExp() <cycle 1> [321]
+-----------------------------------------------
+                0.00    0.00  301104/301104      llvm::cast_retty<llvm::Constant, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Constant, llvm::Value>(llvm::Value*) [325]
+[316]    0.0    0.00    0.00  301104         llvm::isa_impl_cl<llvm::Constant, llvm::Value const*>::doit(llvm::Value const*) [316]
+-----------------------------------------------
+                0.00    0.00  301104/301104      OperatorExp::OperatorExp(OperatorExp const&) <cycle 2> [320]
+[317]    0.0    0.00    0.00  301104         DoubleExp::clone() [317]
+-----------------------------------------------
+                0.00    0.00  276012/276012      tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+[318]    0.0    0.00    0.00  276012         Token::Token(unsigned short) [318]
+-----------------------------------------------
+                              150552             OperatorExp::OperatorExp(OperatorExp const&) <cycle 2> [320]
+                0.00    0.00   75276/75276       ReturnStatement::ReturnStatement(ReturnStatement const&) [334]
+[319]    0.0    0.00    0.00  225828         OperatorExp::clone() <cycle 2> [319]
+                              225828             OperatorExp::OperatorExp(OperatorExp const&) <cycle 2> [320]
+-----------------------------------------------
+                              225828             OperatorExp::clone() <cycle 2> [319]
+[320]    0.0    0.00    0.00  225828         OperatorExp::OperatorExp(OperatorExp const&) <cycle 2> [320]
+                0.00    0.00  301104/301104      DoubleExp::clone() [317]
+                              150552             OperatorExp::clone() <cycle 2> [319]
+-----------------------------------------------
+                              100368             OperatorExp::~OperatorExp() <cycle 1> [321]
+                              100368             OperatorExp::~OperatorExp() <cycle 1> [315]
+                0.00    0.00   25092/100368      assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+                0.00    0.00   75276/100368      Statement::free() [335]
+[321]    0.0    0.00    0.00  200736+100368  OperatorExp::~OperatorExp() <cycle 1> [321]
+                0.00    0.00  200736/401472      DoubleExp::~DoubleExp() [314]
+                              301104             OperatorExp::~OperatorExp() <cycle 1> [315]
+                              100368             OperatorExp::~OperatorExp() <cycle 1> [321]
+-----------------------------------------------
+                0.00    0.00  200736/200736      parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+[322]    0.0    0.00    0.00  200736         Token::getPrecedence() [322]
+-----------------------------------------------
+                0.00    0.00  200736/200736      tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+[323]    0.0    0.00    0.00  200736         Token::Token(unsigned short, void*) [323]
+-----------------------------------------------
+                0.00    0.00   50184/200736      OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+                0.00    0.00  150552/200736      OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [338]
+[324]    0.0    0.00    0.00  200736         DoubleExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [324]
+-----------------------------------------------
+                0.00    0.00   50184/150552      llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFDiv(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [342]
+                0.00    0.00  100368/150552      llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFAdd(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [34]
+[325]    0.0    0.00    0.00  150552         llvm::cast_retty<llvm::Constant, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Constant, llvm::Value>(llvm::Value*) [325]
+                0.00    0.00  301104/301104      llvm::isa_impl_cl<llvm::Constant, llvm::Value const*>::doit(llvm::Value const*) [316]
+-----------------------------------------------
+                0.00    0.00   25092/125461      assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+                0.00    0.00   25093/125461      assemble_function(AssembleContext&, Configuration&, Program&, Function&) [23]
+                0.00    0.00   75276/125461      OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+[326]    0.0    0.00    0.00  125461         llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [326]
+-----------------------------------------------
+                0.00    0.00       1/125461      llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [11479]
+                0.00    0.00   50184/125461      llvm::Twine::Twine(char const*) [11478]
+                0.00    0.00   75276/125461      llvm::Twine::Twine(char const*) [11477]
+[327]    0.0    0.00    0.00  125461         llvm::Twine::isValid() const [327]
+-----------------------------------------------
+                0.00    0.00  100368/100368      tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [21]
+[328]    0.0    0.00    0.00  100368         to_double(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [328]
+-----------------------------------------------
+                0.00    0.00   25092/100368      assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+                0.00    0.00   75276/100368      Statement::free() [335]
+[329]    0.0    0.00    0.00  100368         ReturnStatement::~ReturnStatement() [329]
+-----------------------------------------------
+                0.00    0.00   25092/100368      parse_block(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&) [39]
+                0.00    0.00   25092/100368      parse_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [30]
+                0.00    0.00   50184/100368      parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+[330]    0.0    0.00    0.00  100368         Token::getString[abi:cxx11]() [330]
+-----------------------------------------------
+                0.00    0.00  100368/100368      OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+[331]    0.0    0.00    0.00  100368         DoubleExp::assemble(Program&, Function&, AssembleContext&) [331]
+-----------------------------------------------
+                0.00    0.00  100368/100368      parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [41]
+[332]    0.0    0.00    0.00  100368         DoubleExp::DoubleExp(double) [332]
+-----------------------------------------------
+                0.00    0.00   75276/75276       parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [47]
+[333]    0.0    0.00    0.00   75276         OperatorExp::OperatorExp(unsigned short, PlainExp*, PlainExp*) [333]
+-----------------------------------------------
+                0.00    0.00   25092/75276       assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+                0.00    0.00   50184/75276       Statement::Statement(Statement const&) [339]
+[334]    0.0    0.00    0.00   75276         ReturnStatement::ReturnStatement(ReturnStatement const&) [334]
+                0.00    0.00   75276/75276       OperatorExp::clone() <cycle 2> [319]
+-----------------------------------------------
+                0.00    0.00   25092/75276       __tcf_0 [27]
+                0.00    0.00   25092/75276       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+                0.00    0.00   25092/75276       void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*) [46]
+[335]    0.0    0.00    0.00   75276         Statement::free() [335]
+                0.00    0.00   75276/100368      OperatorExp::~OperatorExp() <cycle 1> [321]
+                0.00    0.00   75276/100368      ReturnStatement::~ReturnStatement() [329]
+-----------------------------------------------
+                0.00    0.00   25092/75276       __tcf_0 [27]
+                0.00    0.00   25092/75276       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+                0.00    0.00   25092/75276       void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*) [46]
+[336]    0.0    0.00    0.00   75276         Statement::~Statement() [336]
+-----------------------------------------------
+                0.00    0.00   25076/57859       parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+                0.00    0.00   32783/57859       void std::vector<Function, std::allocator<Function> >::_M_emplace_back_aux<Function>(Function&&) [48]
+[337]    0.0    0.00    0.00   57859         llvm::operator<(llvm::StringRef, llvm::StringRef) [337]
+-----------------------------------------------
+                               50184             OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [338]
+                0.00    0.00   25092/50184       OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+                0.00    0.00   25092/50184       validate_return_statement(Program&, ReturnStatement const&, Function&) [340]
+[338]    0.0    0.00    0.00   50184+50184   OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [338]
+                0.00    0.00  150552/200736      DoubleExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [324]
+                               50184             OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [338]
+-----------------------------------------------
+                0.00    0.00   25092/50184       parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+                0.00    0.00   25092/50184       void std::vector<Statement, std::allocator<Statement> >::_M_emplace_back_aux<Statement>(Statement&&) [49]
+[339]    0.0    0.00    0.00   50184         Statement::Statement(Statement const&) [339]
+                0.00    0.00   50184/75276       ReturnStatement::ReturnStatement(ReturnStatement const&) [334]
+-----------------------------------------------
+                0.00    0.00   25092/25092       assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+[340]    0.0    0.00    0.00   25092         validate_return_statement(Program&, ReturnStatement const&, Function&) [340]
+                0.00    0.00   25092/50184       OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [338]
+-----------------------------------------------
+                0.00    0.00   25092/25092       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+[341]    0.0    0.00    0.00   25092         ReturnStatement::ReturnStatement(PlainExp*) [341]
+-----------------------------------------------
+                0.00    0.00   25092/25092       OperatorExp::assemble(Program&, Function&, AssembleContext&) [25]
+[342]    0.0    0.00    0.00   25092         llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFDiv(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [342]
+                0.00    0.00   50184/150552      llvm::cast_retty<llvm::Constant, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Constant, llvm::Value>(llvm::Value*) [325]
+-----------------------------------------------
+                0.00    0.00   25092/25092       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+[343]    0.0    0.00    0.00   25092         Statement::Statement(unsigned short, void*) [343]
+-----------------------------------------------
+                0.00    0.00   25092/25092       llvm::ReturnInst* llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::Insert<llvm::ReturnInst>(llvm::ReturnInst*, llvm::Twine const&) const [345]
+[344]    0.0    0.00    0.00   25092         llvm::IRBuilderBase::SetInstDebugLocation(llvm::Instruction*) const [344]
+-----------------------------------------------
+                0.00    0.00   25092/25092       assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [24]
+[345]    0.0    0.00    0.00   25092         llvm::ReturnInst* llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::Insert<llvm::ReturnInst>(llvm::ReturnInst*, llvm::Twine const&) const [345]
+                0.00    0.00   25092/25092       llvm::IRBuilderBase::SetInstDebugLocation(llvm::Instruction*) const [344]
+-----------------------------------------------
+                0.00    0.00   25092/25092       parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [31]
+[346]    0.0    0.00    0.00   25092         void std::vector<Field, std::allocator<Field> >::_M_emplace_back_aux<Field>(Field&&) [346]
+-----------------------------------------------
+                0.00    0.00   25092/25092       parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [40]
+[347]    0.0    0.00    0.00   25092         void std::vector<Statement, std::allocator<Statement> >::emplace_back<Statement>(Statement&&) [347]
+-----------------------------------------------
+                0.00    0.00       1/5           assemble(AssembleContext&, Configuration&, Program&) [26]
+                0.00    0.00       1/5           tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00       1/5           parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&) [32]
+                0.00    0.00       2/5           main [19]
+[348]    0.0    0.00    0.00       5         Clock::remember() [348]
+-----------------------------------------------
+                0.00    0.00       4/4           Program::generate_types(AssembleContext&) [362]
+[349]    0.0    0.00    0.00       4         parse_block_call(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [349]
+-----------------------------------------------
+                0.00    0.00       4/4           Program::generate_types(AssembleContext&) [362]
+[350]    0.0    0.00    0.00       4         Type::Type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type*) [350]
+-----------------------------------------------
+                0.00    0.00       1/4           assemble(AssembleContext&, Configuration&, Program&) [26]
+                0.00    0.00       1/4           tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [20]
+                0.00    0.00       1/4           parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&) [32]
+                0.00    0.00       1/4           main [19]
+[351]    0.0    0.00    0.00       4         Clock::since() [351]
+-----------------------------------------------
+                0.00    0.00       4/4           Program::generate_types(AssembleContext&) [362]
+[352]    0.0    0.00    0.00       4         void std::vector<Type, std::allocator<Type> >::emplace_back<Type>(Type&&) [352]
+-----------------------------------------------
+                0.00    0.00       3/3           Program::generate_types(AssembleContext&) [362]
+[353]    0.0    0.00    0.00       3         void std::vector<Type, std::allocator<Type> >::_M_emplace_back_aux<Type>(Type&&) [353]
+-----------------------------------------------
+                0.00    0.00       3/3           Program::find_type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type**) [363]
+[354]    0.0    0.00    0.00       3         __gnu_cxx::__enable_if<std::__is_char<char>::__value, bool>::__type std::operator==<char>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [354]
+-----------------------------------------------
+                0.00    0.00       2/2           assemble_function(AssembleContext&, Configuration&, Program&, Function&) [23]
+[355]    0.0    0.00    0.00       2         llvm::Function::CheckLazyArguments() const [355]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[356]    0.0    0.00    0.00       1         assemble_run(AssembleContext&) [356]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[357]    0.0    0.00    0.00       1         assemble_init() [357]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[358]    0.0    0.00    0.00       1         configure(Configuration&, int, char**) [358]
+                0.00    0.00       1/1           Clock::start() [361]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[359]    0.0    0.00    0.00       1         AssembleContext::AssembleContext() [359]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[360]    0.0    0.00    0.00       1         Clock::since_start() [360]
+-----------------------------------------------
+                0.00    0.00       1/1           configure(Configuration&, int, char**) [358]
+[361]    0.0    0.00    0.00       1         Clock::start() [361]
+-----------------------------------------------
+                0.00    0.00       1/1           main [19]
+[362]    0.0    0.00    0.00       1         Program::generate_types(AssembleContext&) [362]
+                0.00    0.00       4/4           parse_block_call(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [349]
+                0.00    0.00       4/4           Type::Type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type*) [350]
+                0.00    0.00       4/4           void std::vector<Type, std::allocator<Type> >::emplace_back<Type>(Type&&) [352]
+                0.00    0.00       3/3           void std::vector<Type, std::allocator<Type> >::_M_emplace_back_aux<Type>(Type&&) [353]
+-----------------------------------------------
+                0.00    0.00       1/1           assemble_function(AssembleContext&, Configuration&, Program&, Function&) [23]
+[363]    0.0    0.00    0.00       1         Program::find_type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type**) [363]
+                0.00    0.00       3/3           __gnu_cxx::__enable_if<std::__is_char<char>::__value, bool>::__type std::operator==<char>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [354]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2014 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [39] parse_block(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&) [334] ReturnStatement::ReturnStatement(ReturnStatement const&) [363] Program::find_type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type**)
+  [29] parse_token(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [329] ReturnStatement::~ReturnStatement() [317] DoubleExp::clone()
+ [356] assemble_run(AssembleContext&) [350] Type::Type(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, llvm::Type*) [324] DoubleExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)
+ [357] assemble_init()         [5] llvm::BasicBlock::getTerminator() [331] DoubleExp::assemble(Program&, Function&, AssembleContext&)
+  [30] parse_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [316] llvm::isa_impl_cl<llvm::Constant, llvm::Value const*>::doit(llvm::Value const*) [332] DoubleExp::DoubleExp(double)
+  [31] parse_function(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&) [35] llvm::ValueSymbolTable::makeUniqueName(llvm::Value*, llvm::SmallString<256u>&) [314] DoubleExp::~DoubleExp()
+  [21] tokenize_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<Token, std::allocator<Token> >&) [8] llvm::SmallPtrSetImplBase::insert_imp(void const*) [335] Statement::free()
+ [349] parse_block_call(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [17] llvm::SmallPtrSetImplBase::clear() [339] Statement::Statement(Statement const&)
+  [43] parse_expression(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [12] llvm::SmallPtrSetIteratorImpl::AdvanceIfNotValid() [343] Statement::Statement(unsigned short, void*)
+  [23] assemble_function(AssembleContext&, Configuration&, Program&, Function&) [15] llvm::cast_retty<llvm::Instruction const, llvm::Value const*>::ret_type llvm::cast<llvm::Instruction const, llvm::Value const>(llvm::Value const*) [336] Statement::~Statement()
+  [24] assemble_statement(AssembleContext&, Configuration&, Program&, Function&, Statement&) [326] llvm::Twine::Twine(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [13] llvm::ReturnInst::getOperand(unsigned int) const
+  [40] parse_block_keyword(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, std::vector<Statement, std::allocator<Statement> >&, unsigned long long&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [36] llvm::APFloat::divideSignificand(llvm::APFloat const&) [344] llvm::IRBuilderBase::SetInstDebugLocation(llvm::Instruction*) const
+  [41] parse_expression_primary(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, PlainExp**) [14] llvm::cast_retty<llvm::Function const, llvm::Value const*>::ret_type llvm::dyn_cast<llvm::Function const, llvm::Value const>(llvm::Value const*) [2] llvm::User::getOperand(unsigned int) const
+ [340] validate_return_statement(Program&, ReturnStatement const&, Function&) [11] llvm::cast_retty<llvm::GlobalValue, llvm::Value*>::ret_type llvm::dyn_cast<llvm::GlobalValue, llvm::Value>(llvm::Value*) [327] llvm::Twine::isValid() const
+ [313] string_iter_kill_whitespace(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, unsigned long long&) [9] llvm::cast_retty<llvm::DbgInfoIntrinsic, llvm::Instruction*>::ret_type llvm::dyn_cast<llvm::DbgInfoIntrinsic, llvm::Instruction>(llvm::Instruction*) [7] llvm::Value::assertModuleIsMaterialized() const
+  [47] parse_expression_operator_right(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&, unsigned long long&, int, PlainExp**) [16] llvm::cast_retty<llvm::Argument, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Argument, llvm::Value>(llvm::Value*) [37] llvm::APFloat::roundAwayFromZero(llvm::APFloat::roundingMode, llvm::lostFraction, unsigned int) const
+  [32] parse(Configuration&, std::vector<Token, std::allocator<Token> >&, Program&) [325] llvm::cast_retty<llvm::Constant, llvm::Value*>::ret_type llvm::dyn_cast<llvm::Constant, llvm::Value>(llvm::Value*) [6] llvm::Function::getReturnType() const
+  [26] assemble(AssembleContext&, Configuration&, Program&) [34] llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFAdd(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [38] llvm::Function::getFunctionType() const
+  [20] tokenize(Configuration&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::vector<Token, std::allocator<Token> >&) [342] llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::CreateFDiv(llvm::Value*, llvm::Value*, llvm::Twine const&, llvm::MDNode*) [355] llvm::Function::CheckLazyArguments() const
+ [358] configure(Configuration&, int, char**) [337] llvm::operator<(llvm::StringRef, llvm::StringRef) [345] llvm::ReturnInst* llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter>::Insert<llvm::ReturnInst>(llvm::ReturnInst*, llvm::Twine const&) const
+ [328] to_double(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [360] Clock::since_start() [46] void std::_Destroy_aux<false>::__destroy<Function*>(Function*, Function*)
+ [319] OperatorExp::clone()  [351] Clock::since()        [352] void std::vector<Type, std::allocator<Type> >::emplace_back<Type>(Type&&)
+ [338] OperatorExp::getType(Program&, Function&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) [361] Clock::start() [353] void std::vector<Type, std::allocator<Type> >::_M_emplace_back_aux<Type>(Type&&)
+  [25] OperatorExp::assemble(Program&, Function&, AssembleContext&) [348] Clock::remember() [346] void std::vector<Field, std::allocator<Field> >::_M_emplace_back_aux<Field>(Field&&)
+ [320] OperatorExp::OperatorExp(OperatorExp const&) [322] Token::getPrecedence() [45] void std::vector<Token, std::allocator<Token> >::emplace_back<Token>(Token&&)
+ [333] OperatorExp::OperatorExp(unsigned short, PlainExp*, PlainExp*) [311] Token::free() [28] void std::vector<Token, std::allocator<Token> >::_M_emplace_back_aux<Token>(Token&&)
+ [321] OperatorExp::~OperatorExp() [42] Token::getFloat() [48] void std::vector<Function, std::allocator<Function> >::_M_emplace_back_aux<Function>(Function&&)
+ [315] OperatorExp::~OperatorExp() [44] Token::toString[abi:cxx11]() [347] void std::vector<Statement, std::allocator<Statement> >::emplace_back<Statement>(Statement&&)
+   [1] (anonymous namespace)::Verifier::visitCallInst(llvm::CallInst&) [330] Token::getString[abi:cxx11]() [49] void std::vector<Statement, std::allocator<Statement> >::_M_emplace_back_aux<Statement>(Statement&&)
+   [3] (anonymous namespace)::Verifier::visitInstruction(llvm::Instruction&) [33] Token::Token(Token const&) [354] __gnu_cxx::__enable_if<std::__is_char<char>::__value, bool>::__type std::operator==<char>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+  [10] (anonymous namespace)::Verifier::visitTerminatorInst(llvm::TerminatorInst&) [318] Token::Token(unsigned short) [22] __fentry__
+   [4] (anonymous namespace)::Verifier::verify(llvm::Function const&) [clone .constprop.1164] [323] Token::Token(unsigned short, void*) [18] _mcount_private
+ [359] AssembleContext::AssembleContext() [312] Token::~Token() [50] <cycle 1>
+ [341] ReturnStatement::ReturnStatement(PlainExp*) [362] Program::generate_types(AssembleContext&) [51] <cycle 2>

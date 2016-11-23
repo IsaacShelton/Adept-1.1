@@ -1,19 +1,20 @@
 # depslib dependency file v1.0
-1477699233 source:c:\users\isaac\google drive\adept\src\main.cpp
-	<chrono>
+1479863629 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<stdio.h>
-	<fstream>
-	<sstream>
 	<stdlib.h>
 	<iostream>
+	"../include/adept.h"
 	"../include/lexer.h"
+	"../include/parse.h"
+	"../include/assemble.h"
 
-1477619899 c:\users\isaac\google drive\adept\include\lexer.h
+1478959190 c:\users\isaac\google drive\adept\include\lexer.h
 	<vector>
+	"config.h"
 	"tokens.h"
 
-1477752548 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1479574357 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -22,28 +23,1212 @@
 	"../include/lexer.h"
 	"../include/strings.h"
 
-1477752012 c:\users\isaac\google drive\adept\include\tokens.h
+1479861541 c:\users\isaac\google drive\adept\include\tokens.h
 	<string>
+	<vector>
 
-1477751878 source:c:\users\isaac\google drive\adept\src\tokens.cpp
+1478986957 source:c:\users\isaac\google drive\adept\src\tokens.cpp
 	<iostream>
 	"../include/tokens.h"
 	"../include/strings.h"
 
-1477752316 source:c:\users\isaac\google drive\adept\src\strings.cpp
+1478959298 source:c:\users\isaac\google drive\adept\src\strings.cpp
 	<sstream>
 	<algorithm>
 	"../include/strings.h"
 
-1477752317 c:\users\isaac\google drive\adept\include\strings.h
+1478959280 c:\users\isaac\google drive\adept\include\strings.h
 	<string>
 	<fstream>
 	<stdlib.h>
 
-1477353454 c:\users\isaac\google drive\adept\include\parse.h
+1479863468 c:\users\isaac\google drive\adept\include\parse.h
+	<vector>
+	"type.h"
+	"config.h"
+	"tokens.h"
+	"program.h"
+	"statement.h"
+	"asmcontext.h"
+
+1479675630 source:c:\users\isaac\google drive\adept\src\parse.cpp
+	<iostream>
+	"../include/die.h"
+	"../include/type.h"
+	"../include/parse.h"
+
+1479863152 source:c:\users\isaac\google drive\adept\src\config.cpp
+	<iostream>
+	"../include/config.h"
+
+1479863155 c:\users\isaac\google drive\adept\include\config.h
+	"clock.h"
+
+1477766711 c:\users\isaac\google drive\adept\include\die.h
+
+1479666679 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
+	<stdint.h>
 	"tokens.h"
+	"expression.h"
 
-1477750617 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1479675250 source:c:\users\isaac\google drive\adept\src\statement.cpp
+	<iostream>
+	"../include/statement.h"
+
+1479863241 c:\users\isaac\google drive\adept\include\assemble.h
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"config.h"
+	"parse.h"
+	"asmcontext.h"
+
+1479863570 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+	<string>
+	<fstream>
+	<stdlib.h>
+	<unistd.h>
+	<iostream>
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ExecutionEngine/ExecutionEngine.h"
+	"llvm/ExecutionEngine/GenericValue.h"
+	"llvm/ExecutionEngine/MCJIT.h"
+	"llvm/Support/DynamicLibrary.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/Constants.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Type.h"
+	"llvm/IR/Verifier.h"
+	"llvm/Bitcode/ReaderWriter.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/FileSystem.h"
+	"../include/die.h"
+	"../include/adept.h"
+	"../include/validate.h"
+	"../include/assemble.h"
+
+1467138445 c:\llvm\include\llvm\ir\irbuilder.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/None.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/Twine.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/Constant.h"
+	"llvm/IR/ConstantFolder.h"
+	"llvm/IR/Constants.h"
+	"llvm/IR/DataLayout.h"
+	"llvm/IR/DebugLoc.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/GlobalVariable.h"
+	"llvm/IR/InstrTypes.h"
+	"llvm/IR/Instruction.h"
+	"llvm/IR/Instructions.h"
+	"llvm/IR/Intrinsics.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Operator.h"
+	"llvm/IR/Type.h"
+	"llvm/IR/Value.h"
+	"llvm/IR/ValueHandle.h"
+	"llvm/Support/AtomicOrdering.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/Casting.h"
+	"llvm-c/Types.h"
+	<cassert>
+	<cstddef>
+	<cstdint>
+
+1464888363 c:\llvm\include\llvm\adt\arrayref.h
+	"llvm/ADT/Hashing.h"
+	"llvm/ADT/None.h"
+	"llvm/ADT/SmallVector.h"
+	<vector>
+
+1460971049 c:\llvm\include\llvm\adt\hashing.h
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/Host.h"
+	"llvm/Support/SwapByteOrder.h"
+	"llvm/Support/type_traits.h"
+	<algorithm>
+	<cassert>
+	<cstring>
+	<string>
+	<utility>
+
+1478539642 c:\llvm\include\llvm\support\datatypes.h
+	<cmath>
+	<math.h>
+	<cinttypes>
+	<inttypes.h>
+	<cstdint>
+	<stdint.h>
+	<sys/types.h>
+	<cstdlib>
+	<cstddef>
+	<stdlib.h>
+	<stddef.h>
+	<sys/types.h>
+
+1456506105 c:\llvm\include\llvm\support\host.h
+	"llvm/ADT/StringMap.h"
+	<endian.h>
+	<machine/endian.h>
+	<string>
+
+1460793088 c:\llvm\include\llvm\adt\stringmap.h
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/Allocator.h"
+	"llvm/Support/PointerLikeTypeTraits.h"
+	<cstring>
+	<utility>
+
+1466485824 c:\llvm\include\llvm\adt\stringref.h
+	"llvm/ADT/iterator_range.h"
+	"llvm/Support/Compiler.h"
+	<algorithm>
+	<cassert>
+	<cstring>
+	<limits>
+	<string>
+	<utility>
+
+1443054187 c:\llvm\include\llvm\adt\iterator_range.h
+	<utility>
+	<iterator>
+
+1457586903 c:\llvm\include\llvm\support\compiler.h
+	"llvm/Config/llvm-config.h"
+	<sal.h>
+	<sanitizer/msan_interface.h>
+	<sanitizer/asan_interface.h>
+
+1478539642 c:\llvm\include\llvm\config\llvm-config.h
+
+1464734512 c:\llvm\include\llvm\support\allocator.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/MathExtras.h"
+	"llvm/Support/Memory.h"
+	<algorithm>
+	<cassert>
+	<cstddef>
+	<cstdlib>
+
+1464375914 c:\llvm\include\llvm\adt\smallvector.h
+	"llvm/ADT/iterator_range.h"
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/MathExtras.h"
+	"llvm/Support/type_traits.h"
+	<algorithm>
+	<cassert>
+	<cstddef>
+	<cstdlib>
+	<cstring>
+	<initializer_list>
+	<iterator>
+	<memory>
+
+1453834116 c:\llvm\include\llvm\support\alignof.h
+	"llvm/Support/Compiler.h"
+	<cstddef>
+	<type_traits>
+
+1468861389 c:\llvm\include\llvm\support\mathextras.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/SwapByteOrder.h"
+	<algorithm>
+	<cassert>
+	<cstring>
+	<type_traits>
+	<limits>
+	<intrin.h>
+	<android/api-level.h>
+
+1460971049 c:\llvm\include\llvm\support\swapbyteorder.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/DataTypes.h"
+	<cstddef>
+
+1460767357 c:\llvm\include\llvm\support\type_traits.h
+	<type_traits>
+	<utility>
+	"llvm/Support/Compiler.h"
+
+1446252932 c:\llvm\include\llvm\support\memory.h
+	"llvm/Support/DataTypes.h"
+	<string>
+	<system_error>
+
+1466466621 c:\llvm\include\llvm\support\pointerliketypetraits.h
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/DataTypes.h"
+
+1424438165 c:\llvm\include\llvm\adt\none.h
+
+1452414433 c:\llvm\include\llvm\adt\twine.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorHandling.h"
+	<cassert>
+	<string>
+
+1460971049 c:\llvm\include\llvm\support\errorhandling.h
+	"llvm/Support/Compiler.h"
+	<string>
+
+1462218202 c:\llvm\include\llvm\ir\basicblock.h
+	"llvm/ADT/Twine.h"
+	"llvm/ADT/ilist.h"
+	"llvm/IR/Instruction.h"
+	"llvm/IR/SymbolTableListTraits.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/DataTypes.h"
+
+1468709493 c:\llvm\include\llvm\adt\ilist.h
+	"llvm/Support/Compiler.h"
+	<algorithm>
+	<cassert>
+	<cstddef>
+	<iterator>
+
+1468603164 c:\llvm\include\llvm\ir\instruction.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/IR/DebugLoc.h"
+	"llvm/IR/SymbolTableListTraits.h"
+	"llvm/IR/User.h"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+
+1447208802 c:\llvm\include\llvm\adt\ilist_node.h
+
+1430325524 c:\llvm\include\llvm\ir\debugloc.h
+	"llvm/IR/TrackingMDRef.h"
+	"llvm/Support/DataTypes.h"
+
+1460793088 c:\llvm\include\llvm\ir\trackingmdref.h
+	"llvm/IR/Metadata.h"
+
+1461384956 c:\llvm\include\llvm\ir\metadata.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/PointerUnion.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/ADT/iterator_range.h"
+	"llvm/IR/Constant.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Value.h"
+	"llvm/Support/ErrorHandling.h"
+	<type_traits>
+	"llvm/IR/Metadata.def"
+	"llvm/IR/Metadata.def"
+	"llvm/IR/Metadata.def"
+	"llvm/IR/Metadata.def"
+	"llvm/IR/Metadata.def"
+	"llvm/IR/Metadata.def"
+
+1458885472 c:\llvm\include\llvm\adt\densemap.h
+	"llvm/ADT/DenseMapInfo.h"
+	"llvm/ADT/EpochTracker.h"
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/MathExtras.h"
+	"llvm/Support/PointerLikeTypeTraits.h"
+	"llvm/Support/type_traits.h"
+	<algorithm>
+	<cassert>
+	<climits>
+	<cstddef>
+	<cstring>
+	<iterator>
+	<new>
+	<utility>
+
+1461240981 c:\llvm\include\llvm\adt\densemapinfo.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/Hashing.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/PointerLikeTypeTraits.h"
+	"llvm/Support/type_traits.h"
+
+1428778634 c:\llvm\include\llvm\adt\epochtracker.h
+	"llvm/Config/llvm-config.h"
+	<cstdint>
+
+1451332366 c:\llvm\include\llvm\adt\pointerunion.h
+	"llvm/ADT/DenseMapInfo.h"
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/Support/Compiler.h"
+
+1452664753 c:\llvm\include\llvm\adt\pointerintpair.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/PointerLikeTypeTraits.h"
+	<cassert>
+	<limits>
+
+1471277191 c:\llvm\include\llvm\adt\stlextras.h
+	<algorithm>
+	<cassert>
+	<cstddef>
+	<cstdlib>
+	<functional>
+	<iterator>
+	<memory>
+	<utility>
+	"llvm/ADT/Optional.h"
+	"llvm/ADT/iterator.h"
+	"llvm/ADT/iterator_range.h"
+	"llvm/Support/Compiler.h"
+
+1440025647 c:\llvm\include\llvm\adt\optional.h
+	"llvm/ADT/None.h"
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/Compiler.h"
+	<cassert>
+	<new>
+	<utility>
+
+1471277191 c:\llvm\include\llvm\adt\iterator.h
+	<cstddef>
+	<iterator>
+
+1455144435 c:\llvm\include\llvm\ir\constant.h
+	"llvm/IR/User.h"
+
+1460793088 c:\llvm\include\llvm\ir\user.h
+	"llvm/ADT/iterator.h"
+	"llvm/ADT/iterator_range.h"
+	"llvm/IR/Value.h"
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/ErrorHandling.h"
+
+1464828768 c:\llvm\include\llvm\ir\value.h
+	"llvm/ADT/iterator_range.h"
+	"llvm/IR/Use.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/Casting.h"
+	"llvm/IR/Value.def"
+	"llvm/IR/Value.def"
+
+1460971049 c:\llvm\include\llvm\ir\use.h
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/Support/CBindingWrapping.h"
+	<cstddef>
+
+1450403212 c:\llvm\include\llvm\support\cbindingwrapping.h
+	"llvm/Support/Casting.h"
+	"llvm-c/Types.h"
+
+1435052993 c:\llvm\include\llvm\support\casting.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/type_traits.h"
+	<cassert>
+
+1465712244 c:\llvm\include\llvm-c\types.h
+	"llvm/Support/DataTypes.h"
+
+1460032339 c:\llvm\include\llvm\ir\value.def
+
+1468603400 c:\llvm\include\llvm\ir\llvmcontext.h
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/Options.h"
+
+1439058456 c:\llvm\include\llvm\support\options.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/Support/CommandLine.h"
+
+1467825916 c:\llvm\include\llvm\support\commandline.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/ADT/Twine.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/ManagedStatic.h"
+	<cassert>
+	<climits>
+	<cstdarg>
+	<utility>
+	<vector>
+
+1455572322 c:\llvm\include\llvm\adt\smallptrset.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/PointerLikeTypeTraits.h"
+	<cassert>
+	<cstddef>
+	<cstring>
+	<cstdlib>
+	<iterator>
+	<utility>
+
+1467212647 c:\llvm\include\llvm\support\managedstatic.h
+	"llvm/Support/Compiler.h"
+	<atomic>
+	<cstddef>
+
+1461384956 c:\llvm\include\llvm\ir\metadata.def
+
+1460032339 c:\llvm\include\llvm\ir\symboltablelisttraits.h
+	"llvm/ADT/ilist.h"
+
+1450118063 c:\llvm\include\llvm\ir\instruction.def
+
+1435052993 c:\llvm\include\llvm\ir\constantfolder.h
+	"llvm/IR/Constants.h"
+	"llvm/IR/InstrTypes.h"
+
+1465692079 c:\llvm\include\llvm\ir\constants.h
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/APInt.h"
+	"llvm/ADT/ArrayRef.h"
+	"llvm/IR/Constant.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/OperandTraits.h"
+
+1460793088 c:\llvm\include\llvm\adt\apfloat.h
+	"llvm/ADT/APInt.h"
+
+1467016308 c:\llvm\include\llvm\adt\apint.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/MathExtras.h"
+	<cassert>
+	<climits>
+	<cstring>
+	<string>
+
+1456415728 c:\llvm\include\llvm\ir\derivedtypes.h
+	"llvm/IR/Type.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/DataTypes.h"
+
+1464899872 c:\llvm\include\llvm\ir\type.h
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorHandling.h"
+
+1435052993 c:\llvm\include\llvm\ir\operandtraits.h
+	"llvm/IR/User.h"
+
+1467231017 c:\llvm\include\llvm\ir\instrtypes.h
+	"llvm/ADT/Optional.h"
+	"llvm/ADT/Twine.h"
+	"llvm/IR/Attributes.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Instruction.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/OperandTraits.h"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+	"llvm/IR/Instruction.def"
+
+1469468263 c:\llvm\include\llvm\ir\attributes.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/FoldingSet.h"
+	"llvm/ADT/Optional.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/PointerLikeTypeTraits.h"
+	"llvm-c/Types.h"
+	<bitset>
+	<cassert>
+	<map>
+	<string>
+	"llvm/IR/Attributes.inc"
+
+1464976214 c:\llvm\include\llvm\adt\foldingset.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/iterator.h"
+	"llvm/Support/Allocator.h"
+
+1478540204 c:\llvm\include\llvm\ir\attributes.inc
+
+1468381358 c:\llvm\include\llvm\ir\datalayout.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Type.h"
+	"llvm/Pass.h"
+	"llvm/Support/DataTypes.h"
+
+1464217018 c:\llvm\include\llvm\pass.h
+	<string>
+	"llvm/PassSupport.h"
+	"llvm/PassAnalysisSupport.h"
+
+1465070275 c:\llvm\include\llvm\passsupport.h
+	"Pass.h"
+	"llvm/InitializePasses.h"
+	"llvm/PassInfo.h"
+	"llvm/PassRegistry.h"
+	"llvm/Support/Atomic.h"
+	"llvm/Support/Threading.h"
+	<functional>
+
+1468859367 c:\llvm\include\llvm\initializepasses.h
+
+1444020390 c:\llvm\include\llvm\passinfo.h
+	<cassert>
+	<vector>
+
+1460971049 c:\llvm\include\llvm\passregistry.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/PassInfo.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/RWMutex.h"
+	<vector>
+
+1435052993 c:\llvm\include\llvm\support\rwmutex.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/Threading.h"
+	<cassert>
+
+1465094761 c:\llvm\include\llvm\support\threading.h
+	"llvm/Config/llvm-config.h"
+	"llvm/Support/Compiler.h"
+	<ciso646>
+	<functional>
+	<mutex>
+	"llvm/Support/Atomic.h"
+
+1464887471 c:\llvm\include\llvm\support\atomic.h
+	"llvm/Support/DataTypes.h"
+
+1466944139 c:\llvm\include\llvm\passanalysissupport.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/Pass.h"
+	<vector>
+
+1467619289 c:\llvm\include\llvm\ir\function.h
+	"llvm/ADT/iterator_range.h"
+	"llvm/IR/Argument.h"
+	"llvm/IR/Attributes.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/CallingConv.h"
+	"llvm/IR/GlobalObject.h"
+	"llvm/IR/OperandTraits.h"
+	"llvm/Support/Compiler.h"
+
+1459546875 c:\llvm\include\llvm\ir\argument.h
+	"llvm/ADT/Twine.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/IR/Attributes.h"
+	"llvm/IR/Value.h"
+
+1462525649 c:\llvm\include\llvm\ir\callingconv.h
+
+1466803292 c:\llvm\include\llvm\ir\globalobject.h
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/GlobalValue.h"
+
+1465938082 c:\llvm\include\llvm\ir\globalvalue.h
+	"llvm/IR/Constant.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/Support/MD5.h"
+	<system_error>
+
+1460971049 c:\llvm\include\llvm\support\md5.h
+	"llvm/ADT/SmallString.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/Endian.h"
+
+1435052993 c:\llvm\include\llvm\adt\smallstring.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+
+1452713555 c:\llvm\include\llvm\support\endian.h
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/Host.h"
+	"llvm/Support/SwapByteOrder.h"
+
+1465344819 c:\llvm\include\llvm\ir\globalvariable.h
+	"llvm/ADT/Twine.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/IR/GlobalObject.h"
+	"llvm/IR/OperandTraits.h"
+
+1468191692 c:\llvm\include\llvm\ir\instructions.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/iterator_range.h"
+	"llvm/IR/Attributes.h"
+	"llvm/IR/CallingConv.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/InstrTypes.h"
+	"llvm/Support/AtomicOrdering.h"
+	"llvm/Support/ErrorHandling.h"
+	<iterator>
+
+1462835498 c:\llvm\include\llvm\support\atomicordering.h
+	<cstddef>
+
+1466781029 c:\llvm\include\llvm\ir\intrinsics.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/None.h"
+	"llvm/ADT/Optional.h"
+	<string>
+	"llvm/IR/Intrinsics.gen"
+
+1478540204 c:\llvm\include\llvm\ir\intrinsics.gen
+
+1461307065 c:\llvm\include\llvm\ir\operator.h
+	"llvm/IR/Constants.h"
+	"llvm/IR/DataLayout.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Instruction.h"
+	"llvm/IR/Type.h"
+
+1438641230 c:\llvm\include\llvm\ir\valuehandle.h
+	"llvm/ADT/DenseMapInfo.h"
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/IR/Value.h"
+
+1466627382 c:\llvm\include\llvm\ir\module.h
+	"llvm/ADT/iterator_range.h"
+	"llvm/IR/Comdat.h"
+	"llvm/IR/DataLayout.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/GlobalAlias.h"
+	"llvm/IR/GlobalIFunc.h"
+	"llvm/IR/GlobalVariable.h"
+	"llvm/IR/Metadata.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/CodeGen.h"
+	"llvm/Support/DataTypes.h"
+	<system_error>
+
+1462984720 c:\llvm\include\llvm\ir\comdat.h
+
+1462321248 c:\llvm\include\llvm\ir\globalalias.h
+	"llvm/ADT/ilist_node.h"
+	"llvm/IR/GlobalIndirectSymbol.h"
+
+1462321248 c:\llvm\include\llvm\ir\globalindirectsymbol.h
+	"llvm/IR/GlobalValue.h"
+	"llvm/IR/OperandTraits.h"
+
+1460793088 c:\llvm\include\llvm\ir\globalifunc.h
+	"llvm/ADT/ilist_node.h"
+	"llvm/IR/GlobalIndirectSymbol.h"
+
+1466186834 c:\llvm\include\llvm\support\codegen.h
+
+1467311111 c:\llvm\include\llvm\executionengine\executionengine.h
+	"RuntimeDyld.h"
+	"llvm-c/ExecutionEngine.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/ValueHandle.h"
+	"llvm/IR/ValueMap.h"
+	"llvm/Object/Binary.h"
+	"llvm/Support/ErrorHandling.h"
+	"llvm/Support/Mutex.h"
+	"llvm/Target/TargetMachine.h"
+	"llvm/Target/TargetOptions.h"
+	<map>
+	<string>
+	<vector>
+	<functional>
+
+1464359244 c:\llvm\include\llvm\executionengine\runtimedyld.h
+	"JITSymbolFlags.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/DebugInfo/DIContext.h"
+	"llvm/Object/ObjectFile.h"
+	"llvm/Support/Memory.h"
+	<map>
+	<memory>
+	<utility>
+
+1453237598 c:\llvm\include\llvm\executionengine\jitsymbolflags.h
+	"llvm/IR/GlobalValue.h"
+	"llvm/Object/SymbolicFile.h"
+
+1464359244 c:\llvm\include\llvm\object\symbolicfile.h
+	"llvm/Object/Binary.h"
+	"llvm/Support/Format.h"
+	<utility>
+
+1459980849 c:\llvm\include\llvm\object\binary.h
+	"llvm/Object/Error.h"
+	"llvm/Support/ErrorOr.h"
+	"llvm/Support/FileSystem.h"
+	"llvm/Support/MemoryBuffer.h"
+
+1463521133 c:\llvm\include\llvm\object\error.h
+	"llvm/ADT/Twine.h"
+	"llvm/Support/Error.h"
+	<system_error>
+
+1468463041 c:\llvm\include\llvm\support\error.h
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/StringExtras.h"
+	"llvm/ADT/Twine.h"
+	"llvm/Support/Debug.h"
+	"llvm/Support/ErrorOr.h"
+	"llvm/Support/raw_ostream.h"
+	<vector>
+
+1461218063 c:\llvm\include\llvm\adt\stringextras.h
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/DataTypes.h"
+	<iterator>
+
+1444933064 c:\llvm\include\llvm\support\debug.h
+
+1454993278 c:\llvm\include\llvm\support\erroror.h
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/Support/AlignOf.h"
+	<cassert>
+	<system_error>
+	<type_traits>
+
+1450306746 c:\llvm\include\llvm\support\raw_ostream.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/DataTypes.h"
+	<system_error>
+
+1465833296 c:\llvm\include\llvm\support\filesystem.h
+	"llvm/ADT/IntrusiveRefCntPtr.h"
+	"llvm/ADT/SmallString.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/Twine.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorHandling.h"
+	"llvm/Support/ErrorOr.h"
+	"llvm/Support/TimeValue.h"
+	<cassert>
+	<cstdint>
+	<ctime>
+	<stack>
+	<string>
+	<system_error>
+	<tuple>
+	<vector>
+	<sys/stat.h>
+
+1443549768 c:\llvm\include\llvm\adt\intrusiverefcntptr.h
+	<atomic>
+	<cassert>
+	<cstddef>
+
+1435052993 c:\llvm\include\llvm\support\timevalue.h
+	"llvm/Support/DataTypes.h"
+	<string>
+
+1450403212 c:\llvm\include\llvm\support\memorybuffer.h
+	"llvm/ADT/Twine.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorOr.h"
+	<memory>
+
+1454893375 c:\llvm\include\llvm\support\format.h
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/DataTypes.h"
+	<cassert>
+	<cstdio>
+	<tuple>
+
+1467824202 c:\llvm\include\llvm\debuginfo\dicontext.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/Object/ObjectFile.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/DataTypes.h"
+	<string>
+
+1466792682 c:\llvm\include\llvm\object\objectfile.h
+	"llvm/ADT/StringRef.h"
+	"llvm/MC/SubtargetFeature.h"
+	"llvm/Object/SymbolicFile.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorHandling.h"
+	"llvm/Support/FileSystem.h"
+	"llvm/Support/MemoryBuffer.h"
+	<cstring>
+
+1460971049 c:\llvm\include\llvm\mc\subtargetfeature.h
+	"llvm/ADT/Triple.h"
+	"llvm/Support/DataTypes.h"
+	<bitset>
+	<vector>
+
+1469356455 c:\llvm\include\llvm\adt\triple.h
+	"llvm/ADT/Twine.h"
+
+1450561327 c:\llvm\include\llvm-c\executionengine.h
+	"llvm-c/Types.h"
+	"llvm-c/Target.h"
+	"llvm-c/TargetMachine.h"
+
+1455748869 c:\llvm\include\llvm-c\target.h
+	"llvm-c/Types.h"
+	"llvm/Config/llvm-config.h"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/AsmPrinters.def"
+	"llvm/Config/AsmParsers.def"
+	"llvm/Config/Disassemblers.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/AsmPrinters.def"
+	"llvm/Config/AsmParsers.def"
+	"llvm/Config/Disassemblers.def"
+
+1478539642 c:\llvm\include\llvm\config\targets.def
+
+1478539642 c:\llvm\include\llvm\config\asmprinters.def
+
+1478539642 c:\llvm\include\llvm\config\asmparsers.def
+
+1478539642 c:\llvm\include\llvm\config\disassemblers.def
+
+1455599484 c:\llvm\include\llvm-c\targetmachine.h
+	"llvm-c/Types.h"
+	"llvm-c/Target.h"
+
+1461085044 c:\llvm\include\llvm\ir\valuemap.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/Optional.h"
+	"llvm/IR/TrackingMDRef.h"
+	"llvm/IR/ValueHandle.h"
+	"llvm/Support/Mutex.h"
+	"llvm/Support/UniqueLock.h"
+	"llvm/Support/type_traits.h"
+	<iterator>
+	<memory>
+
+1435052993 c:\llvm\include\llvm\support\mutex.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/Threading.h"
+	<cassert>
+
+1435052993 c:\llvm\include\llvm\support\uniquelock.h
+	"llvm/Support/Mutex.h"
+
+1467311111 c:\llvm\include\llvm\target\targetmachine.h
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/Triple.h"
+	"llvm/IR/DataLayout.h"
+	"llvm/Pass.h"
+	"llvm/Support/CodeGen.h"
+	"llvm/Target/TargetOptions.h"
+	<cassert>
+	<string>
+
+1468527733 c:\llvm\include\llvm\target\targetoptions.h
+	"llvm/Target/TargetRecip.h"
+	"llvm/MC/MCTargetOptions.h"
+	"llvm/MC/MCAsmInfo.h"
+
+1462835498 c:\llvm\include\llvm\target\targetrecip.h
+	"llvm/ADT/StringRef.h"
+	<cstdint>
+	<map>
+	<string>
+	<vector>
+
+1468240934 c:\llvm\include\llvm\mc\mctargetoptions.h
+	<string>
+
+1468240934 c:\llvm\include\llvm\mc\mcasminfo.h
+	"llvm/MC/MCDirectives.h"
+	"llvm/MC/MCDwarf.h"
+	<cassert>
+	<vector>
+
+1458006185 c:\llvm\include\llvm\mc\mcdirectives.h
+
+1460971049 c:\llvm\include\llvm\mc\mcdwarf.h
+	"llvm/ADT/MapVector.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/MC/MCSection.h"
+	"llvm/Support/Dwarf.h"
+	<string>
+	<utility>
+	<vector>
+
+1427244621 c:\llvm\include\llvm\adt\mapvector.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/SmallVector.h"
+	<vector>
+
+1460971049 c:\llvm\include\llvm\mc\mcsection.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/ilist.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/MC/MCFragment.h"
+	"llvm/MC/SectionKind.h"
+	"llvm/Support/Compiler.h"
+
+1454637349 c:\llvm\include\llvm\mc\mcfragment.h
+	"llvm/ADT/SmallString.h"
+	"llvm/ADT/ilist.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/ADT/iterator.h"
+	"llvm/MC/MCFixup.h"
+	"llvm/MC/MCInst.h"
+
+1435052993 c:\llvm\include\llvm\mc\mcfixup.h
+	"llvm/MC/MCExpr.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorHandling.h"
+	"llvm/Support/SMLoc.h"
+	<cassert>
+
+1462282544 c:\llvm\include\llvm\mc\mcexpr.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/DataTypes.h"
+
+1439180529 c:\llvm\include\llvm\support\smloc.h
+	<cassert>
+
+1433447392 c:\llvm\include\llvm\mc\mcinst.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/SMLoc.h"
+
+1456179791 c:\llvm\include\llvm\mc\sectionkind.h
+
+1468456878 c:\llvm\include\llvm\support\dwarf.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/Dwarf.def"
+	"llvm/Support/Dwarf.def"
+	"llvm/Support/Dwarf.def"
+	"llvm/Support/Dwarf.def"
+	"llvm/Support/Dwarf.def"
+	"llvm/Support/Dwarf.def"
+
+1465418069 c:\llvm\include\llvm\support\dwarf.def
+
+1460828380 c:\llvm\include\llvm\executionengine\genericvalue.h
+	"llvm/ADT/APInt.h"
+	"llvm/Support/DataTypes.h"
+	<vector>
+
+1435052993 c:\llvm\include\llvm\executionengine\mcjit.h
+	"llvm/ExecutionEngine/ExecutionEngine.h"
+	<cstdlib>
+
+1435052993 c:\llvm\include\llvm\support\dynamiclibrary.h
+	<string>
+
+1466122261 c:\llvm\include\llvm\ir\verifier.h
+	"llvm/IR/PassManager.h"
+
+1466122261 c:\llvm\include\llvm\ir\passmanager.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/PassManagerInternal.h"
+	"llvm/Support/Debug.h"
+	"llvm/Support/TypeName.h"
+	"llvm/Support/raw_ostream.h"
+	"llvm/Support/type_traits.h"
+	<list>
+	<memory>
+	<vector>
+
+1466147729 c:\llvm\include\llvm\ir\passmanagerinternal.h
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/StringRef.h"
+
+1456380781 c:\llvm\include\llvm\support\typename.h
+	"llvm/ADT/StringRef.h"
+
+1468278618 c:\llvm\include\llvm\bitcode\readerwriter.h
+	"llvm/IR/DiagnosticInfo.h"
+	"llvm/IR/ModuleSummaryIndex.h"
+	"llvm/Support/Endian.h"
+	"llvm/Support/ErrorOr.h"
+	"llvm/Support/MemoryBuffer.h"
+	<memory>
+	<string>
+
+1468603400 c:\llvm\include\llvm\ir\diagnosticinfo.h
+	"llvm/ADT/Optional.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/Twine.h"
+	"llvm/IR/DebugLoc.h"
+	"llvm/Support/CBindingWrapping.h"
+	"llvm-c/Types.h"
+	<functional>
+	<string>
+
+1468766821 c:\llvm\include\llvm\ir\modulesummaryindex.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/DenseSet.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/SmallString.h"
+	"llvm/ADT/StringExtras.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/IR/Module.h"
+	<array>
+
+1459965368 c:\llvm\include\llvm\adt\denseset.h
+	"llvm/ADT/DenseMap.h"
+
+1439180529 c:\llvm\include\llvm\support\targetselect.h
+	"llvm/Config/llvm-config.h"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/AsmPrinters.def"
+	"llvm/Config/AsmParsers.def"
+	"llvm/Config/Disassemblers.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/Targets.def"
+	"llvm/Config/AsmPrinters.def"
+	"llvm/Config/AsmParsers.def"
+	"llvm/Config/Disassemblers.def"
+
+1479675165 c:\users\isaac\google drive\adept\include\expression.h
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"asmcontext.h"
+
+1479675132 source:c:\users\isaac\google drive\adept\src\expression.cpp
+	<iostream>
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ExecutionEngine/ExecutionEngine.h"
+	"llvm/ExecutionEngine/GenericValue.h"
+	"llvm/ExecutionEngine/MCJIT.h"
+	"llvm/Support/DynamicLibrary.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/Constants.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Type.h"
+	"llvm/IR/Verifier.h"
+	"llvm/Bitcode/ReaderWriter.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/FileSystem.h"
+	"../include/tokens.h"
+	"../include/strings.h"
+	"../include/program.h"
+	"../include/expression.h"
+
+1478971540 c:\users\isaac\google drive\adept\include\asmcontext.h
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+
+1479071798 c:\users\isaac\google drive\adept\include\type.h
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	<vector>
+	<string>
+
+1479071818 source:c:\users\isaac\google drive\adept\src\type.cpp
+	<iostream>
+	"../include/type.h"
+	"../include/parse.h"
+
+1479174047 source:c:\users\isaac\google drive\adept\src\validate.cpp
+	<iostream>
+	"../include/validate.h"
+
+1479174051 c:\users\isaac\google drive\adept\include\validate.h
+	"parse.h"
+	"statement.h"
+
+1479575589 c:\users\isaac\google drive\adept\include\program.h
+	"type.h"
+	"statement.h"
+	"asmcontext.h"
+
+1479615100 source:c:\users\isaac\google drive\adept\src\program.cpp
+	<iostream>
+	"../include/program.h"
+
+1479505562 c:\users\isaac\google drive\adept\include\clock.h
+	<chrono>
+
+1479505468 source:c:\users\isaac\google drive\adept\src\clock.cpp
+	<iostream>
+	"../include/clock.h"
+
+1479861408 source:c:\users\isaac\google drive\adept\src\jit.cpp
+	<iostream>
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ExecutionEngine/ExecutionEngine.h"
+	"llvm/ExecutionEngine/GenericValue.h"
+	"llvm/ExecutionEngine/MCJIT.h"
+	"llvm/Support/DynamicLibrary.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/Constants.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Type.h"
+	"llvm/IR/Verifier.h"
+	"llvm/Bitcode/ReaderWriter.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/FileSystem.h"
+	"../include/jit.h"
+
+1479861381 c:\users\isaac\google drive\adept\include\jit.h
+	<string>
+	"asmcontext.h"
+
+1479863549 source:c:\users\isaac\google drive\adept\src\adept.cpp
+	"../include/jit.h"
+	"../include/adept.h"
+	"../include/lexer.h"
+	"../include/parse.h"
+	"../include/config.h"
+	"../include/assemble.h"
+
+1479863530 c:\users\isaac\google drive\adept\include\adept.h
+	"../include/parse.h"
+	"../include/config.h"
+	"../include/tokens.h"
+	"../include/asmcontext.h"
 

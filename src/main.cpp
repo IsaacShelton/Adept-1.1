@@ -1,34 +1,24 @@
 
-#include <chrono>
 #include <string>
 #include <stdio.h>
-#include <fstream>
-#include <sstream>
 #include <stdlib.h>
 #include <iostream>
 #include "../include/lexer.h"
+#include "../include/parse.h"
+#include "../include/assemble.h"
+#include "../include/finalize.h"
 
 int main(int argc, char** argv) {
-    auto start = std::chrono::steady_clock::now(); // Start Timer
+    Program program;
+    TokenList tokens;
+    Configuration config;
+    AssembleContext context;
 
-    int result;
-    std::vector<Token> tokens;
-
-    if(argc != 2){
-        std::cerr << "Adept Copyright (c) 2016 Isaac Shelton" << std::endl;
-        std::cerr << "Usage: adept <filename>" << std::endl;
-        return 1;
-    }
-
-    result = tokenize(argv[1], tokens);
-    if(result != 0) return 1;
-
-    // Get Total Time
-    auto finish = std::chrono::steady_clock::now();
-    double seconds = (std::chrono::duration<double, std::milli> (finish - start).count())/1000;
-    std::cout << "lexed in " << seconds << "s" << std::endl;
-
-    //for(Token token : tokens) std::cout << token.getString() << " " << std::endl;
+    if( configure(config, argc, argv)      != 0 ) return 1;
+    if( tokenize(config, argv[1], tokens)  != 0 ) return 1;
+    if( parse(config, tokens, program)     != 0 ) return 1;
+    if( assemble(context, config, program) != 0 ) return 1;
+    if( finalize(config, context)          != 0 ) return 1;
 
     return 0;
 }
