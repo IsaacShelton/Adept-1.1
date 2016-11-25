@@ -5,9 +5,10 @@
 #include <fstream>
 #include <stdlib.h>
 #include "../include/lexer.h"
+#include "../include/errors.h"
 #include "../include/strings.h"
 
-int tokenize(Configuration& config, std::string filename, std::vector<Token>& tokens){
+int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens){
     std::ifstream adept;
 
     adept.open(filename.c_str());
@@ -16,9 +17,11 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>& to
         return 1;
     }
 
+    tokens->reserve(10000000);
+
     std::string line;
     while( std::getline(adept, line) ){
-        tokenize_string(line + "\n", tokens);
+        tokenize_string(line + "\n", *tokens);
     }
 
     adept.close();
@@ -47,7 +50,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             while( (prefix_char>=65 && prefix_char<=90)
             ||  (prefix_char>=48 && prefix_char<=57)
             ||  (prefix_char>=97 && prefix_char<=122)
-            ||  (prefix_char==95) ){
+            ||  (prefix_char==95) || (prefix_char=='.') ){
                 word += prefix_char;
                 if(++i != code_size) {
                     prefix_char = code[i];
@@ -86,7 +89,39 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             tokens.push_back(TOKEN_ADD);
         }
         else if(prefix_char == '-'){
-            tokens.push_back(TOKEN_SUBTRACT);
+            next_index(i, code_size);
+            prefix_char = code[i];
+
+            if(prefix_char >= 48 and prefix_char <= 57){
+                std::string content = "-";
+
+                while(prefix_char >= 48 and prefix_char <= 57){
+                    content += prefix_char;
+                    next_index(i, code_size);
+                    prefix_char = code[i];
+                }
+
+                if(prefix_char == '.'){
+                    next_index(i, code_size);
+                    prefix_char = code[i];
+
+                    content += ".";
+                    while(prefix_char >= 48 and prefix_char <= 57){
+                        content += prefix_char;
+                        next_index(i, code_size);
+                        prefix_char = code[i];
+                    }
+
+                    tokens.push_back( TOKEN_FLOAT( to_double(content) ) );
+                } else {
+                    tokens.push_back( TOKEN_INT( to_int(content) ) );
+                }
+            }
+            else {
+                tokens.push_back(TOKEN_SUBTRACT);
+            }
+
+            i--;
         }
         else if(prefix_char == '*'){
             tokens.push_back(TOKEN_MULTIPLY);
@@ -103,7 +138,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
                 tokens.push_back(TOKEN_DIVIDE);
             }
         }
-        else if(prefix_char == '.'){
+        else if(prefix_char == ':'){
             tokens.push_back(TOKEN_MEMBER);
         }
         else if(prefix_char >= 48 and prefix_char <= 57){

@@ -23,6 +23,9 @@ Statement::Statement(const Statement& other){
         data = new AssignStatement( *(static_cast<AssignStatement*>(other.data)) );
         break;
     case 5:
+        data = new AssignMemberStatement( *(static_cast<AssignMemberStatement*>(other.data)) );
+        break;
+    case 6:
         data = new CallStatement( *(static_cast<CallStatement*>(other.data)) );
         break;
     default:
@@ -55,6 +58,9 @@ void Statement::free(){
         delete static_cast<AssignStatement*>(data);
         break;
     case 5:
+        delete static_cast<AssignMemberStatement*>(data);
+        break;
+    case 6:
         delete static_cast<CallStatement*>(data);
         break;
     }
@@ -96,6 +102,16 @@ std::string Statement::toString(){
             break;
         }
     case 5:
+        {
+            AssignMemberStatement* extra = static_cast<AssignMemberStatement*>(data);
+            for(size_t i = 0; i != extra->path.size(); i++){
+                str += extra->path[i];
+                if(i + 1 != extra->path.size()) str += ":";
+            }
+            str += " = " + extra->value->toString();
+            break;
+        }
+    case 6:
         {
             CallStatement* extra = static_cast<CallStatement*>(data);
             str = extra->name + "(";
@@ -149,6 +165,18 @@ AssignStatement::AssignStatement(std::string n, PlainExp* e){
     value = e;
 }
 AssignStatement::~AssignStatement(){
+    delete value;
+}
+
+AssignMemberStatement::AssignMemberStatement(const AssignMemberStatement& other){
+    path = other.path;
+    value = other.value->clone();
+}
+AssignMemberStatement::AssignMemberStatement(const std::vector<std::string>& p, PlainExp* e){
+    path = p;
+    value = e;
+}
+AssignMemberStatement::~AssignMemberStatement(){
     delete value;
 }
 

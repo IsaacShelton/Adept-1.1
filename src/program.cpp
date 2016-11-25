@@ -18,8 +18,9 @@ int Program::generate_types(AssembleContext& context){
     for(size_t i = 0; i != structures.size(); i++){
         Structure& struct_data = structures[i];
         std::vector<llvm::Type*> members;
+        members.reserve(100);
 
-        for(size_t j = 0; j < struct_data.members.size(); j++){
+        for(size_t j = 0; j != struct_data.members.size(); j++){
             llvm::Type* member_type;
             if(this->find_type(struct_data.members[j].type, &member_type) != 0) {
                 std::cout << "The type '" << struct_data.members[j].type << "' does not exist" << std::endl;
@@ -59,6 +60,16 @@ int Program::find_func(std::string name, External* func){
     for(size_t i = 0; i != externs.size(); i++){
         if(externs[i].name == name){
             *func = externs[i];
+            return 0;
+        }
+    }
+
+    return 1;
+}
+int Program::find_struct(std::string name, Structure* structure){
+    for(size_t i = 0; i != structures.size(); i++){
+        if(structures[i].name == name){
+            *structure = structures[i];
             return 0;
         }
     }
@@ -122,4 +133,15 @@ void Function::print_statements(){
     for(Statement statement : statements){
         std::cout << statement.toString() << std::endl;
     }
+}
+
+int Structure::find_index(std::string member_name, int* index){
+    for(size_t i = 0; i != members.size(); i++){
+        if(members[i].name == member_name){
+            *index = i;
+            return 0;
+        }
+    }
+
+    return 1;
 }

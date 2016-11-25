@@ -91,4 +91,18 @@ class CallExp : public PlainExp {
     bool getType(Program&, Function&, std::string&);
 };
 
+class MemberExp : public PlainExp {
+    public:
+    PlainExp* value;
+    std::string member;
+
+    MemberExp();
+    MemberExp(PlainExp*, const std::string&);
+    ~MemberExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&);
+    std::string toString();
+    PlainExp* clone();
+    bool getType(Program&, Function&, std::string&);
+};
+
 #endif // EXPRESSION_H_INCLUDED

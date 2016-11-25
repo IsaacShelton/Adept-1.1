@@ -4,11 +4,14 @@
 #include "../include/type.h"
 #include "../include/parse.h"
 
-int parse(Configuration& config, std::vector<Token>& tokens, Program& program){
+int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
 
-    for(size_t i = 0; i != tokens.size(); i++){
-        if(parse_token(config, tokens, program, i) != 0) return 1;
+    for(size_t i = 0; i != tokens->size(); i++){
+        if(parse_token(config, *tokens, program, i) != 0) return 1;
     }
+
+    // Free Tokens
+    delete tokens;
 
     // Print Parser Time
     config.clock.print_since("Parser Finished");
@@ -28,8 +31,7 @@ int parse_token(Configuration& config, std::vector<Token>& tokens, Program& prog
     case TOKENID_NEWLINE:
         break;
     default:
-        fail("Expected definition");
-        return 1;
+        die("Expected definition");
     }
 
     return 0;
@@ -43,8 +45,7 @@ int parse_word(Configuration& config, std::vector<Token>& tokens, Program& progr
 
     switch(tokens[i].id){
         default:
-            fail("Expected definition");
-            return 1;
+            die("Expected definition");
     }
 
     return 0;
@@ -284,6 +285,10 @@ int parse_block_word(Configuration& config, std::vector<Token>& tokens, Program&
         // Variable Assign
         if(parse_block_assign(config, tokens, program, statements, i, name) != 0) return 1;
         break;
+    case TOKENID_MEMBER:
+        // Variable Assign
+        if(parse_block_member_assign(config, tokens, program, statements, i, name) != 0) return 1;
+        break;
     default:
         fail("Unexpected Operator after word in block");
         return 1;
@@ -350,6 +355,34 @@ int parse_block_assign(Configuration& config, std::vector<Token>& tokens, Progra
     statements.push_back( STATEMENT_ASSIGN(name, expression) );
     return 0;
 }
+int parse_block_member_assign(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name){
+    // name:member:member = 10 * 3 / 4
+    //     ^
+
+    std::vector<std::string> path = {name};
+    PlainExp* expression;
+
+    while(tokens[i].id == TOKENID_MEMBER){
+        next_index(i, tokens.size());
+        if(tokens[i].id != TOKENID_WORD){
+            std::cerr << "Expected word after ':' operator" << std::endl;
+            return 1;
+        }
+
+        path.push_back(tokens[i].getString());
+        next_index(i, tokens.size());
+    }
+
+    if(tokens[i].id != TOKENID_ASSIGN){
+        std::cerr << "Expected '=' operator after member of variable" << std::endl;
+        return 1;
+    }
+    next_index(i, tokens.size());
+
+    if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
+    statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression) );
+    return 0;
+}
 
 int parse_expression(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, PlainExp** expression){
     // 10 + 3 * 6
@@ -413,18 +446,29 @@ int parse_expression_operator_right(Configuration& config, std::vector<Token>& t
         next_index(i, tokens.size());
 
         // Parse the primary expression after the binary operator.
-        PlainExp* right;
-        if(parse_expression_primary(config, tokens, program, i, &right) != 0) return 1;
+        if(operation == TOKENID_MEMBER){
+            if(tokens[i].id != TOKENID_WORD){
+                std::cerr << "Expected word after ':' operator" << std::endl;
+                return 1;
+            }
 
-        // If BinOp binds less tightly with RHS than the operator after RHS, let
-        // the pending operator take RHS as its LHS.
-        int next_precedence = tokens[i].getPrecedence();
-        if (token_precedence < next_precedence) {
-            if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right) != 0) return 1;
+            *left = new MemberExp(*left, tokens[i].getString());
+            next_index(i, tokens.size());
         }
+        else {
+            PlainExp* right;
+            if(parse_expression_primary(config, tokens, program, i, &right) != 0) return 1;
 
-        // Merge LHS/RHS.
-        *left = new OperatorExp(operation, *left, right);
+            // If BinOp binds less tightly with RHS than the operator after RHS, let
+            // the pending operator take RHS as its LHS.
+            int next_precedence = tokens[i].getPrecedence();
+            if (token_precedence < next_precedence) {
+                if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right) != 0) return 1;
+            }
+
+            // Merge LHS/RHS.
+            *left = new OperatorExp(operation, *left, right);
+        }
     }
 
     return 0;

@@ -20,6 +20,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/FileSystem.h"
 
+#include "../include/errors.h"
 #include "../include/tokens.h"
 #include "../include/strings.h"
 #include "../include/program.h"
@@ -100,7 +101,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         }
     }
     else {
-        std::cout << "Invalid use of operator on type '" << type << "'" << std::endl;
+        std::cerr << "Invalid use of operator on type '" << type << "'" << std::endl;
         return NULL;
     }
 }
@@ -191,7 +192,7 @@ llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext
     Variable var;
 
     if(func.find_variable(value, &var) != 0){
-        std::cout << "Undeclared variable '" << value << "', returning NULL" << std::endl;
+        fail( UNDECLARED_VARIABLE(value) );
         return NULL;
     }
 
@@ -207,7 +208,7 @@ bool WordExp::getType(Program& program, Function& func, std::string& type){
     Variable var;
 
     if(func.find_variable(value, &var) != 0){
-        std::cout << "Undeclared variable '" << value << "'" << std::endl;
+        fail( UNDECLARED_VARIABLE(value) );
         return false;
     }
 
@@ -232,7 +233,7 @@ CallExp::~CallExp(){
 llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext& context){
     llvm::Function* target = context.module->getFunction(name);
     if (!target){
-        std::cerr << "Unknown Function '" << name << "', returning NULL" << std::endl;
+        fail( UNDECLARED_FUNC(name) );
         return NULL;
     }
 
@@ -269,5 +270,83 @@ bool CallExp::getType(Program& program, Function& func, std::string& type){
     if(program.find_func(name, &target) != 0) return false;
     type = target.return_type;
 
+    return true;
+}
+
+MemberExp::MemberExp(){}
+MemberExp::MemberExp(PlainExp* v, const std::string& m){
+    value = v;
+    member = m;
+}
+MemberExp::~MemberExp(){
+    //delete value;
+}
+llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleContext& context){
+    std::string type_name;
+    Structure target;
+    int index;
+
+    if(!value->getType(program, func, type_name)){
+        std::cerr << "warning returning NULL" << std::endl;
+        return NULL;
+    }
+
+    if(program.find_struct(type_name, &target) != 0){
+        fail( UNDECLARED_STRUCT(type_name) );
+        return NULL;
+    }
+
+    if(target.find_index(member, &index) != 0){
+        fail( UNDECLARED_MEMBER(member, target.name) );
+        return NULL;
+    }
+
+    llvm::Value* member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
+    llvm::Value* data = value->assemble(program, func, context);
+
+    llvm::Type* alloc_type;
+    if(program.find_type(type_name, &alloc_type) != 0){
+        fail( UNDECLARED_TYPE(type_name) );
+        return NULL;
+    }
+
+    llvm::AllocaInst* alloc = context.builder.CreateAlloca(alloc_type, 0, "alloctmp");
+    context.builder.CreateStore(data, alloc);
+
+    std::vector<llvm::Value*> indices(2);
+    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+    indices[1] = member_index;
+
+    llvm::Value* member_ptr = context.builder.CreateGEP(alloc_type, alloc, indices, "memberptr");
+    llvm::Value* loaded_member = context.builder.CreateLoad(member_ptr, "loadtmp");
+
+    return loaded_member;
+}
+std::string MemberExp::toString(){
+    return value->toString() + ":" + member;
+}
+PlainExp* MemberExp::clone(){
+    return new MemberExp(*this);
+}
+bool MemberExp::getType(Program& program, Function& func, std::string& type){
+    std::string type_name;
+    Structure target;
+    int index;
+
+    if(!value->getType(program, func, type_name)){
+        return false;
+    }
+
+    if(program.find_struct(type_name, &target) != 0){
+        fail( UNDECLARED_STRUCT(type_name) );
+        return false;
+    }
+
+    if(target.find_index(member, &index) != 0){
+        fail( UNDECLARED_MEMBER(member, target.name) );
+        return false;
+    }
+
+    type = target.members[index].type;
     return true;
 }

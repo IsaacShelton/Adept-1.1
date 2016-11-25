@@ -14,6 +14,6 @@ int assemble(AssembleContext& context, Configuration& config, Program& program);
 int assemble_structure(AssembleContext& context, Configuration& config, Program& program, Structure& structure);
 int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func);
 int assemble_external(AssembleContext& context, Configuration& config, Program& program, External& func);
-int assemble_statement(AssembleContext& context, Configuration& config, Program& program, Function& func, Statement& statement);
+int assemble_statement(AssembleContext& context, Configuration& config, Program& program, Function& func, AssembleFunction& asm_func, Statement& statement);
 
 #endif // ASSEMBLE_H_INCLUDED

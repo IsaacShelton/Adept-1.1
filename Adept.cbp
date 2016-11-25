@@ -40,7 +40,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />
-				<Option parameters="C:/Users/isaac/Desktop/adept/main.adept" />
+				<Option parameters="C:/Users/isaac/Desktop/adept/stress.adept" />
 				<Compiler>
 					<Add option="-std=c++11" />
 					<Add option="-pg" />
@@ -55,7 +55,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />
-				<Option parameters="C:/Users/isaac/Desktop/adept/main.adept" />
+				<Option parameters="C:/Users/isaac/Desktop/adept/maxstress.adept" />
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-std=c++11" />
@@ -69,8 +69,7 @@
 			<Add option="-Os" />
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
-			<Add option="-fexceptions" />
-			<Add option="-Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -std=gnu++11   -fno-exceptions -fno-rtti -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS" />
+			<Add option="-fno-exceptions -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -fno-rtti -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS" />
 			<Add directory="C:/LLVM/include" />
 		</Compiler>
 		<Linker>
@@ -82,8 +81,12 @@
 		<Unit filename="include/assemble.h" />
 		<Unit filename="include/clock.h" />
 		<Unit filename="include/config.h" />
+		<Unit filename="include/die.h" />
 		<Unit filename="include/enforce.h" />
+		<Unit filename="include/errors.h" />
 		<Unit filename="include/expression.h" />
+		<Unit filename="include/finalize.h" />
+		<Unit filename="include/jit.h" />
 		<Unit filename="include/lexer.h" />
 		<Unit filename="include/parse.h" />
 		<Unit filename="include/program.h" />
@@ -92,10 +95,13 @@
 		<Unit filename="include/tokens.h" />
 		<Unit filename="include/type.h" />
 		<Unit filename="include/validate.h" />
+		<Unit filename="src/asmcontext.cpp" />
 		<Unit filename="src/assemble.cpp" />
 		<Unit filename="src/clock.cpp" />
 		<Unit filename="src/config.cpp" />
 		<Unit filename="src/expression.cpp" />
+		<Unit filename="src/finalize.cpp" />
+		<Unit filename="src/jit.cpp" />
 		<Unit filename="src/lexer.cpp" />
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/parse.cpp" />

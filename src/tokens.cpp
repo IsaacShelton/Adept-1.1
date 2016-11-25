@@ -160,6 +160,8 @@ int Token::getPrecedence(){
     case TOKENID_MULTIPLY:
     case TOKENID_DIVIDE:
         return 3;
+    case TOKENID_MEMBER:
+        return 4;
     default:
         return 0;
     }

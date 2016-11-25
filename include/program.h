@@ -20,6 +20,8 @@ struct Field {
 struct Structure {
     std::string name;
     std::vector<Field> members;
+
+    int find_index(std::string name, int* index);
 };
 
 struct Function {
@@ -28,6 +30,7 @@ struct Function {
     std::string return_type;
     std::vector<Statement> statements;
     std::vector<Variable> variables;
+    AssembleFunction asm_func;
 
     int find_variable(std::string, Variable*);
 
@@ -49,6 +52,7 @@ struct Program {
     int generate_types(AssembleContext&);
     int find_type(std::string, llvm::Type**);
     int find_func(std::string, External*);
+    int find_struct(std::string, Structure*);
 
     void print();
     void print_types();

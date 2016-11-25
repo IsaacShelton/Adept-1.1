@@ -8,12 +8,20 @@
 
 // Context structure for assemble.h
 
+struct AssembleFunction {
+    llvm::BasicBlock* entry;
+    llvm::BasicBlock* body;
+    llvm::BasicBlock* quit;
+    llvm::Value* exitval;
+};
+
 struct AssembleContext {
     llvm::LLVMContext context;
     llvm::IRBuilder<> builder;
     std::unique_ptr<llvm::Module> module;
 
     AssembleContext();
+    int find_func_data(const std::string&, AssembleFunction*);
 };
 
 #endif // ASMCONTEXT_H_INCLUDED

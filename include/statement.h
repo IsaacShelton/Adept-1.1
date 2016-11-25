@@ -7,14 +7,16 @@
 #define STATEMENT_DECLAREAS(a,b,c)   Statement(2, new DeclareAsStatement(a, b, c))
 #define STATEMENT_RETURN(a)          Statement(3, new ReturnStatement(a))
 #define STATEMENT_ASSIGN(a,b)        Statement(4, new AssignStatement(a, b))
-#define STATEMENT_CALL(a,b)          Statement(5, new CallStatement(a, b))
+#define STATEMENT_ASSIGNMEMBER(a,b)  Statement(5, new AssignMemberStatement(a, b))
+#define STATEMENT_CALL(a,b)          Statement(6, new CallStatement(a, b))
 
-#define STATEMENTID_NONE       0
-#define STATEMENTID_DECLARE    1
-#define STATEMENTID_DECLAREAS  2
-#define STATEMENTID_RETURN     3
-#define STATEMENTID_ASSIGN     4
-#define STATEMENTID_CALL       5
+#define STATEMENTID_NONE         0
+#define STATEMENTID_DECLARE      1
+#define STATEMENTID_DECLAREAS    2
+#define STATEMENTID_RETURN       3
+#define STATEMENTID_ASSIGN       4
+#define STATEMENTID_ASSIGNMEMBER 5
+#define STATEMENTID_CALL         6
 
 #include <string>
 #include <vector>
@@ -68,6 +70,15 @@ struct AssignStatement {
     AssignStatement(const AssignStatement&);
     AssignStatement(std::string, PlainExp*);
     ~AssignStatement();
+};
+
+struct AssignMemberStatement {
+    std::vector<std::string> path;
+    PlainExp* value;
+
+    AssignMemberStatement(const AssignMemberStatement&);
+    AssignMemberStatement(const std::vector<std::string>&, PlainExp*);
+    ~AssignMemberStatement();
 };
 
 struct CallStatement {
