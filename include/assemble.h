@@ -16,4 +16,7 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
 int assemble_external(AssembleContext& context, Configuration& config, Program& program, External& func);
 int assemble_statement(AssembleContext& context, Configuration& config, Program& program, Function& func, AssembleFunction& asm_func, Statement& statement);
 
+int assemble_merge_types(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Value**, std::string*);
+int assemble_merge_types_oneway(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Type*, std::string*);
+
 #endif // ASSEMBLE_H_INCLUDED

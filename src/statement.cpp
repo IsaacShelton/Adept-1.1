@@ -147,7 +147,7 @@ DeclareAsStatement::~DeclareAsStatement(){
 }
 
 ReturnStatement::ReturnStatement(const ReturnStatement& other){
-    value = other.value->clone();
+    value = (other.value == NULL) ? NULL : other.value->clone();
 }
 ReturnStatement::ReturnStatement(PlainExp* e){
     value = e;

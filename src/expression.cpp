@@ -15,6 +15,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/TargetSelect.h"
@@ -24,6 +25,8 @@
 #include "../include/tokens.h"
 #include "../include/strings.h"
 #include "../include/program.h"
+#include "../include/assemble.h"
+#include "../include/validate.h"
 #include "../include/expression.h"
 
 PlainExp::~PlainExp(){}
@@ -49,11 +52,15 @@ OperatorExp::~OperatorExp(){
 }
 llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleContext& context){
     std::string type; // Type should have been already validated before this call
-    llvm::Value *L = left->assemble(program, func, context);
-    llvm::Value *R = right->assemble(program, func, context);
+    std::string lefttype;
+    std::string righttype;
+    llvm::Value* L = left->assemble(program, func, context);
+    llvm::Value* R = right->assemble(program, func, context);
 
     if(L == NULL or R == NULL) return NULL;
-    if(!left->getType(program, func, type)) return NULL;
+    if(!left->getType(program, func, lefttype)) return NULL;
+    if(!right->getType(program, func, righttype)) return NULL;
+    if(assemble_merge_types(context, lefttype, righttype, &L, &R, &type) != 0) return NULL;
 
     if(type == "int"){
         switch (operation) {
@@ -101,7 +108,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         }
     }
     else {
-        std::cerr << "Invalid use of operator on type '" << type << "'" << std::endl;
+        std::cerr << "Invalid use of operator '" << operation << "' on type '" << type << "'" << std::endl;
         return NULL;
     }
 }
@@ -139,9 +146,45 @@ bool OperatorExp::getType(Program& program, Function& func, std::string& type){
 
     if(!left->getType(program, func, lefttype)) return false;
     if(!right->getType(program, func, righttype)) return false;
-    if(lefttype != righttype) return false;
+    if( !validate_types(lefttype, righttype, &type) ) return false;
+    return true;
+}
 
-    type = lefttype;
+ByteExp::ByteExp(){}
+ByteExp::ByteExp(int8_t val){
+    value = val;
+}
+ByteExp::~ByteExp(){}
+llvm::Value* ByteExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(8, value, true));
+}
+std::string ByteExp::toString(){
+    return to_str(value);
+}
+PlainExp* ByteExp::clone(){
+    return new ByteExp(*this);
+}
+bool ByteExp::getType(Program& program, Function& func, std::string& type){
+    type = "byte";
+    return true;
+}
+
+ShortExp::ShortExp(){}
+ShortExp::ShortExp(int16_t val){
+    value = val;
+}
+ShortExp::~ShortExp(){}
+llvm::Value* ShortExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(16, value, true));
+}
+std::string ShortExp::toString(){
+    return to_str(value);
+}
+PlainExp* ShortExp::clone(){
+    return new ShortExp(*this);
+}
+bool ShortExp::getType(Program& program, Function& func, std::string& type){
+    type = "short";
     return true;
 }
 
@@ -164,6 +207,121 @@ bool IntegerExp::getType(Program& program, Function& func, std::string& type){
     return true;
 }
 
+LongExp::LongExp(){}
+LongExp::LongExp(int64_t val){
+    value = val;
+}
+LongExp::~LongExp(){}
+llvm::Value* LongExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(64, value, true));
+}
+std::string LongExp::toString(){
+    return to_str(value);
+}
+PlainExp* LongExp::clone(){
+    return new LongExp(*this);
+}
+bool LongExp::getType(Program& program, Function& func, std::string& type){
+    type = "long";
+    return true;
+}
+
+UnsignedByteExp::UnsignedByteExp(){}
+UnsignedByteExp::UnsignedByteExp(uint8_t val){
+    value = val;
+}
+UnsignedByteExp::~UnsignedByteExp(){}
+llvm::Value* UnsignedByteExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(8, value, false));
+}
+std::string UnsignedByteExp::toString(){
+    return to_str(value);
+}
+PlainExp* UnsignedByteExp::clone(){
+    return new UnsignedByteExp(*this);
+}
+bool UnsignedByteExp::getType(Program& program, Function& func, std::string& type){
+    type = "ubyte";
+    return true;
+}
+
+UnsignedShortExp::UnsignedShortExp(){}
+UnsignedShortExp::UnsignedShortExp(uint16_t val){
+    value = val;
+}
+UnsignedShortExp::~UnsignedShortExp(){}
+llvm::Value* UnsignedShortExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(16, value, false));
+}
+std::string UnsignedShortExp::toString(){
+    return to_str(value);
+}
+PlainExp* UnsignedShortExp::clone(){
+    return new UnsignedShortExp(*this);
+}
+bool UnsignedShortExp::getType(Program& program, Function& func, std::string& type){
+    type = "ushort";
+    return true;
+}
+
+UnsignedIntegerExp::UnsignedIntegerExp(){}
+UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val){
+    value = val;
+}
+UnsignedIntegerExp::~UnsignedIntegerExp(){}
+llvm::Value* UnsignedIntegerExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(32, value, false));
+}
+std::string UnsignedIntegerExp::toString(){
+    return to_str(value);
+}
+PlainExp* UnsignedIntegerExp::clone(){
+    return new UnsignedIntegerExp(*this);
+}
+bool UnsignedIntegerExp::getType(Program& program, Function& func, std::string& type){
+    type = "uint";
+    return true;
+}
+
+UnsignedLongExp::UnsignedLongExp(){}
+UnsignedLongExp::UnsignedLongExp(uint64_t val){
+    value = val;
+}
+UnsignedLongExp::~UnsignedLongExp(){}
+llvm::Value* UnsignedLongExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::ConstantInt::get(context.context, llvm::APInt(64, value, false));
+}
+std::string UnsignedLongExp::toString(){
+    return to_str(value);
+}
+PlainExp* UnsignedLongExp::clone(){
+    return new LongExp(*this);
+}
+bool UnsignedLongExp::getType(Program& program, Function& func, std::string& type){
+    type = "ulong";
+    return true;
+}
+
+
+FloatExp::FloatExp(){}
+FloatExp::FloatExp(float val){
+    value = val;
+}
+FloatExp::~FloatExp(){}
+llvm::Value* FloatExp::assemble(Program& program, Function& func, AssembleContext& context){
+    return llvm::Value* v = llvm::ConstantFP::get(llvm::Type::getFloatTy(context.context), value);
+}
+std::string FloatExp::toString(){
+    return to_str(value);
+}
+PlainExp* FloatExp::clone(){
+    return new FloatExp(*this);
+}
+bool FloatExp::getType(Program& program, Function& func, std::string& type){
+    type = "float";
+    return true;
+}
+
 DoubleExp::DoubleExp(){}
 DoubleExp::DoubleExp(double val){
     value = val;
@@ -183,8 +341,41 @@ bool DoubleExp::getType(Program& program, Function& func, std::string& type){
     return true;
 }
 
+StringExp::StringExp(){}
+StringExp::StringExp(const std::string& val){
+    value = val;
+}
+StringExp::~StringExp(){}
+llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleContext& context){
+    // Constant Definitions
+    llvm::Constant* string_data = llvm::ConstantDataArray::getString(context.context, value.c_str(), true);
+
+    llvm::GlobalVariable* global_array = new llvm::GlobalVariable(*context.module, string_data->getType(), true, llvm::GlobalValue::PrivateLinkage, 0, "$.str");
+    global_array->setAlignment(1);
+
+    std::vector<llvm::Constant*> gep_indices(2);
+    llvm::ConstantInt* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, 10));
+    gep_indices[0] = zero;
+    gep_indices[1] = zero;
+    llvm::Constant* const_string = llvm::ConstantExpr::getGetElementPtr(string_data->getType(), global_array, gep_indices);
+
+    // Global Variable Definitions
+    global_array->setInitializer(string_data);
+    return const_string;
+}
+std::string StringExp::toString(){
+    return "\"" + value + "\"";
+}
+PlainExp* StringExp::clone(){
+    return new StringExp(*this);
+}
+bool StringExp::getType(Program& program, Function& func, std::string& type){
+    type = "*byte";
+    return true;
+}
+
 WordExp::WordExp(){}
-WordExp::WordExp(std::string val){
+WordExp::WordExp(const std::string& val){
     value = val;
 }
 WordExp::~WordExp(){}
@@ -213,6 +404,77 @@ bool WordExp::getType(Program& program, Function& func, std::string& type){
     }
 
     type = var.type;
+    return true;
+}
+
+AddrWordExp::AddrWordExp(){}
+AddrWordExp::AddrWordExp(const std::string& val){
+    value = val;
+}
+AddrWordExp::~AddrWordExp(){}
+llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleContext& context){
+    Variable var;
+
+    if(func.find_variable(value, &var) != 0){
+        fail( UNDECLARED_VARIABLE(value) );
+        return NULL;
+    }
+
+    return var.variable;
+}
+std::string AddrWordExp::toString(){
+    return "&" + value;
+}
+PlainExp* AddrWordExp::clone(){
+    return new AddrWordExp(*this);
+}
+bool AddrWordExp::getType(Program& program, Function& func, std::string& type){
+    Variable var;
+
+    if(func.find_variable(value, &var) != 0){
+        fail( UNDECLARED_VARIABLE(value) );
+        return false;
+    }
+
+    type = "*" + var.type;
+    return true;
+}
+
+LoadExp::LoadExp(){}
+LoadExp::LoadExp(PlainExp* val){
+    value = val;
+}
+LoadExp::LoadExp(const LoadExp& other){
+    value = other.value->clone();
+}
+LoadExp::~LoadExp(){
+    delete value;
+}
+llvm::Value* LoadExp::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* pointer = value->assemble(program, func, context);
+    if(pointer == NULL) return NULL;
+    if(!pointer->getType()->isPointerTy()){
+        fail("Cant't load type that is not a pointer");
+        return NULL;
+    }
+
+    return context.builder.CreateLoad(pointer, "loadtmp");
+}
+std::string LoadExp::toString(){
+    return "*" + value->toString();
+}
+PlainExp* LoadExp::clone(){
+    return new LoadExp(*this);
+}
+bool LoadExp::getType(Program& program, Function& func, std::string& type){
+    std::string valtype;
+    if(!value->getType(program, func, valtype)) return false;
+    if(valtype[0] != '*'){
+        fail("Cant't load type that is not a pointer");
+        return false;
+    }
+
+    type = valtype.substr(1, valtype.length()-1);
     return true;
 }
 

@@ -5,8 +5,15 @@
 #include "clock.h"
 
 struct Configuration {
+    std::string username;
+    std::string filename;
     Clock clock;
     bool jit;
+    bool obj;
+    bool bytecode;
+
+    bool silent;
+    bool time;
 };
 
 int configure(Configuration& config, int argc, char** argv);

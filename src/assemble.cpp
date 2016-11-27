@@ -26,10 +26,12 @@
 #include "llvm/Support/FileSystem.h"
 
 #include "../include/errors.h"
+#include "../include/strings.h"
 #include "../include/assemble.h"
 #include "../include/validate.h"
 
 int assemble(AssembleContext& assemble, Configuration& config, Program& program){
+    assemble.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str() , assemble.context);
     if(program.generate_types(assemble) != 0) return 1;
 
     for(size_t i = 0; i != program.externs.size(); i++){
@@ -46,21 +48,20 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
         AssembleFunction& asm_func = func.asm_func;
 
         assemble.builder.SetInsertPoint(asm_func.body);
-        llvm::TerminatorInst* termination;
+        bool terminated = false;
 
         for(size_t j = 0; j != func.statements.size(); j++){
-            if(termination != NULL)
-            termination = asm_func.body->getTerminator();
+            if(func.statements[j].id == STATEMENTID_RETURN) terminated = true;
 
-            if(termination == NULL)
             if(assemble_statement(assemble, config, program, func, asm_func, func.statements[j]) != 0){
                 llvm_function->eraseFromParent();
                 return 1;
             }
+
+            if(terminated) break;
         }
 
-        termination = asm_func.body->getTerminator();
-        if(termination == NULL) assemble.builder.CreateBr(asm_func.quit);
+        if(!terminated) assemble.builder.CreateBr(asm_func.quit);
 
         llvm::verifyFunction(*llvm_function);
     }
@@ -70,17 +71,25 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
     config.clock.remember();
 
     if(!config.jit){
+        std::string target_name = filename_change_ext(config.filename, "exe");
+        std::string target_obj  = (config.obj)      ? filename_change_ext(config.filename, "obj") : "C:/Users/" + config.username + "/.adept/obj/object.obj";
+        std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
+
         std::error_code error_str;
-        llvm::raw_ostream* out = new llvm::raw_fd_ostream("C:/Users/isaac/Desktop/adeptout.bc", error_str, llvm::sys::fs::F_None);
+        llvm::raw_ostream* out = new llvm::raw_fd_ostream(target_bc.c_str(), error_str, llvm::sys::fs::F_None);
         llvm::WriteBitcodeToFile(assemble.module.get(), *out);
         out->flush();
         delete out; // LLVM ERROR: IO failure on output stream.
 
-        system("llc C:/Users/isaac/Desktop/adeptout.bc -filetype=obj");
-        system("C:/MinGW64/bin/gcc C:/Users/isaac/Desktop/adeptout.obj C:/MinGW64/lib/gcc/x86_64-w64-mingw32/5.3.0/libstdc++.a -o C:/Users/isaac/Desktop/adeptout.exe");
+        system((std::string("llc \"") + target_bc + "\" -filetype=obj -o \"" + target_obj + "\"").c_str());
 
-        if(access("C:/Users/isaac/Desktop/adeptout.exe", F_OK ) == -1){
-            die( FAILED_TO_CREATE("adeptout.exe") );
+        if(!config.obj){
+            system((std::string("C:/MinGW64/bin/gcc \"") + target_obj + std::string("\" C:/MinGW64/lib/gcc/x86_64-w64-mingw32/5.3.0/libstdc++.a -o ") + target_name).c_str());
+        }
+
+        if(access(target_name.c_str(), F_OK ) == -1){
+            fail( FAILED_TO_CREATE(filename_name(target_name)) );
+            return 1;
         }
 
         // Print Build Time
@@ -120,7 +129,11 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
         llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
 
         context.builder.SetInsertPoint(entry);
-        llvm::AllocaInst* exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
+
+        llvm::AllocaInst* exitval;
+        if(!llvm_type->isVoidTy()){
+            exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
+        }
 
         size_t i = 0;
         func.variables.reserve(args.size());
@@ -134,13 +147,19 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
         context.builder.CreateBr(body);
 
         context.builder.SetInsertPoint(quit);
-        llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
-        context.builder.CreateRet(retval);
+
+        if(!llvm_type->isVoidTy()){
+            llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
+            func.asm_func.exitval = exitval;
+            context.builder.CreateRet(retval);
+        }
+        else {
+            context.builder.CreateRet(NULL);
+        }
 
         func.asm_func.entry = entry;
         func.asm_func.body = body;
         func.asm_func.quit = quit;
-        func.asm_func.exitval = exitval;
     }
     else {
         die( DUPLICATE_FUNC(func.name) );
@@ -199,11 +218,18 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             ReturnStatement data = *( static_cast<ReturnStatement*>(statement.data) );
 
             if(!validate_return_statement(program, data, func)) return 1;
-            llvm::Value* return_value = data.value->assemble(program, func, context);
-            if(return_value == NULL) return 1;
 
-            context.builder.CreateStore(return_value, asm_func.exitval);
-            context.builder.CreateBr(asm_func.quit);
+            if(data.value != NULL){
+                llvm::Value* return_value = data.value->assemble(program, func, context);
+                if(return_value == NULL) return 1;
+
+                context.builder.CreateStore(return_value, asm_func.exitval);
+                context.builder.CreateBr(asm_func.quit);
+            }
+            else {
+                context.builder.CreateBr(asm_func.quit);
+            }
+
             break;
         }
     case STATEMENTID_DECLARE:
@@ -225,12 +251,18 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
         {
             DeclareAsStatement data = *( static_cast<DeclareAsStatement*>(statement.data) );
             llvm::Type* var_type;
+            std::string var_type_name;
 
             if(!validate_declareas_statement(program, data, func)) return 1;
             if(program.find_type(data.type, &var_type) != 0) die( UNDECLARED_TYPE(data.type) );
 
             llvm::Value* value = data.value->assemble(program, func, context);
+            if(!data.value->getType(program, func, var_type_name)) return 1;
             if(value == NULL) return 1;
+
+            if(assemble_merge_types_oneway(context, var_type_name, data.type, &value, var_type, NULL) != 0){
+                die( INCOMPATIBLE_TYPES(var_type_name, data.type) );
+            }
 
             llvm::AllocaInst* alloc = context.builder.CreateAlloca(var_type, 0, data.name.c_str());
             context.builder.CreateStore(value, alloc);
@@ -327,18 +359,32 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 die( UNDECLARED_FUNC(data.name) );
             }
 
+            if(program.find_func(data.name, &func_data) != 0) return 1;
+            assert(func_data.arguments.size() == target->arg_size());
+
             // If argument mismatch error.
             if (target->arg_size() != data.args.size()){
                 std::cerr << "Incorrect function arguments size for for '" << data.name << "'" << std::endl;
                 return 1;
             }
 
-            if(program.find_func(data.name, &func_data) != 0) return 1;
-
             llvm::Value* value;
+            std::string valuetype;
+            llvm::Type* expected_type;
             std::vector<llvm::Value*> value_args;
-            for(size_t i = 0, e = data.args.size(); i != e; ++i) {
+            for(size_t i = 0, e = data.args.size(); i != e; i++) {
                 value = data.args[i]->assemble(program, func, context);
+                if(!data.args[i]->getType(program, func, valuetype)){
+                    die(INCOMPATIBLE_TYPES_VAGUE);
+                }
+                if(program.find_type(func_data.arguments[i], &expected_type) != 0){
+                    die( UNDECLARED_TYPE(func_data.arguments[i]) );
+                }
+
+                if(assemble_merge_types_oneway(context, valuetype, func_data.arguments[i], &value, expected_type, NULL) != 0){
+                    die( INCOMPATIBLE_TYPES(valuetype, func_data.arguments[i]) );
+                }
+
                 value_args.push_back(value);
                 if(value == NULL) return 1;
                 if (!value_args.back()) return 1;
@@ -351,4 +397,47 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
 
     return 0;
 }
+int assemble_merge_types(AssembleContext& context, const std::string& type_a, const std::string& type_b, llvm::Value** expr_a, llvm::Value** expr_b, std::string* out){
+    // Merge a and b if possible
 
+    if(type_a == "void" or type_b == "void") return 1;
+    if(type_a == "" or type_b == "") return 1;
+    if(type_a == type_b){
+        if(out != NULL) *out = type_a;
+        return 0;
+    }
+    if(type_a[0] == '*' and type_b == "ptr"){
+        if(out != NULL) *out = type_a;
+        *expr_b = context.builder.CreateBitCast(*expr_b, (*expr_a)->getType(), "casttmp");
+        return 0;
+    }
+    if(type_b[0] == '*' and type_a == "ptr"){
+        if(out != NULL) *out = type_b;
+        *expr_a = context.builder.CreateBitCast(*expr_a, (*expr_b)->getType(), "casttmp");
+        return 0;
+    }
+
+    return 1;
+}
+int assemble_merge_types_oneway(AssembleContext& context, const std::string& type_a, const std::string& type_b, llvm::Value** expr_a, llvm::Type* exprtype_b, std::string* out){
+    // Merge a into b if possible
+
+    if(type_a == "void" or type_b == "void") return 1;
+    if(type_a == "" or type_b == "void") return 1;
+    if(type_a == type_b){
+        if(out != NULL) *out = type_b;
+        return 0;
+    }
+    if(type_b[0] == '*' and type_a == "ptr"){
+        if(out != NULL) *out = type_b;
+        *expr_a = context.builder.CreateBitCast(*expr_a, exprtype_b, "casttmp");
+        return 0;
+    }
+    if(type_a[0] == '*' and type_b == "ptr"){
+        if(out != NULL) *out = type_b;
+        *expr_a = context.builder.CreateBitCast(*expr_a, llvm::Type::getInt8PtrTy(context.context), "casttmp");
+        return 0;
+    }
+
+    return 1;
+}

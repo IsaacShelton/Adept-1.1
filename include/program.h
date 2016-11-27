@@ -44,6 +44,8 @@ struct External {
 };
 
 struct Program {
+    std::vector<std::string> imports;
+
     std::vector<Function> functions;
     std::vector<Structure> structures;
     std::vector<External> externs;

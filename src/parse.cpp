@@ -1,8 +1,12 @@
 
+#include <unistd.h>
 #include <iostream>
 #include "../include/die.h"
 #include "../include/type.h"
 #include "../include/parse.h"
+#include "../include/lexer.h"
+#include "../include/errors.h"
+#include "../include/strings.h"
 
 int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
 
@@ -14,13 +18,14 @@ int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
     delete tokens;
 
     // Print Parser Time
-    config.clock.print_since("Parser Finished");
-    config.clock.remember();
+    if(config.time and !config.silent){
+        config.clock.print_since("Parser Finished");
+        config.clock.remember();
+    }
     return 0;
 }
 
 int parse_token(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
-
     switch(tokens[i].id){
     case TOKENID_KEYWORD:
         if(parse_keyword(config, tokens, program, i) != 0) return 1;
@@ -66,9 +71,37 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
     else if(keyword == "type"){
         if(parse_structure(config, tokens, program, i) != 0) return 1;
     }
+    else if(keyword == "import"){
+        if(tokens[i].id != TOKENID_WORD){
+            die("Expected module name after import");
+        }
+
+        std::string name = tokens[i].getString();
+        TokenList* import_tokens = new TokenList;
+        Configuration import_config = config;
+
+        import_config.silent = true;
+        import_config.time = false;
+
+        std::string local_file = filename_path(config.filename) + name + ".adept";
+        std::string public_file = "C:/Users/" + config.username + "/.adept/import/" + name + ".adept";
+
+        if( access(local_file.c_str(), F_OK) != -1 ){
+            name = local_file;
+        }
+        else if( access(public_file.c_str(), F_OK) != -1 ){
+            name = public_file;
+        }
+        else {
+            die( UNKNOWN_MODULE(name) );
+        }
+
+        import_config.filename = name;
+        if( tokenize(import_config, name, import_tokens) != 0 ) return 1;
+        if( parse(import_config, import_tokens, program) != 0 ) return 1; // Deletes imported_tokens
+    }
     else {
-        std::cerr << "Unknown Keyword" << std::endl;
-        return 1;
+        die( UNEXPECTED_KEYWORD(keyword) );
     }
 
     return 0;
@@ -149,12 +182,17 @@ int parse_function(Configuration& config, std::vector<Token>& tokens, Program& p
         std::string type;
         next_index(i, tokens.size());
 
+        while(tokens[i].id == TOKENID_MULTIPLY){
+            type += "*";
+            next_index(i, tokens.size());
+        }
+
         if(tokens[i].id != TOKENID_WORD){
             fail("Expected argument type");
             return 1;
         }
 
-        type = tokens[i].getString();
+        type += tokens[i].getString();
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
@@ -200,12 +238,18 @@ int parse_external(Configuration& config, std::vector<Token>& tokens, Program& p
     std::string return_type;
 
     while(tokens[i].id != TOKENID_CLOSE){
-        if(tokens[i].id != TOKENID_WORD){
-            fail("Expected argument name");
-            return 1;
+        std::string type;
+
+        while(tokens[i].id == TOKENID_MULTIPLY){
+            type += "*";
+            next_index(i, tokens.size());
         }
 
-        std::string type = tokens[i].getString();
+        if(tokens[i].id != TOKENID_WORD){
+            fail("Expected argument type");
+            return 1;
+        }
+        type += tokens[i].getString();
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
@@ -259,8 +303,16 @@ int parse_block_keyword(Configuration& config, std::vector<Token>& tokens, Progr
         PlainExp* expression;
         next_index(i, tokens.size());
 
-        if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
-        statements.push_back( STATEMENT_RETURN(expression) );
+        if(tokens[i].id == TOKENID_NEWLINE){
+            statements.push_back( STATEMENT_RETURN(NULL) );
+        }
+        else {
+            if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
+            statements.push_back( STATEMENT_RETURN(expression) );
+        }
+    }
+    else {
+        die( UNEXPECTED_KEYWORD(keyword) );
     }
 
     return 0;
@@ -274,6 +326,7 @@ int parse_block_word(Configuration& config, std::vector<Token>& tokens, Program&
 
     switch(tokens[i].id){
     case TOKENID_WORD:
+    case TOKENID_MULTIPLY:
         // Variable Definition
         if(parse_block_variable_declaration(config, tokens, program, statements, i, name) != 0) return 1;
         break;
@@ -300,7 +353,17 @@ int parse_block_variable_declaration(Configuration& config, std::vector<Token>& 
     // name str = "Hello World"
     //       ^
 
-    std::string type = tokens[i].getString();
+    std::string type;
+    while(tokens[i].id == TOKENID_MULTIPLY){
+        type += "*";
+        next_index(i, tokens.size());
+    }
+
+    if(tokens[i].id != TOKENID_WORD){
+        die("Expected word in type");
+    }
+
+    type += tokens[i].getString();
     next_index(i, tokens.size());
 
     if(tokens[i].id == TOKENID_ASSIGN){
@@ -405,12 +468,36 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
         }
 
         return 0;
+    case TOKENID_ADDRESS:
+        next_index(i, tokens.size());
+
+        if(tokens[i].id != TOKENID_WORD){
+            die("Expected word after address operator");
+        }
+
+        *expression = new AddrWordExp( tokens[i].getString() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_MULTIPLY: // Dereference
+        {
+            PlainExp* primary;
+            next_index(i, tokens.size());
+
+            if(parse_expression_primary(config, tokens, program, i, &primary) != 0) return 1;
+
+            *expression = new LoadExp(primary);
+            return 0;
+        }
     case TOKENID_INT:
         *expression = new IntegerExp( tokens[i].getInt() );
         next_index(i, tokens.size());
         return 0;
-    case TOKENID_FLOAT:
-        *expression = new DoubleExp( tokens[i].getFloat() );
+    case TOKENID_DOUBLE:
+        *expression = new DoubleExp( tokens[i].getDouble() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_STRING:
+        *expression = new StringExp( tokens[i].getString() );
         next_index(i, tokens.size());
         return 0;
     case TOKENID_OPEN:

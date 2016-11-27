@@ -10,9 +10,23 @@ std::string to_str(int8_t);
 std::string to_str(int16_t);
 std::string to_str(int32_t);
 std::string to_str(int64_t);
+std::string to_str(uint8_t);
+std::string to_str(uint16_t);
+std::string to_str(uint32_t);
+std::string to_str(uint64_t);
+std::string to_str(float);
 std::string to_str(double);
+
+int8_t to_byte(std::string str);
+int16_t to_short(std::string str);
+int32_t to_int(std::string str);
+int64_t to_long(std::string str);
+uint8_t to_ubyte(std::string str);
+uint16_t to_ushort(std::string str);
+uint32_t to_uint(std::string str);
+uint64_t to_ulong(std::string str);
+float to_float(std::string str);
 double to_double(std::string str);
-int to_int(std::string str);
 
 bool string_contains(std::string, std::string);
 std::string string_get_until(std::string, std::string);

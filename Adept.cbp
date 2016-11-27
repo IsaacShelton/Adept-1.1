@@ -55,7 +55,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />
-				<Option parameters="C:/Users/isaac/Desktop/adept/maxstress.adept" />
+				<Option parameters="C:/Users/isaac/Desktop/adept/modules/import/main.adept" />
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-std=c++11" />

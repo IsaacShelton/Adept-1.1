@@ -10,10 +10,18 @@ int Program::generate_types(AssembleContext& context){
         types.push_back( Type(structures[i].name, llvm_struct) );
     }
 
+    types.push_back( Type("void", llvm::Type::getInt8Ty(context.context)) );
+    types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(context.context)) );
     types.push_back( Type("int", llvm::Type::getInt32Ty(context.context)) );
     types.push_back( Type("uint", llvm::Type::getInt32Ty(context.context)) );
     types.push_back( Type("double", llvm::Type::getDoubleTy(context.context)) );
     types.push_back( Type("float", llvm::Type::getFloatTy(context.context)) );
+    types.push_back( Type("byte", llvm::Type::getInt8Ty(context.context)) );
+    types.push_back( Type("ubyte", llvm::Type::getInt8Ty(context.context)) );
+    types.push_back( Type("short", llvm::Type::getInt16Ty(context.context)) );
+    types.push_back( Type("ushort", llvm::Type::getInt16Ty(context.context)) );
+    types.push_back( Type("long", llvm::Type::getInt64Ty(context.context)) );
+    types.push_back( Type("ulong", llvm::Type::getInt64Ty(context.context)) );
 
     for(size_t i = 0; i != structures.size(); i++){
         Structure& struct_data = structures[i];
@@ -35,9 +43,18 @@ int Program::generate_types(AssembleContext& context){
     return 0;
 }
 int Program::find_type(std::string name, llvm::Type** type){
+    size_t pointers;
+    std::string type_name;
+
+    for(pointers = 0; pointers != name.length(); pointers++){
+        if(name[pointers] != '*') break;
+    }
+
+    type_name = name.substr(pointers, name.length()-pointers);
     for(size_t i = 0; i != types.size(); i++){
-        if(types[i].name == name){
+        if(types[i].name == type_name){
             *type = types[i].type;
+            for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
             return 0;
         }
     }

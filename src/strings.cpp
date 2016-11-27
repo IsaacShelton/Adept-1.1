@@ -23,21 +23,88 @@ std::string to_str(int64_t dat){
     ss << dat;
     return ss.str();
 }
+std::string to_str(uint8_t dat){
+    std::stringstream ss;
+    ss << dat;
+    return ss.str();
+}
+std::string to_str(uint16_t dat){
+    std::stringstream ss;
+    ss << dat;
+    return ss.str();
+}
+std::string to_str(uint32_t dat){
+    std::stringstream ss;
+    ss << dat;
+    return ss.str();
+}
+std::string to_str(uint64_t dat){
+    std::stringstream ss;
+    ss << dat;
+    return ss.str();
+}
+std::string to_str(float dat){
+    std::stringstream ss;
+    ss << dat;
+    return ss.str();
+}
 std::string to_str(double dat){
     std::stringstream ss;
     ss << dat;
     return ss.str();
 }
+
+int8_t to_byte(std::string str){
+    int8_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+int16_t to_short(std::string str){
+    int16_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+int32_t to_int(std::string str){
+    int32_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+int64_t to_long(std::string str){
+    int64_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+uint8_t to_ubyte(std::string str){
+    uint8_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+uint16_t to_ushort(std::string str){
+    uint16_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+uint32_t to_uint(std::string str){
+    uint32_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+uint64_t to_ulong(std::string str){
+    uint64_t val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
+float to_float(std::string str){
+    float val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
+}
 double to_double(std::string str){
-    double dec;
-    if( ! (std::istringstream(str) >> dec) ) dec = 0;
-    return dec;
+    double val;
+    if( ! (std::istringstream(str) >> val) ) val = 0;
+    return val;
 }
-int to_int(std::string str){
-    int integer;
-    if( ! (std::istringstream(str) >> integer) ) integer = 0;
-    return integer;
-}
+
 
 bool string_contains(std::string parent_string, std::string sub_string){
     if (parent_string.find(sub_string)==std::string::npos) { return false; }
