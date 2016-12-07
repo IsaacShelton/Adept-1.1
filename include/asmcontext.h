@@ -9,6 +9,7 @@
 // Context structure for assemble.h
 
 struct AssembleFunction {
+    llvm::Type* return_type;
     llvm::BasicBlock* entry;
     llvm::BasicBlock* body;
     llvm::BasicBlock* quit;

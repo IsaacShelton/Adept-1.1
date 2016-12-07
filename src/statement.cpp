@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include "../include/strings.h"
 #include "../include/statement.h"
 
 Statement::Statement(){
@@ -10,22 +11,22 @@ Statement::Statement(const Statement& other){
     id = other.id;
 
     switch(id){
-    case 1:
+    case STATEMENTID_DECLARE:
         data = new DeclareStatement( *(static_cast<DeclareStatement*>(other.data)) );
         break;
-    case 2:
+    case STATEMENTID_DECLAREAS:
         data = new DeclareAsStatement( *(static_cast<DeclareAsStatement*>(other.data)) );
         break;
-    case 3:
+    case STATEMENTID_RETURN:
         data = new ReturnStatement( *(static_cast<ReturnStatement*>(other.data)) );
         break;
-    case 4:
+    case STATEMENTID_ASSIGN:
         data = new AssignStatement( *(static_cast<AssignStatement*>(other.data)) );
         break;
-    case 5:
+    case STATEMENTID_ASSIGNMEMBER:
         data = new AssignMemberStatement( *(static_cast<AssignMemberStatement*>(other.data)) );
         break;
-    case 6:
+    case STATEMENTID_CALL:
         data = new CallStatement( *(static_cast<CallStatement*>(other.data)) );
         break;
     default:
@@ -45,22 +46,22 @@ Statement::~Statement(){
 }
 void Statement::free(){
     switch(id){
-    case 1:
+    case STATEMENTID_DECLARE:
         delete static_cast<DeclareStatement*>(data);
         break;
-    case 2:
+    case STATEMENTID_DECLAREAS:
         delete static_cast<DeclareAsStatement*>(data);
         break;
-    case 3:
+    case STATEMENTID_RETURN:
         delete static_cast<ReturnStatement*>(data);
         break;
-    case 4:
+    case STATEMENTID_ASSIGN:
         delete static_cast<AssignStatement*>(data);
         break;
-    case 5:
+    case STATEMENTID_ASSIGNMEMBER:
         delete static_cast<AssignMemberStatement*>(data);
         break;
-    case 6:
+    case STATEMENTID_CALL:
         delete static_cast<CallStatement*>(data);
         break;
     }
@@ -75,43 +76,49 @@ std::string Statement::toString(){
     std::string str;
 
     switch(id){
-    case 0:
+    case STATEMENTID_NONE:
         break;
-    case 1:
+    case STATEMENTID_DECLARE:
         {
             DeclareStatement* extra = static_cast<DeclareStatement*>(data);
             str = extra->name + " " + extra->type;
             break;
         }
-    case 2:
+    case STATEMENTID_DECLAREAS:
         {
             DeclareAsStatement* extra = static_cast<DeclareAsStatement*>(data);
             str = extra->name + " " + extra->type + " = " + extra->value->toString();
             break;
         }
-    case 3:
+    case STATEMENTID_RETURN:
         {
              ReturnStatement* extra = static_cast<ReturnStatement*>(data);
              str = "return " + extra->value->toString();
              break;
         }
-    case 4:
+    case STATEMENTID_ASSIGN:
         {
             AssignStatement* extra = static_cast<AssignStatement*>(data);
-            str = extra->name + " = " + extra->value->toString();
+            for(int i = 0; i != extra->loads; i++) str += "*";
+            str += extra->name;
+            for(size_t i = 0; i != extra->gep_loads.size(); i++) str += "[" + extra->gep_loads[i]->toString() + "]";
+            str += " = " + extra->value->toString();
             break;
         }
-    case 5:
+    case STATEMENTID_ASSIGNMEMBER:
         {
             AssignMemberStatement* extra = static_cast<AssignMemberStatement*>(data);
             for(size_t i = 0; i != extra->path.size(); i++){
-                str += extra->path[i];
+                str += extra->path[i].name;
+
+                for(size_t j = 0; j != extra->path[i].gep_loads.size(); j++) str += "[" + extra->path[i].gep_loads[j]->toString() + "]";
+
                 if(i + 1 != extra->path.size()) str += ":";
             }
             str += " = " + extra->value->toString();
             break;
         }
-    case 6:
+    case STATEMENTID_CALL:
         {
             CallStatement* extra = static_cast<CallStatement*>(data);
             str = extra->name + "(";
@@ -159,24 +166,57 @@ ReturnStatement::~ReturnStatement(){
 AssignStatement::AssignStatement(const AssignStatement& other){
     name = other.name;
     value = other.value->clone();
+    loads = other.loads;
+    gep_loads.resize(other.gep_loads.size());
+
+    for(size_t i = 0; i != other.gep_loads.size(); i++){
+        gep_loads[i] = other.gep_loads[i]->clone();
+    }
 }
-AssignStatement::AssignStatement(std::string n, PlainExp* e){
+AssignStatement::AssignStatement(std::string n, PlainExp* e, int l){
     name = n;
     value = e;
+    loads = l;
+}
+AssignStatement::AssignStatement(std::string n, PlainExp* e, int l, const std::vector<PlainExp*>& g){
+    name = n;
+    value = e;
+    loads = l;
+    gep_loads = g;
 }
 AssignStatement::~AssignStatement(){
+    for(PlainExp* expr : gep_loads) delete expr;
     delete value;
 }
 
 AssignMemberStatement::AssignMemberStatement(const AssignMemberStatement& other){
-    path = other.path;
     value = other.value->clone();
+    loads = other.loads;
+    path.resize(other.path.size());
+
+    for(size_t i = 0; i != other.path.size(); i++){
+        path[i].name = other.path[i].name;
+        for(size_t j = 0; j != other.path[i].gep_loads.size(); j++){
+            path[i].gep_loads[j] = other.path[i].gep_loads[j]->clone();
+        }
+    }
 }
-AssignMemberStatement::AssignMemberStatement(const std::vector<std::string>& p, PlainExp* e){
+AssignMemberStatement::AssignMemberStatement(const std::vector<std::string>& p, PlainExp* e, int l){
+    path.resize(p.size());
+    for(size_t i = 0; i != p.size(); i++) path[i] = AssignMemberPathNode{p[i], std::vector<PlainExp*>()};
+
+    value = e;
+    loads = l;
+}
+AssignMemberStatement::AssignMemberStatement(const std::vector<AssignMemberPathNode>& p, PlainExp* e, int l){
     path = p;
     value = e;
+    loads = l;
 }
 AssignMemberStatement::~AssignMemberStatement(){
+    for(AssignMemberPathNode& node : path){
+        for(PlainExp* expr : node.gep_loads) delete expr;
+    }
     delete value;
 }
 

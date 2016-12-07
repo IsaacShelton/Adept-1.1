@@ -282,14 +282,20 @@ int parse_block(Configuration& config, std::vector<Token>& tokens, Program& prog
 
     while(i != tokens.size() and tokens[i].id != TOKENID_END){
         switch(tokens[i].id){
+        case TOKENID_NEWLINE:
+            next_index(i, tokens.size());
+            break;
         case TOKENID_KEYWORD:
             if(parse_block_keyword(config, tokens, program, statements, i, tokens[i].getString()) != 0) return -1;
             break;
         case TOKENID_WORD:
             if(parse_block_word(config, tokens, program, statements, i) != 0) return -1;
             break;
+        case TOKENID_MULTIPLY: // multiply/pointer operator
+            if(parse_block_dereference(config, tokens, program, statements, i) != 0) return -1;
+            break;
         default:
-            next_index(i, tokens.size());
+            die("Expected Statement");
         }
     }
 
@@ -335,8 +341,9 @@ int parse_block_word(Configuration& config, std::vector<Token>& tokens, Program&
         if(parse_block_call(config, tokens, program, statements, i, name) != 0) return 1;
         break;
     case TOKENID_ASSIGN:
+    case TOKENID_BRACKET_OPEN:
         // Variable Assign
-        if(parse_block_assign(config, tokens, program, statements, i, name) != 0) return 1;
+        if(parse_block_assign(config, tokens, program, statements, i, name, 0) != 0) return 1;
         break;
     case TOKENID_MEMBER:
         // Variable Assign
@@ -407,22 +414,39 @@ int parse_block_call(Configuration& config, std::vector<Token>& tokens, Program&
     next_index(i, tokens.size());
     return 0;
 }
-int parse_block_assign(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name){
-    // name = 10 * 3 / 4
-    //      ^
+int parse_block_assign(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name, int loads){
+    // name = 10 * 3 / 4   |   name[i] = 10 * 3 / 4
+    //      ^                      ^
 
     PlainExp* expression;
-    next_index(i, tokens.size());
+    std::vector<PlainExp*> gep_loads;
 
+    if(tokens[i].id == TOKENID_BRACKET_OPEN){
+        PlainExp* int_expr;
+
+        while(tokens[i].id == TOKENID_BRACKET_OPEN){
+            next_index(i, tokens.size());
+            if(parse_expression(config, tokens, program, i, &int_expr) != 0) return 1;
+
+            if(tokens[i].id != TOKENID_BRACKET_CLOSE){
+                die("Expected closing bracket ']'");
+            }
+
+            gep_loads.push_back(int_expr);
+            next_index(i, tokens.size());
+        }
+    }
+
+    next_index(i, tokens.size());
     if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
-    statements.push_back( STATEMENT_ASSIGN(name, expression) );
+    statements.push_back( STATEMENT_ASSIGN(name, expression, loads, gep_loads) );
     return 0;
 }
 int parse_block_member_assign(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name){
     // name:member:member = 10 * 3 / 4
     //     ^
 
-    std::vector<std::string> path = {name};
+    std::vector<AssignMemberPathNode> path = { AssignMemberPathNode{name, std::vector<PlainExp*>()} };
     PlainExp* expression;
 
     while(tokens[i].id == TOKENID_MEMBER){
@@ -432,7 +456,7 @@ int parse_block_member_assign(Configuration& config, std::vector<Token>& tokens,
             return 1;
         }
 
-        path.push_back(tokens[i].getString());
+        path.push_back( AssignMemberPathNode{tokens[i].getString(), std::vector<PlainExp*>()} );
         next_index(i, tokens.size());
     }
 
@@ -443,7 +467,29 @@ int parse_block_member_assign(Configuration& config, std::vector<Token>& tokens,
     next_index(i, tokens.size());
 
     if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
-    statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression) );
+    statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0) );
+    return 0;
+}
+int parse_block_dereference(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i){
+    // *value = expression
+    //    ^
+
+    int deref_count = 0;
+    std::string name;
+
+    while(tokens[i].id == TOKENID_MULTIPLY){
+        deref_count += 1;
+        next_index(i, tokens.size());
+    }
+
+    if(tokens[i].id != TOKENID_WORD){
+        die("Expected word after dereference operator");
+    }
+
+    name = tokens[i].getString();
+    next_index(i, tokens.size());
+
+    if(parse_block_assign(config, tokens, program, statements, i, name, deref_count) != 0) return 1;
     return 0;
 }
 
@@ -459,22 +505,18 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
     switch (tokens[i].id) {
     case TOKENID_WORD:
         next_index(i, tokens.size());
-
         if(tokens[i].id == TOKENID_OPEN){
             if(parse_expression_call(config, tokens, program, --i, expression) != 0) return 1;
         }
         else {
             *expression = new WordExp( tokens[i-1].getString() );
         }
-
         return 0;
     case TOKENID_ADDRESS:
         next_index(i, tokens.size());
-
         if(tokens[i].id != TOKENID_WORD){
             die("Expected word after address operator");
         }
-
         *expression = new AddrWordExp( tokens[i].getString() );
         next_index(i, tokens.size());
         return 0;
@@ -488,8 +530,40 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
             *expression = new LoadExp(primary);
             return 0;
         }
+    case TOKENID_BYTE:
+        *expression = new ByteExp( tokens[i].getByte() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_SHORT:
+        *expression = new ShortExp( tokens[i].getShort() );
+        next_index(i, tokens.size());
+        return 0;
     case TOKENID_INT:
         *expression = new IntegerExp( tokens[i].getInt() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_LONG:
+        *expression = new LongExp( tokens[i].getLong() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_UBYTE:
+        *expression = new UnsignedByteExp( tokens[i].getUByte() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_USHORT:
+        *expression = new UnsignedShortExp( tokens[i].getUShort() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_UINT:
+        *expression = new UnsignedIntegerExp( tokens[i].getUInt() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_ULONG:
+        *expression = new UnsignedLongExp( tokens[i].getULong() );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_FLOAT:
+        *expression = new FloatExp( tokens[i].getFloat() );
         next_index(i, tokens.size());
         return 0;
     case TOKENID_DOUBLE:
@@ -528,7 +602,7 @@ int parse_expression_operator_right(Configuration& config, std::vector<Token>& t
 
         // Okay, we know this is a binop.
         int operation = tokens[i].id;
-        if(operation == TOKENID_CLOSE or operation == TOKENID_NEWLINE or operation == TOKENID_NEXT) return 0;
+        if(operation == TOKENID_CLOSE or operation == TOKENID_NEWLINE or operation == TOKENID_NEXT or operation == TOKENID_BRACKET_CLOSE) return 0;
 
         next_index(i, tokens.size());
 

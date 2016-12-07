@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1480178591 source:c:\users\isaac\google drive\adept\src\main.cpp
+1480731903 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<stdio.h>
 	<stdlib.h>
@@ -15,7 +15,7 @@
 	"config.h"
 	"tokens.h"
 
-1480202522 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1480732659 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -25,7 +25,7 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1480201598 c:\users\isaac\google drive\adept\include\tokens.h
+1480732457 c:\users\isaac\google drive\adept\include\tokens.h
 	<string>
 	<vector>
 
@@ -34,8 +34,9 @@
 	"../include/tokens.h"
 	"../include/strings.h"
 
-1480202618 source:c:\users\isaac\google drive\adept\src\strings.cpp
+1480472370 source:c:\users\isaac\google drive\adept\src\strings.cpp
 	<sstream>
+	<iostream>
 	<algorithm>
 	"../include/strings.h"
 
@@ -44,7 +45,7 @@
 	<fstream>
 	<stdlib.h>
 
-1480093557 c:\users\isaac\google drive\adept\include\parse.h
+1480463462 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -53,7 +54,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1480199172 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1480781586 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -75,18 +76,19 @@
 1480004835 c:\users\isaac\google drive\adept\include\die.h
 	"errors.h"
 
-1479952839 c:\users\isaac\google drive\adept\include\statement.h
+1480780840 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
 	"tokens.h"
 	"expression.h"
 
-1480165491 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1480781477 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
+	"../include/strings.h"
 	"../include/statement.h"
 
-1480178410 c:\users\isaac\google drive\adept\include\assemble.h
+1480289524 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -94,7 +96,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1480205042 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1480782110 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -123,7 +125,6 @@
 	"../include/errors.h"
 	"../include/strings.h"
 	"../include/assemble.h"
-	"../include/validate.h"
 
 1467138445 c:\llvm\include\llvm\ir\irbuilder.h
 	"llvm/ADT/ArrayRef.h"
@@ -1128,13 +1129,13 @@
 	"llvm/Config/AsmParsers.def"
 	"llvm/Config/Disassemblers.def"
 
-1480204998 c:\users\isaac\google drive\adept\include\expression.h
+1480288870 c:\users\isaac\google drive\adept\include\expression.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 	"asmcontext.h"
 
-1480178517 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1480472497 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1161,10 +1162,9 @@
 	"../include/strings.h"
 	"../include/program.h"
 	"../include/assemble.h"
-	"../include/validate.h"
 	"../include/expression.h"
 
-1480133789 c:\users\isaac\google drive\adept\include\asmcontext.h
+1480276848 c:\users\isaac\google drive\adept\include\asmcontext.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -1181,7 +1181,7 @@
 	"../include/type.h"
 	"../include/parse.h"
 
-1480178762 source:c:\users\isaac\google drive\adept\src\validate.cpp
+1480260098 source:c:\users\isaac\google drive\adept\src\validate.cpp
 	<iostream>
 	"../include/errors.h"
 	"../include/validate.h"

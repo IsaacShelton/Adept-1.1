@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     if( configure(config, argc, argv)      != 0 ) return 1;
     if( tokenize(config, argv[1], tokens)  != 0 ) return 1;
     if( parse(config, tokens, program)     != 0 ) return 1;
+    program.print();
     if( assemble(context, config, program) != 0 ) return 1;
     if( finalize(config, context)          != 0 ) return 1;
 

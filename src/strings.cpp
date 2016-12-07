@@ -1,11 +1,12 @@
 
 #include <sstream>
+#include <iostream>
 #include <algorithm>
 #include "../include/strings.h"
 
 std::string to_str(int8_t dat){
     std::stringstream ss;
-    ss << dat;
+    ss << (int) dat;
     return ss.str();
 }
 std::string to_str(int16_t dat){
@@ -25,7 +26,7 @@ std::string to_str(int64_t dat){
 }
 std::string to_str(uint8_t dat){
     std::stringstream ss;
-    ss << dat;
+    ss << (int) dat;
     return ss.str();
 }
 std::string to_str(uint16_t dat){
@@ -55,9 +56,11 @@ std::string to_str(double dat){
 }
 
 int8_t to_byte(std::string str){
-    int8_t val;
-    if( ! (std::istringstream(str) >> val) ) val = 0;
-    return val;
+    std::stringstream ss(str);
+    int value;
+    ss >> value;
+    if (value > std::numeric_limits<int8_t>::max()) return 0;
+    return (int8_t) value;
 }
 int16_t to_short(std::string str){
     int16_t val;
@@ -75,9 +78,11 @@ int64_t to_long(std::string str){
     return val;
 }
 uint8_t to_ubyte(std::string str){
-    uint8_t val;
-    if( ! (std::istringstream(str) >> val) ) val = 0;
-    return val;
+    std::stringstream ss(str);
+    int value;
+    ss >> value;
+    if (value > std::numeric_limits<uint8_t>::max()) return 0;
+    return (uint8_t) value;
 }
 uint16_t to_ushort(std::string str){
     uint16_t val;
@@ -104,7 +109,6 @@ double to_double(std::string str){
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-
 
 bool string_contains(std::string parent_string, std::string sub_string){
     if (parent_string.find(sub_string)==std::string::npos) { return false; }

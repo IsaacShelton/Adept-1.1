@@ -55,7 +55,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />
-				<Option parameters="C:/Users/isaac/Desktop/adept/modules/import/main.adept" />
+				<Option parameters="C:/Users/isaac/Desktop/adept/common/main/main.adept" />
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-std=c++11" />
@@ -94,7 +94,6 @@
 		<Unit filename="include/strings.h" />
 		<Unit filename="include/tokens.h" />
 		<Unit filename="include/type.h" />
-		<Unit filename="include/validate.h" />
 		<Unit filename="src/asmcontext.cpp" />
 		<Unit filename="src/assemble.cpp" />
 		<Unit filename="src/clock.cpp" />
@@ -110,7 +109,6 @@
 		<Unit filename="src/strings.cpp" />
 		<Unit filename="src/tokens.cpp" />
 		<Unit filename="src/type.cpp" />
-		<Unit filename="src/validate.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

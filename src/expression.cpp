@@ -26,7 +26,6 @@
 #include "../include/strings.h"
 #include "../include/program.h"
 #include "../include/assemble.h"
-#include "../include/validate.h"
 #include "../include/expression.h"
 
 PlainExp::~PlainExp(){}
@@ -50,65 +49,67 @@ OperatorExp::~OperatorExp(){
     delete left;
     delete right;
 }
-llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleContext& context){
-    std::string type; // Type should have been already validated before this call
-    std::string lefttype;
-    std::string righttype;
-    llvm::Value* L = left->assemble(program, func, context);
-    llvm::Value* R = right->assemble(program, func, context);
+llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    std::string type_name;
+    std::string left_typename;
+    std::string right_typename;
+    llvm::Value* left_value = left->assemble(program, func, context, &left_typename);
+    llvm::Value* right_value = right->assemble(program, func, context, &right_typename);
 
-    if(L == NULL or R == NULL) return NULL;
-    if(!left->getType(program, func, lefttype)) return NULL;
-    if(!right->getType(program, func, righttype)) return NULL;
-    if(assemble_merge_types(context, lefttype, righttype, &L, &R, &type) != 0) return NULL;
+    if(left_value == NULL or right_value == NULL) return NULL;
+    if(assemble_merge_types(context, left_typename, right_typename, &left_value, &right_value, &type_name) != 0){
+        fail( INCOMPATIBLE_TYPES(left_typename, right_typename) );
+        return NULL;
+    }
+    if(expr_type != NULL) *expr_type = type_name;
 
-    if(type == "int"){
+    if(type_name == "int"){
         switch (operation) {
         case TOKENID_ADD:
-            return context.builder.CreateAdd(L, R, "addtmp");
+            return context.builder.CreateAdd(left_value, right_value, "addtmp");
         case TOKENID_SUBTRACT:
-            return context.builder.CreateSub(L, R, "subtmp");
+            return context.builder.CreateSub(left_value, right_value, "subtmp");
         case TOKENID_MULTIPLY:
-            return context.builder.CreateMul(L, R, "multmp");
+            return context.builder.CreateMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
-            return context.builder.CreateSDiv(L, R, "divtmp");
+            return context.builder.CreateSDiv(left_value, right_value, "divtmp");
         default:
             std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
             return NULL;
         }
     }
-    else if(type == "double"){
+    else if(type_name == "double"){
         switch (operation) {
         case TOKENID_ADD:
-            return context.builder.CreateFAdd(L, R, "addtmp");
+            return context.builder.CreateFAdd(left_value, right_value, "addtmp");
         case TOKENID_SUBTRACT:
-            return context.builder.CreateFSub(L, R, "subtmp");
+            return context.builder.CreateFSub(left_value, right_value, "subtmp");
         case TOKENID_MULTIPLY:
-            return context.builder.CreateFMul(L, R, "multmp");
+            return context.builder.CreateFMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
-            return context.builder.CreateFDiv(L, R, "divtmp");
+            return context.builder.CreateFDiv(left_value, right_value, "divtmp");
         default:
             std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
             return NULL;
         }
     }
-    else if(type == "float"){
+    else if(type_name == "float"){
         switch (operation) {
         case TOKENID_ADD:
-            return context.builder.CreateFAdd(L, R, "addtmp");
+            return context.builder.CreateFAdd(left_value, right_value, "addtmp");
         case TOKENID_SUBTRACT:
-            return context.builder.CreateFSub(L, R, "subtmp");
+            return context.builder.CreateFSub(left_value, right_value, "subtmp");
         case TOKENID_MULTIPLY:
-            return context.builder.CreateFMul(L, R, "multmp");
+            return context.builder.CreateFMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
-            return context.builder.CreateFDiv(L, R, "divtmp");
+            return context.builder.CreateFDiv(left_value, right_value, "divtmp");
         default:
             std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
             return NULL;
         }
     }
     else {
-        std::cerr << "Invalid use of operator '" << operation << "' on type '" << type << "'" << std::endl;
+        std::cerr << "Invalid use of operator '" << operation << "' on type '" << type_name << "'" << std::endl;
         return NULL;
     }
 }
@@ -138,35 +139,21 @@ std::string OperatorExp::toString(){
 PlainExp* OperatorExp::clone(){
     return new OperatorExp(*this);
 }
-bool OperatorExp::getType(Program& program, Function& func, std::string& type){
-    // Returns true on success
-
-    std::string lefttype;
-    std::string righttype;
-
-    if(!left->getType(program, func, lefttype)) return false;
-    if(!right->getType(program, func, righttype)) return false;
-    if( !validate_types(lefttype, righttype, &type) ) return false;
-    return true;
-}
 
 ByteExp::ByteExp(){}
 ByteExp::ByteExp(int8_t val){
     value = val;
 }
 ByteExp::~ByteExp(){}
-llvm::Value* ByteExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* ByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "byte";
     return llvm::ConstantInt::get(context.context, llvm::APInt(8, value, true));
 }
 std::string ByteExp::toString(){
-    return to_str(value);
+    return to_str(value) + "sb";
 }
 PlainExp* ByteExp::clone(){
     return new ByteExp(*this);
-}
-bool ByteExp::getType(Program& program, Function& func, std::string& type){
-    type = "byte";
-    return true;
 }
 
 ShortExp::ShortExp(){}
@@ -174,18 +161,15 @@ ShortExp::ShortExp(int16_t val){
     value = val;
 }
 ShortExp::~ShortExp(){}
-llvm::Value* ShortExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* ShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "short";
     return llvm::ConstantInt::get(context.context, llvm::APInt(16, value, true));
 }
 std::string ShortExp::toString(){
-    return to_str(value);
+    return to_str(value) + "ss";
 }
 PlainExp* ShortExp::clone(){
     return new ShortExp(*this);
-}
-bool ShortExp::getType(Program& program, Function& func, std::string& type){
-    type = "short";
-    return true;
 }
 
 IntegerExp::IntegerExp(){}
@@ -193,18 +177,15 @@ IntegerExp::IntegerExp(int32_t val){
     value = val;
 }
 IntegerExp::~IntegerExp(){}
-llvm::Value* IntegerExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* IntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "int";
     return llvm::ConstantInt::get(context.context, llvm::APInt(32, value, true));
 }
 std::string IntegerExp::toString(){
-    return to_str(value);
+    return to_str(value) + "si";
 }
 PlainExp* IntegerExp::clone(){
     return new IntegerExp(*this);
-}
-bool IntegerExp::getType(Program& program, Function& func, std::string& type){
-    type = "int";
-    return true;
 }
 
 LongExp::LongExp(){}
@@ -212,18 +193,15 @@ LongExp::LongExp(int64_t val){
     value = val;
 }
 LongExp::~LongExp(){}
-llvm::Value* LongExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* LongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "long";
     return llvm::ConstantInt::get(context.context, llvm::APInt(64, value, true));
 }
 std::string LongExp::toString(){
-    return to_str(value);
+    return to_str(value) + "sl";
 }
 PlainExp* LongExp::clone(){
     return new LongExp(*this);
-}
-bool LongExp::getType(Program& program, Function& func, std::string& type){
-    type = "long";
-    return true;
 }
 
 UnsignedByteExp::UnsignedByteExp(){}
@@ -231,18 +209,15 @@ UnsignedByteExp::UnsignedByteExp(uint8_t val){
     value = val;
 }
 UnsignedByteExp::~UnsignedByteExp(){}
-llvm::Value* UnsignedByteExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* UnsignedByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "ubyte";
     return llvm::ConstantInt::get(context.context, llvm::APInt(8, value, false));
 }
 std::string UnsignedByteExp::toString(){
-    return to_str(value);
+    return to_str(value) + "ub";
 }
 PlainExp* UnsignedByteExp::clone(){
     return new UnsignedByteExp(*this);
-}
-bool UnsignedByteExp::getType(Program& program, Function& func, std::string& type){
-    type = "ubyte";
-    return true;
 }
 
 UnsignedShortExp::UnsignedShortExp(){}
@@ -250,18 +225,15 @@ UnsignedShortExp::UnsignedShortExp(uint16_t val){
     value = val;
 }
 UnsignedShortExp::~UnsignedShortExp(){}
-llvm::Value* UnsignedShortExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* UnsignedShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "ushort";
     return llvm::ConstantInt::get(context.context, llvm::APInt(16, value, false));
 }
 std::string UnsignedShortExp::toString(){
-    return to_str(value);
+    return to_str(value) + "us";
 }
 PlainExp* UnsignedShortExp::clone(){
     return new UnsignedShortExp(*this);
-}
-bool UnsignedShortExp::getType(Program& program, Function& func, std::string& type){
-    type = "ushort";
-    return true;
 }
 
 UnsignedIntegerExp::UnsignedIntegerExp(){}
@@ -269,18 +241,15 @@ UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val){
     value = val;
 }
 UnsignedIntegerExp::~UnsignedIntegerExp(){}
-llvm::Value* UnsignedIntegerExp::assemble(Program& program, Function& func, AssembleContext& context){
-    return llvm::ConstantInt::get(context.context, llvm::APInt(32, value, false));
+llvm::Value* UnsignedIntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "uint";
+    return llvm::ConstantInt::get(context.context, llvm::APInt(32, (uint64_t) value, false));
 }
 std::string UnsignedIntegerExp::toString(){
-    return to_str(value);
+    return to_str(value) + "ui";
 }
 PlainExp* UnsignedIntegerExp::clone(){
     return new UnsignedIntegerExp(*this);
-}
-bool UnsignedIntegerExp::getType(Program& program, Function& func, std::string& type){
-    type = "uint";
-    return true;
 }
 
 UnsignedLongExp::UnsignedLongExp(){}
@@ -288,18 +257,15 @@ UnsignedLongExp::UnsignedLongExp(uint64_t val){
     value = val;
 }
 UnsignedLongExp::~UnsignedLongExp(){}
-llvm::Value* UnsignedLongExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* UnsignedLongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "ulong";
     return llvm::ConstantInt::get(context.context, llvm::APInt(64, value, false));
 }
 std::string UnsignedLongExp::toString(){
-    return to_str(value);
+    return to_str(value) + "ul";
 }
 PlainExp* UnsignedLongExp::clone(){
-    return new LongExp(*this);
-}
-bool UnsignedLongExp::getType(Program& program, Function& func, std::string& type){
-    type = "ulong";
-    return true;
+    return new UnsignedLongExp(*this);
 }
 
 
@@ -308,18 +274,15 @@ FloatExp::FloatExp(float val){
     value = val;
 }
 FloatExp::~FloatExp(){}
-llvm::Value* FloatExp::assemble(Program& program, Function& func, AssembleContext& context){
-    return llvm::Value* v = llvm::ConstantFP::get(llvm::Type::getFloatTy(context.context), value);
+llvm::Value* FloatExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "float";
+    return llvm::ConstantFP::get(llvm::Type::getFloatTy(context.context), value);
 }
 std::string FloatExp::toString(){
-    return to_str(value);
+    return to_str(value) + "f";
 }
 PlainExp* FloatExp::clone(){
     return new FloatExp(*this);
-}
-bool FloatExp::getType(Program& program, Function& func, std::string& type){
-    type = "float";
-    return true;
 }
 
 DoubleExp::DoubleExp(){}
@@ -327,18 +290,15 @@ DoubleExp::DoubleExp(double val){
     value = val;
 }
 DoubleExp::~DoubleExp(){}
-llvm::Value* DoubleExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* DoubleExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "double";
     return llvm::ConstantFP::get(context.context, llvm::APFloat(value));
 }
 std::string DoubleExp::toString(){
-    return to_str(value);
+    return to_str(value) + "d";
 }
 PlainExp* DoubleExp::clone(){
     return new DoubleExp(*this);
-}
-bool DoubleExp::getType(Program& program, Function& func, std::string& type){
-    type = "double";
-    return true;
 }
 
 StringExp::StringExp(){}
@@ -346,7 +306,7 @@ StringExp::StringExp(const std::string& val){
     value = val;
 }
 StringExp::~StringExp(){}
-llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     // Constant Definitions
     llvm::Constant* string_data = llvm::ConstantDataArray::getString(context.context, value.c_str(), true);
 
@@ -361,6 +321,7 @@ llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleConte
 
     // Global Variable Definitions
     global_array->setInitializer(string_data);
+    if(expr_type != NULL) *expr_type = "*byte";
     return const_string;
 }
 std::string StringExp::toString(){
@@ -369,17 +330,13 @@ std::string StringExp::toString(){
 PlainExp* StringExp::clone(){
     return new StringExp(*this);
 }
-bool StringExp::getType(Program& program, Function& func, std::string& type){
-    type = "*byte";
-    return true;
-}
 
 WordExp::WordExp(){}
 WordExp::WordExp(const std::string& val){
     value = val;
 }
 WordExp::~WordExp(){}
-llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
 
     if(func.find_variable(value, &var) != 0){
@@ -387,6 +344,7 @@ llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext
         return NULL;
     }
 
+    if(expr_type != NULL) *expr_type = var.type;
     return context.builder.CreateLoad(var.variable, value.c_str());
 }
 std::string WordExp::toString(){
@@ -395,24 +353,13 @@ std::string WordExp::toString(){
 PlainExp* WordExp::clone(){
     return new WordExp(*this);
 }
-bool WordExp::getType(Program& program, Function& func, std::string& type){
-    Variable var;
-
-    if(func.find_variable(value, &var) != 0){
-        fail( UNDECLARED_VARIABLE(value) );
-        return false;
-    }
-
-    type = var.type;
-    return true;
-}
 
 AddrWordExp::AddrWordExp(){}
 AddrWordExp::AddrWordExp(const std::string& val){
     value = val;
 }
 AddrWordExp::~AddrWordExp(){}
-llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
 
     if(func.find_variable(value, &var) != 0){
@@ -420,6 +367,7 @@ llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleCon
         return NULL;
     }
 
+    if(expr_type != NULL) *expr_type = "*" + var.type;
     return var.variable;
 }
 std::string AddrWordExp::toString(){
@@ -427,17 +375,6 @@ std::string AddrWordExp::toString(){
 }
 PlainExp* AddrWordExp::clone(){
     return new AddrWordExp(*this);
-}
-bool AddrWordExp::getType(Program& program, Function& func, std::string& type){
-    Variable var;
-
-    if(func.find_variable(value, &var) != 0){
-        fail( UNDECLARED_VARIABLE(value) );
-        return false;
-    }
-
-    type = "*" + var.type;
-    return true;
 }
 
 LoadExp::LoadExp(){}
@@ -450,32 +387,24 @@ LoadExp::LoadExp(const LoadExp& other){
 LoadExp::~LoadExp(){
     delete value;
 }
-llvm::Value* LoadExp::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Value* pointer = value->assemble(program, func, context);
-    if(pointer == NULL) return NULL;
-    if(!pointer->getType()->isPointerTy()){
-        fail("Cant't load type that is not a pointer");
+llvm::Value* LoadExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    std::string pointer_typename;
+    llvm::Value* pointer_value = value->assemble(program, func, context, &pointer_typename);
+    if(pointer_value == NULL) return NULL;
+
+    if(pointer_typename[0] != '*' or !pointer_value->getType()->isPointerTy()){
+        fail("Can't dereference non-pointer type '" + pointer_typename + "'");
         return NULL;
     }
 
-    return context.builder.CreateLoad(pointer, "loadtmp");
+    if(expr_type != NULL) *expr_type = pointer_typename.substr(1, pointer_typename.length()-1);
+    return context.builder.CreateLoad(pointer_value, "loadtmp");
 }
 std::string LoadExp::toString(){
     return "*" + value->toString();
 }
 PlainExp* LoadExp::clone(){
     return new LoadExp(*this);
-}
-bool LoadExp::getType(Program& program, Function& func, std::string& type){
-    std::string valtype;
-    if(!value->getType(program, func, valtype)) return false;
-    if(valtype[0] != '*'){
-        fail("Cant't load type that is not a pointer");
-        return false;
-    }
-
-    type = valtype.substr(1, valtype.length()-1);
-    return true;
 }
 
 CallExp::CallExp(){}
@@ -492,12 +421,17 @@ CallExp::~CallExp(){
         delete e;
     }
 }
-llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext& context){
+llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     llvm::Function* target = context.module->getFunction(name);
+    External func_data;
+
     if (!target){
         fail( UNDECLARED_FUNC(name) );
         return NULL;
     }
+
+    if(program.find_func(name, &func_data) != 0) return NULL;
+    assert(func_data.arguments.size() == target->arg_size());
 
     // If argument mismatch error.
     if (target->arg_size() != args.size()){
@@ -505,12 +439,29 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
         return NULL;
     }
 
+    llvm::Value* expr_value;
+    std::string expr_typename;
+    llvm::Type* expected_arg_type;
     std::vector<llvm::Value*> value_args;
+
     for(size_t i = 0, e = args.size(); i != e; ++i) {
-        value_args.push_back( args[i]->assemble(program, func, context) );
-        if (!value_args.back()) return NULL;
+        expr_value = args[i]->assemble(program, func, context, &expr_typename);
+        if(expr_value == NULL) return NULL;
+
+        if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
+            fail( UNDECLARED_TYPE(func_data.arguments[i]) );
+            return NULL;
+        }
+
+        if(assemble_merge_types_oneway(context, expr_typename, func_data.arguments[i], &expr_value, expected_arg_type, NULL) != 0){
+            fail( INCOMPATIBLE_TYPES(expr_typename, func_data.arguments[i]) );
+            return NULL;
+        }
+
+        value_args.push_back(expr_value);
     }
 
+    if(expr_type != NULL) *expr_type = func_data.return_type;
     return context.builder.CreateCall(target, value_args, "calltmp");
 }
 std::string CallExp::toString(){
@@ -526,14 +477,6 @@ std::string CallExp::toString(){
 PlainExp* CallExp::clone(){
     return new CallExp(*this);
 }
-bool CallExp::getType(Program& program, Function& func, std::string& type){
-    External target;
-
-    if(program.find_func(name, &target) != 0) return false;
-    type = target.return_type;
-
-    return true;
-}
 
 MemberExp::MemberExp(){}
 MemberExp::MemberExp(PlainExp* v, const std::string& m){
@@ -543,15 +486,13 @@ MemberExp::MemberExp(PlainExp* v, const std::string& m){
 MemberExp::~MemberExp(){
     //delete value;
 }
-llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleContext& context){
-    std::string type_name;
-    Structure target;
+llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     int index;
-
-    if(!value->getType(program, func, type_name)){
-        std::cerr << "warning returning NULL" << std::endl;
-        return NULL;
-    }
+    Structure target;
+    std::string type_name;
+    llvm::Value* member_index;
+    llvm::Value* data = value->assemble(program, func, context, &type_name);
+    if(data == NULL) return NULL;
 
     if(program.find_struct(type_name, &target) != 0){
         fail( UNDECLARED_STRUCT(type_name) );
@@ -562,9 +503,6 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
         fail( UNDECLARED_MEMBER(member, target.name) );
         return NULL;
     }
-
-    llvm::Value* member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
-    llvm::Value* data = value->assemble(program, func, context);
 
     llvm::Type* alloc_type;
     if(program.find_type(type_name, &alloc_type) != 0){
@@ -572,16 +510,19 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
         return NULL;
     }
 
+    // TODO: Only allocate for non-variables
     llvm::AllocaInst* alloc = context.builder.CreateAlloca(alloc_type, 0, "alloctmp");
     context.builder.CreateStore(data, alloc);
 
     std::vector<llvm::Value*> indices(2);
+    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
     indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
     indices[1] = member_index;
 
     llvm::Value* member_ptr = context.builder.CreateGEP(alloc_type, alloc, indices, "memberptr");
     llvm::Value* loaded_member = context.builder.CreateLoad(member_ptr, "loadtmp");
 
+    if(expr_type != NULL) *expr_type = target.members[index].type;
     return loaded_member;
 }
 std::string MemberExp::toString(){
@@ -589,26 +530,4 @@ std::string MemberExp::toString(){
 }
 PlainExp* MemberExp::clone(){
     return new MemberExp(*this);
-}
-bool MemberExp::getType(Program& program, Function& func, std::string& type){
-    std::string type_name;
-    Structure target;
-    int index;
-
-    if(!value->getType(program, func, type_name)){
-        return false;
-    }
-
-    if(program.find_struct(type_name, &target) != 0){
-        fail( UNDECLARED_STRUCT(type_name) );
-        return false;
-    }
-
-    if(target.find_index(member, &index) != 0){
-        fail( UNDECLARED_MEMBER(member, target.name) );
-        return false;
-    }
-
-    type = target.members[index].type;
-    return true;
 }

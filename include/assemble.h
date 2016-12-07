@@ -10,11 +10,14 @@
 #include "config.h"
 #include "asmcontext.h"
 
-int assemble(AssembleContext& context, Configuration& config, Program& program);
-int assemble_structure(AssembleContext& context, Configuration& config, Program& program, Structure& structure);
-int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func);
-int assemble_external(AssembleContext& context, Configuration& config, Program& program, External& func);
-int assemble_statement(AssembleContext& context, Configuration& config, Program& program, Function& func, AssembleFunction& asm_func, Statement& statement);
+int assemble(AssembleContext&, Configuration&, Program&);
+int build(AssembleContext&, Configuration&);
+
+int assemble_structure(AssembleContext&, Configuration&, Program&, Structure&);
+int assemble_function(AssembleContext&, Configuration&, Program&, Function&);
+int assemble_function_body(AssembleContext&, Configuration&, Program&, Function&);
+int assemble_external(AssembleContext&, Configuration&, Program&, External&);
+int assemble_statement(AssembleContext&, Configuration&, Program&, Function&, AssembleFunction&, Statement&);
 
 int assemble_merge_types(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Value**, std::string*);
 int assemble_merge_types_oneway(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Type*, std::string*);

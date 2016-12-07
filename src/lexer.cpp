@@ -43,6 +43,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
         string_iter_kill_whitespace(code, i);
         prefix_char = code[i];
 
+        // TODO: Should probally use switch
         if(prefix_char == '\n'){
             tokens.push_back(TOKEN_NEWLINE);
         }
@@ -77,6 +78,12 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
         }
         else if(prefix_char == '}'){
             tokens.push_back(TOKEN_END);
+        }
+        else if(prefix_char == '['){
+            tokens.push_back(TOKEN_BRACKET_OPEN);
+        }
+        else if(prefix_char == ']'){
+            tokens.push_back(TOKEN_BRACKET_CLOSE);
         }
         else if(prefix_char == ','){
             tokens.push_back(TOKEN_NEXT);
@@ -151,7 +158,6 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
                 next_index(i, code_size);
                 prefix_char = code[i];
             }
-
             if(prefix_char == '.'){
                 next_index(i, code_size);
                 prefix_char = code[i];
