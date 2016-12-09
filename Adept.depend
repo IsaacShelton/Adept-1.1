@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1481231361 source:c:\users\isaac\google drive\adept\src\main.cpp
+1481321180 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<stdio.h>
 	<stdlib.h>
@@ -15,7 +15,7 @@
 	"config.h"
 	"tokens.h"
 
-1480732659 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1481320038 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -29,7 +29,7 @@
 	<string>
 	<vector>
 
-1480202557 source:c:\users\isaac\google drive\adept\src\tokens.cpp
+1481319833 source:c:\users\isaac\google drive\adept\src\tokens.cpp
 	<iostream>
 	"../include/tokens.h"
 	"../include/strings.h"
@@ -45,16 +45,17 @@
 	<fstream>
 	<stdlib.h>
 
-1480463462 c:\users\isaac\google drive\adept\include\parse.h
+1481322585 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
 	"tokens.h"
 	"program.h"
+	"attribute.h"
 	"statement.h"
 	"asmcontext.h"
 
-1480781586 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1481324445 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -96,7 +97,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1481230987 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1481323044 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -1164,7 +1165,7 @@
 	"../include/assemble.h"
 	"../include/expression.h"
 
-1480276848 c:\users\isaac\google drive\adept\include\asmcontext.h
+1481321193 c:\users\isaac\google drive\adept\include\asmcontext.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -1190,13 +1191,14 @@
 	"parse.h"
 	"statement.h"
 
-1480110786 c:\users\isaac\google drive\adept\include\program.h
+1481324184 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"statement.h"
 	"asmcontext.h"
 
-1480124604 source:c:\users\isaac\google drive\adept\src\program.cpp
+1481326153 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
+	"../include/errors.h"
 	"../include/program.h"
 
 1479505562 c:\users\isaac\google drive\adept\include\clock.h
@@ -1261,9 +1263,14 @@
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1480179320 c:\users\isaac\google drive\adept\include\errors.h
+1481320937 c:\users\isaac\google drive\adept\include\errors.h
 	"die.h"
 
-1480133841 source:c:\users\isaac\google drive\adept\src\asmcontext.cpp
+1481321161 source:c:\users\isaac\google drive\adept\src\asmcontext.cpp
 	"../include/asmcontext.h"
+
+1481321977 c:\users\isaac\google drive\adept\include\attribute.h
+
+1481322769 source:c:\users\isaac\google drive\adept\src\attribute.cpp
+	"../include/attribute.h"
 

@@ -7,17 +7,19 @@
 #include "config.h"
 #include "tokens.h"
 #include "program.h"
+#include "attribute.h"
 #include "statement.h"
 #include "asmcontext.h"
 
 int parse(Configuration& config, std::vector<Token>* tokens, Program& program);
 
-int parse_word(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
 int parse_token(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_function(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_external(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
+int parse_word(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
+int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
+int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
+int parse_function(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
+int parse_external(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
+int parse_attribute(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
 
 int parse_block(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i);
 int parse_block_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name);

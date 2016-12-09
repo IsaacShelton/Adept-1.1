@@ -207,6 +207,12 @@ std::string Token::toString(){
     case TOKENID_MEMBER:
         str = "member";
         break;
+    case TOKENID_BRACKET_OPEN:
+        str = "bracket open";
+        break;
+    case TOKENID_BRACKET_CLOSE:
+        str = "bracket close";
+        break;
     // Operators
     case TOKENID_ADD:
         str = "add";

@@ -95,6 +95,12 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
         llvm::Type* llvm_type;
         std::vector<llvm::Type*> args(func.arguments.size());
 
+        // Throw an error if main is private
+        if(func.name == "main" and !func.is_public){
+            die(MAIN_IS_PRIVATE);
+        }
+
+        // Convert argument typenames to llvm types
         for(size_t i = 0; i != func.arguments.size(); i++){
             if(program.find_type(func.arguments[i].type, &llvm_type) != 0){
                 die( UNDECLARED_TYPE(func.arguments[i].type) );
@@ -102,12 +108,14 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
             args[i] = llvm_type;
         }
 
+        // Convert return type typename to an llvm type
         if(program.find_type(func.return_type, &llvm_type) != 0){
             die( UNDECLARED_TYPE(func.return_type) );
         }
 
+
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, func.name, context.module.get());
+        llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, func.name, context.module.get());
 
         // Create a new basic block to start insertion into.
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);

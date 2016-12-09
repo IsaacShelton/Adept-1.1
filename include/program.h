@@ -20,6 +20,7 @@ struct Field {
 struct Structure {
     std::string name;
     std::vector<Field> members;
+    bool is_public;
 
     int find_index(std::string name, int* index);
 };
@@ -29,6 +30,8 @@ struct Function {
     std::vector<Field> arguments;
     std::string return_type;
     std::vector<Statement> statements;
+    bool is_public;
+
     std::vector<Variable> variables;
     AssembleFunction asm_func;
 
@@ -41,6 +44,7 @@ struct External {
     std::string name;
     std::vector<std::string> arguments;
     std::string return_type;
+    bool is_public;
 };
 
 struct Program {
@@ -51,6 +55,7 @@ struct Program {
     std::vector<External> externs;
     std::vector<Type> types;
 
+    int import_merge(const Program&);
     int generate_types(AssembleContext&);
     int find_type(std::string, llvm::Type**);
     int find_func(std::string, External*);

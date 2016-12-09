@@ -9,13 +9,13 @@
 #include "../include/strings.h"
 
 int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
+    // NOTE: This function deletes 'tokens' after it is done parsing
 
     for(size_t i = 0; i != tokens->size(); i++){
         if(parse_token(config, *tokens, program, i) != 0) return 1;
     }
 
-    // Free Tokens
-    delete tokens;
+    delete tokens; // Free Tokens
 
     // Print Parser Time
     if(config.time and !config.silent){
@@ -26,9 +26,11 @@ int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
 }
 
 int parse_token(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+    static AttributeInfo attr_info(false);
+
     switch(tokens[i].id){
     case TOKENID_KEYWORD:
-        if(parse_keyword(config, tokens, program, i) != 0) return 1;
+        if(parse_keyword(config, tokens, program, i, attr_info) != 0) return 1;
         break;
     case TOKENID_WORD:
         if(parse_word(config, tokens, program, i) != 0) return 1;
@@ -55,7 +57,7 @@ int parse_word(Configuration& config, std::vector<Token>& tokens, Program& progr
 
     return 0;
 }
-int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info){
     // a_keyword <unknown syntax follows>
     //     ^
 
@@ -63,13 +65,13 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
     next_index(i, tokens.size());
 
     if(keyword == "def"){
-        if(parse_function(config, tokens, program, i) != 0) return 1;
+        if(parse_function(config, tokens, program, i, attr_info) != 0) return 1;
     }
-    else if(keyword == "extern"){
-        if(parse_external(config, tokens, program, i) != 0) return 1;
+    else if(keyword == "foreign"){
+        if(parse_external(config, tokens, program, i, attr_info) != 0) return 1;
     }
     else if(keyword == "type"){
-        if(parse_structure(config, tokens, program, i) != 0) return 1;
+        if(parse_structure(config, tokens, program, i, attr_info) != 0) return 1;
     }
     else if(keyword == "import"){
         if(tokens[i].id != TOKENID_WORD){
@@ -79,6 +81,7 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
         std::string name = tokens[i].getString();
         TokenList* import_tokens = new TokenList;
         Configuration import_config = config;
+        Program import_program;
 
         import_config.silent = true;
         import_config.time = false;
@@ -97,8 +100,14 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
         }
 
         import_config.filename = name;
-        if( tokenize(import_config, name, import_tokens) != 0 ) return 1;
-        if( parse(import_config, import_tokens, program) != 0 ) return 1; // Deletes imported_tokens
+        if( tokenize(import_config, name, import_tokens) != 0 )        return 1;
+        if( parse(import_config, import_tokens, import_program) != 0 ) return 1; // Deletes imported_tokens
+
+        // Resolve imports
+        program.import_merge(import_program);
+    }
+    else if(keyword == "public" or keyword == "private"){
+        if(parse_attribute(config, tokens, program, --i) != 0) return 1;
     }
     else {
         die( UNEXPECTED_KEYWORD(keyword) );
@@ -106,7 +115,7 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
 
     return 0;
 }
-int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info){
     // type struct_name { ... }
     //          ^
 
@@ -152,10 +161,10 @@ int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& 
         members.push_back( Field{name, type} );
     }
 
-    program.structures.push_back( Structure{name, members} );
+    program.structures.push_back( Structure{name, members, attr_info.is_public} );
     return 0;
 }
-int parse_function(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+int parse_function(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info){
     // def func_name() ret_type { <some code> }
     //         ^
 
@@ -218,18 +227,18 @@ int parse_function(Configuration& config, std::vector<Token>& tokens, Program& p
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i) != 0) return 1;
 
-    program.functions.push_back( Function{name, arguments, return_type, statements} );
+    program.functions.push_back( Function{name, arguments, return_type, statements, attr_info.is_public} );
     return 0;
 }
-int parse_external(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
-    // extern func_name() ret_type
+int parse_external(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info){
+    // foreign func_name() ret_type
     //            ^
 
     std::string name = tokens[i].getString();
     next_index(i, tokens.size());
 
     if(tokens[i].id != TOKENID_OPEN){
-        std::cerr << "Expected open after external function name" << std::endl;
+        std::cerr << "Expected open after foreign function name" << std::endl;
         return 1;
     }
     next_index(i, tokens.size());
@@ -272,7 +281,34 @@ int parse_external(Configuration& config, std::vector<Token>& tokens, Program& p
         next_index(i, tokens.size());
     }
 
-    program.externs.push_back( External{name, arguments, return_type} );
+    program.externs.push_back( External{name, arguments, return_type, attr_info.is_public} );
+    return 0;
+}
+int parse_attribute(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+    // <attribute> <unknown syntax follows>
+    //      ^
+
+    std::string keyword;
+    AttributeInfo attr_info;
+
+    while(tokens[i].id == TOKENID_KEYWORD){
+        keyword = tokens[i].getString();
+
+        if(keyword == "public"){
+            attr_info.is_public = true;
+            next_index(i, tokens.size());
+        }
+        else if(keyword == "private"){
+            attr_info.is_public = false;
+            next_index(i, tokens.size());
+        }
+        else {
+            // Not an attribute, continue on
+            break;
+        }
+    }
+
+    if(parse_keyword(config, tokens, program, i, attr_info) != 0) return 1;
     return 0;
 }
 

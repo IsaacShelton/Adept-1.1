@@ -59,7 +59,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
                 prefix_char = code[i];
             }
 
-            if(word == "return" or word == "def" or word == "type" or word == "extern" or word == "import"){
+            if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import" or word == "public" or word == "private"){
                 tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
             }
             else {

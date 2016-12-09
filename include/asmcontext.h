@@ -20,8 +20,10 @@ struct AssembleContext {
     llvm::LLVMContext context;
     llvm::IRBuilder<> builder;
     std::unique_ptr<llvm::Module> module;
+    bool is_main = true;
 
     AssembleContext();
+    AssembleContext(bool is_main_module);
     int find_func_data(const std::string&, AssembleFunction*);
 };
 

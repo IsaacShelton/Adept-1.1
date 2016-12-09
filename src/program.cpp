@@ -1,7 +1,111 @@
 
 #include <iostream>
+#include "../include/errors.h"
 #include "../include/program.h"
 
+int Program::import_merge(const Program& other){
+    // Merge Dependencies
+    for(const std::string& new_dependency : other.imports){
+        bool already_exists = false;
+
+        for(const std::string& dependency : imports){
+            if(new_dependency == dependency){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            imports.push_back(new_dependency);
+        }
+    }
+
+    // Merge Functions
+    for(const Function& new_func : other.functions){
+        // If the function is private, skip over it
+        if(!new_func.is_public) continue;
+        bool already_exists = false;
+
+        for(const Function& func : functions){
+            if(new_func.name == func.name){
+                if(func.is_public){
+                    die(DUPLICATE_FUNC(new_func.name));
+                }
+
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            std::vector<std::string> arg_typenames(new_func.arguments.size());
+
+            for(size_t i = 0; i != new_func.arguments.size(); i++){
+                arg_typenames[i] = new_func.arguments[i].type;
+            }
+
+            externs.push_back( External{new_func.name, arg_typenames, new_func.return_type, false} );
+        }
+    }
+
+    // Merge Structures
+    for(const Structure& new_structure : other.structures){
+        // If the structure is private, skip over it
+        if(!new_structure.is_public) continue;
+        bool already_exists = false;
+
+        for(const Structure& structure : structures){
+            if(new_structure.name == structure.name){
+                if(structure.is_public){
+                    die(DUPLICATE_STRUCT(new_structure.name));
+                }
+
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            structures.push_back(new_structure);
+        }
+    }
+
+    // Merge Externals
+    for(const External& new_external : other.externs){
+        // If the external is private, skip over it
+        if(!new_external.is_public) continue;
+        bool already_exists = false;
+
+        for(const External& external : externs){
+            if(new_external.name == external.name){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            externs.push_back(new_external);
+        }
+    }
+
+    // Merge LLVM Types
+    for(const Type& new_type : other.types){
+        bool already_exists = false;
+
+        for(const Type& type : types){
+            if(new_type.name == type.name){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            types.push_back(new_type);
+        }
+    }
+
+    return 0;
+}
 int Program::generate_types(AssembleContext& context){
     // Requires types vector to be empty
 
@@ -116,7 +220,7 @@ void Program::print_functions(){
 }
 void Program::print_externals(){
     for(External& e : externs){
-        std::cout << "extern " << e.name << "(";
+        std::cout << "foreign " << e.name << "(";
         for(size_t a = 0; a != e.arguments.size(); a++){
             std::cout << e.arguments[a];
             if(a + 1 != e.arguments.size()) std::cout << ", ";
