@@ -279,24 +279,37 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             llvm::Type* var_type;
             std::string var_typename;
 
+            // Fetch the variable data
             if(func.find_variable(data.name, &variable) != 0) return 1;
+
+            // Set the default storage location (might be modified by dereferences later)
             store_location = variable.variable;
 
+            // Dereference value (using [] dereferences)
             for(size_t i = 0; i != data.gep_loads.size(); i++){
+                if(variable.type[i] != '*'){
+                    die("Can't dereference non-pointer type '" + variable.type.substr(i, variable.type.length()-i) + "'");
+                }
+
                 std::string member_index_typename;
                 llvm::Value* member_index = data.gep_loads[i]->assemble(program, func, context, &member_index_typename);
                 if(member_index == NULL) return 1;
 
-                // TODO: Check member_index_typename is an 'int'
+                if(member_index_typename != "int"){
+                    die("Expected 'int' type when using []");
+                }
 
-                std::vector<llvm::Value*> indices(2);
-                indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
-                indices[1] = member_index;
+                std::vector<llvm::Value*> indices(1);
+                indices[0] = member_index;
 
-                llvm::Value* member_ptr = context.builder.CreateGEP(store_location, indices, "memberptr");
-                store_location = context.builder.CreateLoad(member_ptr, "loadtmp");
+                store_location = context.builder.CreateLoad(store_location, "loadtmp");
+                store_location = context.builder.CreateInBoundsGEP(store_location, indices, "memberptr");
             }
 
+            // Remove (pointers '*') from typename for [] dereferences
+            var_typename = variable.type.substr(data.gep_loads.size(), variable.type.length()-data.gep_loads.size());
+
+            // Dereference value (using plain dereferences)
             for(int i = 0; i != data.loads; i++){
                 if(variable.type[i] != '*'){
                     die("Can't dereference non-pointer type '" + variable.type.substr(i, variable.type.length()-i) + "'");
@@ -305,17 +318,22 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 store_location = context.builder.CreateLoad(store_location, "loadtmp");
             }
 
-            var_typename = variable.type.substr(data.loads, variable.type.length()-data.loads);
+            // Remove (pointers '*') from typename for plain dereferences
+            var_typename = var_typename.substr(data.loads, var_typename.length()-data.loads);
+
+            // Find LLVM type for final storage location
             if(program.find_type(var_typename, &var_type) != 0) die( UNDECLARED_TYPE(var_typename) );
 
             std::string expr_typename;
             llvm::Value* expr_value = data.value->assemble(program, func, context, &expr_typename);
             if(expr_value == NULL) return 1;
 
+            // Merge expression type into required type if possible
             if(assemble_merge_types_oneway(context, expr_typename, var_typename, &expr_value, var_type, NULL) != 0){
                 die( INCOMPATIBLE_TYPES(expr_typename, variable.type) );
             }
 
+            // Store the final value
             context.builder.CreateStore(expr_value, store_location);
             break;
         }

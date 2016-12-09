@@ -321,7 +321,7 @@ llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleConte
 
     // Global Variable Definitions
     global_array->setInitializer(string_data);
-    if(expr_type != NULL) *expr_type = "*byte";
+    if(expr_type != NULL) *expr_type = "*ubyte";
     return const_string;
 }
 std::string StringExp::toString(){
