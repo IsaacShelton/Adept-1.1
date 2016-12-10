@@ -11,7 +11,7 @@
 #include "asmcontext.h"
 
 int assemble(AssembleContext&, Configuration&, Program&);
-int build(AssembleContext&, Configuration&);
+int build(AssembleContext&, Configuration&, Program&);
 
 int assemble_structure(AssembleContext&, Configuration&, Program&, Structure&);
 int assemble_function(AssembleContext&, Configuration&, Program&, Function&);

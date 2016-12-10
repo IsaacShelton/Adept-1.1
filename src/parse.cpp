@@ -80,11 +80,14 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
 
         std::string name = tokens[i].getString();
         TokenList* import_tokens = new TokenList;
-        Configuration import_config = config;
-        Program import_program;
+        Configuration* import_config = new Configuration(config);
+        Program* import_program = new Program;
+        std::string target_bc;
+        std::string target_obj;
 
-        import_config.silent = true;
-        import_config.time = false;
+        import_config->silent = true;
+        import_config->time = false;
+        import_config->obj = true;
 
         std::string local_file = filename_path(config.filename) + name + ".adept";
         std::string public_file = "C:/Users/" + config.username + "/.adept/import/" + name + ".adept";
@@ -99,12 +102,24 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
             die( UNKNOWN_MODULE(name) );
         }
 
-        import_config.filename = name;
-        if( tokenize(import_config, name, import_tokens) != 0 )        return 1;
-        if( parse(import_config, import_tokens, import_program) != 0 ) return 1; // Deletes imported_tokens
+        import_config->filename = name;
+        if( tokenize(*import_config, name, import_tokens) != 0 )        return 1;
+        if( parse(*import_config, import_tokens, *import_program) != 0 ) return 1; // Deletes imported_tokens
 
         // Resolve imports
-        program.import_merge(import_program);
+        std::string mangled_name = name;
+
+        // TODO: Clean up name mangling code
+        mangled_name = string_replace_all(mangled_name, ":",  "$1");
+        mangled_name = string_replace_all(mangled_name, "/",  "$2");
+        mangled_name = string_replace_all(mangled_name, "\\", "$3");
+        mangled_name = string_replace_all(mangled_name, ".",  "$4");
+
+        target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
+        target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
+
+        program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
+        program.import_merge(*import_program);
     }
     else if(keyword == "public" or keyword == "private"){
         if(parse_attribute(config, tokens, program, --i) != 0) return 1;

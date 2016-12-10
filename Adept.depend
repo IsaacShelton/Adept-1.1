@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1481321180 source:c:\users\isaac\google drive\adept\src\main.cpp
+1481378305 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<stdio.h>
 	<stdlib.h>
@@ -55,7 +55,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1481324445 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1481381579 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -89,7 +89,7 @@
 	"../include/strings.h"
 	"../include/statement.h"
 
-1480289524 c:\users\isaac\google drive\adept\include\assemble.h
+1481379662 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -97,7 +97,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1481323044 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1481382462 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -1191,12 +1191,13 @@
 	"parse.h"
 	"statement.h"
 
-1481324184 c:\users\isaac\google drive\adept\include\program.h
+1481380907 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
+	"config.h"
 	"statement.h"
 	"asmcontext.h"
 
-1481326153 source:c:\users\isaac\google drive\adept\src\program.cpp
+1481380900 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	"../include/errors.h"
 	"../include/program.h"

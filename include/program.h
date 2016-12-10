@@ -3,6 +3,7 @@
 #define PROGRAM_H_INCLUDED
 
 #include "type.h"
+#include "config.h"
 #include "statement.h"
 #include "asmcontext.h"
 
@@ -47,8 +48,20 @@ struct External {
     bool is_public;
 };
 
+struct ModuleDependency {
+    std::string name;
+    std::string target_bc;
+    std::string target_obj;
+
+    Program* program;
+    Configuration* config;
+
+    ModuleDependency(const ModuleDependency&);
+    ModuleDependency(std::string, std::string, std::string, Program*, Configuration*);
+};
+
 struct Program {
-    std::vector<std::string> imports;
+    std::vector<ModuleDependency> imports;
 
     std::vector<Function> functions;
     std::vector<Structure> structures;

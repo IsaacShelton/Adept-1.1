@@ -3,13 +3,28 @@
 #include "../include/errors.h"
 #include "../include/program.h"
 
+ModuleDependency::ModuleDependency(const ModuleDependency& other){
+    name = other.name;
+    target_bc = other.target_bc;
+    target_obj = other.target_obj;
+    program = new Program(*other.program);
+    config = new Configuration(*other.config);
+}
+ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std::string mod_obj, Program* mod_program, Configuration* mod_config){
+    name = mod_name;
+    target_bc = mod_bc;
+    target_obj = mod_obj;
+    program = mod_program;
+    config = mod_config;
+}
+
 int Program::import_merge(const Program& other){
     // Merge Dependencies
-    for(const std::string& new_dependency : other.imports){
+    for(const ModuleDependency& new_dependency : other.imports){
         bool already_exists = false;
 
-        for(const std::string& dependency : imports){
-            if(new_dependency == dependency){
+        for(const ModuleDependency& dependency : imports){
+            if(new_dependency.name == dependency.name){
                 already_exists = true;
                 break;
             }

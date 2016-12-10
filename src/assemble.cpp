@@ -29,23 +29,47 @@
 #include "../include/strings.h"
 #include "../include/assemble.h"
 
-int build(AssembleContext& assemble, Configuration& config){
+int build(AssembleContext& context, Configuration& config, Program& program){
     std::string target_name = filename_change_ext(config.filename, "exe");
-    std::string target_obj  = (config.obj)      ? filename_change_ext(config.filename, "obj") : "C:/Users/" + config.username + "/.adept/obj/object.obj";
+    std::string target_obj  = (config.obj)      ? filename_change_ext(config.filename, "obj") : "C:/Users/" + config.username + "/.adept/obj/object.o";
     std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
+    std::vector<ModuleDependency> dependencies;
+    std::string linked_objects;
 
     std::error_code error_str;
-    llvm::raw_ostream* out = new llvm::raw_fd_ostream(target_bc.c_str(), error_str, llvm::sys::fs::F_None);
-    llvm::WriteBitcodeToFile(assemble.module.get(), *out);
-    out->flush();
-    delete out; // LLVM ERROR: IO failure on output stream.
+    llvm::raw_ostream* out_stream;
+
+    out_stream = new llvm::raw_fd_ostream(target_bc.c_str(), error_str, llvm::sys::fs::F_None);
+    llvm::WriteBitcodeToFile(context.module.get(), *out_stream);
+    out_stream->flush();
+    delete out_stream;
+
+    for(size_t i = 0; i != program.imports.size(); i++){
+        AssembleContext import_context;
+        ModuleDependency* dependency = &program.imports[i];
+
+        if(assemble(import_context, *dependency->config, *dependency->program) != 0) return 1;
+        linked_objects += "\"" + dependency->target_obj + "\" ";
+
+        out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
+        llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
+        out_stream->flush();
+        delete out_stream;
+
+        // TODO: Replace 'system' call
+        system((std::string("llc \"") + dependency->target_bc + "\" -filetype=obj -o \"" + dependency->target_obj + "\"").c_str());
+
+        delete program.imports[i].config;
+        delete program.imports[i].program;
+    }
 
     // TODO: Replace 'system' call
     system((std::string("llc \"") + target_bc + "\" -filetype=obj -o \"" + target_obj + "\"").c_str());
 
     if(!config.obj){
         // TODO: Replace 'system' call
-        system((std::string("C:/MinGW64/bin/gcc \"") + target_obj + std::string("\" C:/MinGW64/lib/gcc/x86_64-w64-mingw32/5.3.0/libstdc++.a -o ") + target_name).c_str());
+        // NOTE: '-Wl,--start-group' can be used disable smart linking and allow any order of linking
+        system(("C:/MinGW64/bin/gcc \"" + target_obj + "\" " + linked_objects + "C:/MinGW64/lib/gcc/x86_64-w64-mingw32/5.3.0/libstdc++.a -o " + target_name).c_str());
     }
 
     if(access(target_name.c_str(), F_OK ) == -1){
@@ -59,7 +83,7 @@ int build(AssembleContext& assemble, Configuration& config){
     return 0;
 }
 int assemble(AssembleContext& assemble, Configuration& config, Program& program){
-    assemble.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str() , assemble.context);
+    assemble.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), assemble.context);
     if(program.generate_types(assemble) != 0) return 1;
 
     for(size_t i = 0; i != program.externs.size(); i++){
@@ -75,11 +99,13 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
     }
 
     // Print Assembler Time
-    config.clock.print_since("Assembler Finished");
-    config.clock.remember();
+    if(config.time and !config.silent){
+        config.clock.print_since("Assembler Finished");
+        config.clock.remember();
+    }
 
-    if(!config.jit){
-        if(build(assemble, config) != 0) return 1;
+    if(!config.jit and !config.obj and !config.bytecode){
+        if(build(assemble, config, program) != 0) return 1;
     }
 
     return 0;
