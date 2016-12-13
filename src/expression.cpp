@@ -63,7 +63,8 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
     }
     if(expr_type != NULL) *expr_type = type_name;
 
-    if(type_name == "int"){
+    if(type_name == "int" or type_name == "uint" or type_name == "short" or type_name == "ushort"
+       or type_name == "long" or type_name == "ulong" or type_name == "byte" or type_name == "ubyte"){
         switch (operation) {
         case TOKENID_ADD:
             return context.builder.CreateAdd(left_value, right_value, "addtmp");
@@ -73,12 +74,18 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             return context.builder.CreateMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
             return context.builder.CreateSDiv(left_value, right_value, "divtmp");
+        case TOKENID_EQUALITY:
+            *expr_type = "bool";
+            return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
+        case TOKENID_INEQUALITY:
+            *expr_type = "bool";
+            return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
         default:
             std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
             return NULL;
         }
     }
-    else if(type_name == "double"){
+    else if(type_name == "float" or type_name == "double"){
         switch (operation) {
         case TOKENID_ADD:
             return context.builder.CreateFAdd(left_value, right_value, "addtmp");
@@ -88,21 +95,12 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             return context.builder.CreateFMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
             return context.builder.CreateFDiv(left_value, right_value, "divtmp");
-        default:
-            std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
-            return NULL;
-        }
-    }
-    else if(type_name == "float"){
-        switch (operation) {
-        case TOKENID_ADD:
-            return context.builder.CreateFAdd(left_value, right_value, "addtmp");
-        case TOKENID_SUBTRACT:
-            return context.builder.CreateFSub(left_value, right_value, "subtmp");
-        case TOKENID_MULTIPLY:
-            return context.builder.CreateFMul(left_value, right_value, "multmp");
-        case TOKENID_DIVIDE:
-            return context.builder.CreateFDiv(left_value, right_value, "divtmp");
+        case TOKENID_EQUALITY:
+            *expr_type = "bool";
+            return context.builder.CreateFCmpOEQ(left_value, right_value, "cmptmp");
+        case TOKENID_INEQUALITY:
+            *expr_type = "bool";
+            return context.builder.CreateFCmpONE(left_value, right_value, "cmptmp");
         default:
             std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
             return NULL;
@@ -129,6 +127,12 @@ std::string OperatorExp::toString(){
     case TOKENID_DIVIDE:
         operator_str = "/";
         break;
+    case TOKENID_EQUALITY:
+        operator_str = "==";
+        break;
+    case TOKENID_INEQUALITY:
+        operator_str = "!=";
+        break;
     default:
         operator_str = "<unknown operator>";
         break;
@@ -138,6 +142,22 @@ std::string OperatorExp::toString(){
 }
 PlainExp* OperatorExp::clone(){
     return new OperatorExp(*this);
+}
+
+BoolExp::BoolExp(){}
+BoolExp::BoolExp(bool val){
+    value = val;
+}
+BoolExp::~BoolExp(){}
+llvm::Value* BoolExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "bool";
+    return llvm::ConstantInt::get(context.context, llvm::APInt(1, value, true));
+}
+std::string BoolExp::toString(){
+    return (value ? "true" : "false");
+}
+PlainExp* BoolExp::clone(){
+    return new BoolExp(*this);
 }
 
 ByteExp::ByteExp(){}
@@ -494,6 +514,15 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
     llvm::Value* data = value->assemble(program, func, context, &type_name);
     if(data == NULL) return NULL;
 
+    if(type_name == ""){
+        fail("Undeclared type ''");
+        return NULL;
+    }
+    else if(type_name[0] == '*'){
+        data = context.builder.CreateLoad(data, "loadtmp");
+        type_name = type_name.substr(1, type_name.length()-1);
+    }
+
     if(program.find_struct(type_name, &target) != 0){
         fail( UNDECLARED_STRUCT(type_name) );
         return NULL;
@@ -530,4 +559,17 @@ std::string MemberExp::toString(){
 }
 PlainExp* MemberExp::clone(){
     return new MemberExp(*this);
+}
+
+NullExp::NullExp(){}
+NullExp::~NullExp(){}
+llvm::Value* NullExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    *expr_type = "ptr";
+    return llvm::ConstantPointerNull::get( llvm::Type::getInt8PtrTy(context.context) );
+}
+std::string NullExp::toString(){
+    return "null";
+}
+PlainExp* NullExp::clone(){
+    return new NullExp();
 }

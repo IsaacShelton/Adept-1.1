@@ -2,6 +2,7 @@
 #ifndef DIE_H_INCLUDED
 #define DIE_H_INCLUDED
 
+#include <iostream>
 #include "errors.h"
 
 #define die(a) { std::cerr << a << std::endl; return 1; }

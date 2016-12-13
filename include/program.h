@@ -56,19 +56,19 @@ struct ModuleDependency {
     Program* program;
     Configuration* config;
 
-    ModuleDependency(const ModuleDependency&);
     ModuleDependency(std::string, std::string, std::string, Program*, Configuration*);
 };
 
 struct Program {
     std::vector<ModuleDependency> imports;
+    std::vector<std::string> extra_libs;
 
     std::vector<Function> functions;
     std::vector<Structure> structures;
     std::vector<External> externs;
     std::vector<Type> types;
 
-    int import_merge(const Program&);
+    int import_merge(const Program&, bool);
     int generate_types(AssembleContext&);
     int find_type(std::string, llvm::Type**);
     int find_func(std::string, External*);

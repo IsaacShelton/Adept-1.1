@@ -11,11 +11,13 @@ struct Configuration {
     bool jit;
     bool obj;
     bool bytecode;
+    bool link;
 
     bool silent;
     bool time;
 };
 
+int configure(Configuration& config, std::string filename);
 int configure(Configuration& config, int argc, char** argv);
 
 #endif // CONFIG_H_INCLUDED

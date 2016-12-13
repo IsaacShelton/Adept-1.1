@@ -22,7 +22,8 @@
 
 // Unexpected
 
-#define UNEXPECTED_KEYWORD(a)   ("ERROR: Unexpected keyword '" + std::string(a) + "'")
+#define UNEXPECTED_KEYWORD(a)        ("ERROR: Unexpected keyword '" + std::string(a) + "'")
+#define UNEXPECTED_KEYWORD_INEXPR(a) ("ERROR: Unexpected keyword '" + std::string(a) + "' in expression")
 
 // Duplicate
 

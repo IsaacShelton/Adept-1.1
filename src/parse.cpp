@@ -26,7 +26,7 @@ int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
 }
 
 int parse_token(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
-    static AttributeInfo attr_info(false);
+    AttributeInfo attr_info(false);
 
     switch(tokens[i].id){
     case TOKENID_KEYWORD:
@@ -70,59 +70,17 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
     else if(keyword == "foreign"){
         if(parse_external(config, tokens, program, i, attr_info) != 0) return 1;
     }
+    else if(keyword == "public" or keyword == "private"){
+        if(parse_attribute(config, tokens, program, --i) != 0) return 1;
+    }
     else if(keyword == "type"){
         if(parse_structure(config, tokens, program, i, attr_info) != 0) return 1;
     }
     else if(keyword == "import"){
-        if(tokens[i].id != TOKENID_WORD){
-            die("Expected module name after import");
-        }
-
-        std::string name = tokens[i].getString();
-        TokenList* import_tokens = new TokenList;
-        Configuration* import_config = new Configuration(config);
-        Program* import_program = new Program;
-        std::string target_bc;
-        std::string target_obj;
-
-        import_config->silent = true;
-        import_config->time = false;
-        import_config->obj = true;
-
-        std::string local_file = filename_path(config.filename) + name + ".adept";
-        std::string public_file = "C:/Users/" + config.username + "/.adept/import/" + name + ".adept";
-
-        if( access(local_file.c_str(), F_OK) != -1 ){
-            name = local_file;
-        }
-        else if( access(public_file.c_str(), F_OK) != -1 ){
-            name = public_file;
-        }
-        else {
-            die( UNKNOWN_MODULE(name) );
-        }
-
-        import_config->filename = name;
-        if( tokenize(*import_config, name, import_tokens) != 0 )        return 1;
-        if( parse(*import_config, import_tokens, *import_program) != 0 ) return 1; // Deletes imported_tokens
-
-        // Resolve imports
-        std::string mangled_name = name;
-
-        // TODO: Clean up name mangling code
-        mangled_name = string_replace_all(mangled_name, ":",  "$1");
-        mangled_name = string_replace_all(mangled_name, "/",  "$2");
-        mangled_name = string_replace_all(mangled_name, "\\", "$3");
-        mangled_name = string_replace_all(mangled_name, ".",  "$4");
-
-        target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
-        target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
-
-        program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
-        program.import_merge(*import_program);
+        if(parse_import(config, tokens, program, i, attr_info) != 0) return 1;
     }
-    else if(keyword == "public" or keyword == "private"){
-        if(parse_attribute(config, tokens, program, --i) != 0) return 1;
+    else if(keyword == "link"){
+        if(parse_lib(config, tokens, program, i) != 0) return 1;
     }
     else {
         die( UNEXPECTED_KEYWORD(keyword) );
@@ -153,8 +111,8 @@ int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& 
         std::string type;
         next_index(i, tokens.size());
 
-        if(tokens[i].id != TOKENID_WORD){
-            fail("Expected type name");
+        if(tokens[i].id != TOKENID_WORD and tokens[i].id != TOKENID_MULTIPLY){
+            fail("Expected type name after member name");
             return 1;
         }
 
@@ -223,7 +181,12 @@ int parse_function(Configuration& config, std::vector<Token>& tokens, Program& p
         arguments.push_back( Field{name, type} );
     }
 
+    if(tokens[i].id == TOKENID_BEGIN){
+        std::cerr << "Expected function return type after function name" << std::endl;
+        return 1;
+    }
     next_index(i, tokens.size());
+
     while(tokens[i].id != TOKENID_BEGIN){
         switch(tokens[i].id){
         case TOKENID_MULTIPLY:
@@ -326,12 +289,92 @@ int parse_attribute(Configuration& config, std::vector<Token>& tokens, Program& 
     if(parse_keyword(config, tokens, program, i, attr_info) != 0) return 1;
     return 0;
 }
+int parse_import(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info){
+    // import PackageName
+    //             ^
+
+    if(tokens[i].id != TOKENID_WORD and tokens[i].id != TOKENID_STRING){
+        die("Expected module name after 'import'");
+    }
+
+    std::string name = tokens[i].getString();
+    TokenList* import_tokens = new TokenList;
+    Configuration* import_config = new Configuration(config);
+    Program* import_program = new Program;
+    std::string target_bc;
+    std::string target_obj;
+
+    import_config->silent = true;
+    import_config->time = false;
+    import_config->link = false;
+    import_config->obj = false;
+    import_config->bytecode = false;
+
+    std::string local_file = filename_path(config.filename) + name + ".adept";
+    std::string public_file = "C:/Users/" + config.username + "/.adept/import/" + name + ".adept";
+
+    if( access(local_file.c_str(), F_OK) != -1 ){
+        name = local_file;
+    }
+    else if( access(public_file.c_str(), F_OK) != -1 ){
+        name = public_file;
+    }
+    else {
+        die( UNKNOWN_MODULE(name) );
+    }
+
+    import_config->filename = name;
+    if( tokenize(*import_config, name, import_tokens) != 0 )        return 1;
+    if( parse(*import_config, import_tokens, *import_program) != 0 ) return 1; // Deletes imported_tokens
+
+    // Resolve imports
+    std::string mangled_name = name;
+
+    // TODO: Clean up name mangling code
+    mangled_name = string_replace_all(mangled_name, ":",  "$1");
+    mangled_name = string_replace_all(mangled_name, "/",  "$2");
+    mangled_name = string_replace_all(mangled_name, "\\", "$3");
+    mangled_name = string_replace_all(mangled_name, ".",  "$4");
+
+    target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
+    target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
+
+    program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
+    if(program.import_merge(*import_program, attr_info.is_public) != 0) return 1;
+
+    return 0;
+}
+int parse_lib(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+    // link "filename.a"
+    //           ^
+
+    if(tokens[i].id != TOKENID_STRING){
+        die("Expected library after 'link'");
+    }
+
+    std::string name = tokens[i].getString();
+    std::string local_file = filename_path(config.filename) + name;
+    std::string public_file = "C:/Users/" + config.username + "/.adept/lib/" + name;
+
+    if( access(local_file.c_str(), F_OK) != -1 ){
+        name = local_file;
+    }
+    else if( access(public_file.c_str(), F_OK) != -1 ){
+        name = public_file;
+    }
+    else {
+        die( UNKNOWN_MODULE(name) );
+    }
+
+    program.extra_libs.push_back(name);
+    return 0;
+}
 
 int parse_block(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i){
     // { some code; some more code; }
     //    ^
 
-    while(i != tokens.size() and tokens[i].id != TOKENID_END){
+    while(tokens[i].id != TOKENID_END){
         switch(tokens[i].id){
         case TOKENID_NEWLINE:
             next_index(i, tokens.size());
@@ -365,8 +408,14 @@ int parse_block_keyword(Configuration& config, std::vector<Token>& tokens, Progr
         }
         else {
             if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
-            statements.push_back( STATEMENT_RETURN(expression) );
+            statements.push_back(std::move( STATEMENT_RETURN(expression) ));
         }
+    }
+    else if(keyword == "if"){
+        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_IF) != 0) return 1;
+    }
+    else if(keyword == "while"){
+        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_WHILE) != 0) return 1;
     }
     else {
         die( UNEXPECTED_KEYWORD(keyword) );
@@ -543,6 +592,34 @@ int parse_block_dereference(Configuration& config, std::vector<Token>& tokens, P
     if(parse_block_assign(config, tokens, program, statements, i, name, deref_count) != 0) return 1;
     return 0;
 }
+int parse_block_conditional(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, uint16_t conditional_type){
+    // conditional <condition> { ... }
+    //      ^
+
+    PlainExp* expression;
+    std::vector<Statement> conditional_statements;
+    next_index(i, tokens.size());
+
+    if(parse_expression(config, tokens, program, i, &expression) != 0) return 1;
+    if(tokens[i].id != TOKENID_BEGIN) die("Expected '{' after conditional");
+
+    next_index(i, tokens.size());
+    if(parse_block(config, tokens, program, conditional_statements, i) != 0) return 1;
+    next_index(i, tokens.size());
+
+    switch(conditional_type){
+    case CONDITIONAL_IF:
+        statements.push_back(std::move( STATEMENT_IF(expression, conditional_statements) ));
+        break;
+    case CONDITIONAL_WHILE:
+        statements.push_back(std::move( STATEMENT_WHILE(expression, conditional_statements) ));
+        break;
+    default:
+        die("Invalid conditional type");
+    }
+
+    return 0;
+}
 
 int parse_expression(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, PlainExp** expression){
     // 10 + 3 * 6
@@ -561,6 +638,22 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
         }
         else {
             *expression = new WordExp( tokens[i-1].getString() );
+        }
+        return 0;
+    case TOKENID_KEYWORD:
+        {
+            std::string keyword = tokens[i].getString();
+            next_index(i, tokens.size());
+
+            if(keyword == "true"){
+                *expression = new BoolExp(true);
+            } else if(keyword == "false"){
+                *expression = new BoolExp(false);
+            } else if(keyword == "null"){
+                *expression = new NullExp();
+            } else {
+                die( UNEXPECTED_KEYWORD_INEXPR(keyword) )
+            }
         }
         return 0;
     case TOKENID_ADDRESS:
@@ -643,21 +736,18 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
     }
 }
 int parse_expression_operator_right(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, int precedence, PlainExp** left) {
-    // If this is a binop, find its precedence.
     while(i != tokens.size()) {
         int token_precedence = tokens[i].getPrecedence();
+        int operation;
 
-        // If this is a binop that binds at least as tightly as the current binop,
-        // consume it, otherwise we are done.
         if (token_precedence < precedence) return 0;
+        operation = tokens[i].id;
 
-        // Okay, we know this is a binop.
-        int operation = tokens[i].id;
-        if(operation == TOKENID_CLOSE or operation == TOKENID_NEWLINE or operation == TOKENID_NEXT or operation == TOKENID_BRACKET_CLOSE) return 0;
+        if(operation == TOKENID_CLOSE or operation == TOKENID_NEWLINE or operation == TOKENID_NEXT
+           or operation == TOKENID_BRACKET_CLOSE or operation == TOKENID_BEGIN or operation == TOKENID_END) return 0;
 
         next_index(i, tokens.size());
 
-        // Parse the primary expression after the binary operator.
         if(operation == TOKENID_MEMBER){
             if(tokens[i].id != TOKENID_WORD){
                 std::cerr << "Expected word after ':' operator" << std::endl;
@@ -671,14 +761,11 @@ int parse_expression_operator_right(Configuration& config, std::vector<Token>& t
             PlainExp* right;
             if(parse_expression_primary(config, tokens, program, i, &right) != 0) return 1;
 
-            // If BinOp binds less tightly with RHS than the operator after RHS, let
-            // the pending operator take RHS as its LHS.
             int next_precedence = tokens[i].getPrecedence();
             if (token_precedence < next_precedence) {
                 if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right) != 0) return 1;
             }
 
-            // Merge LHS/RHS.
             *left = new OperatorExp(operation, *left, right);
         }
     }

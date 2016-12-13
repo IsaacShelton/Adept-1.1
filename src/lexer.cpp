@@ -59,7 +59,10 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
                 prefix_char = code[i];
             }
 
-            if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import" or word == "public" or word == "private"){
+            // TODO: Clean up keyword selection
+            if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import"
+               or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
+               or word == "null" or word == "if" or word == "while"){
                 tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
             }
             else {
@@ -89,7 +92,28 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             tokens.push_back(TOKEN_NEXT);
         }
         else if(prefix_char == '='){
-            tokens.push_back(TOKEN_ASSIGN);
+            next_index(i, code.size());
+
+            if(code[i] == '='){
+                tokens.push_back(TOKEN_EQUALITY);
+            }
+            else {
+                tokens.push_back(TOKEN_ASSIGN);
+                i--;
+            }
+        }
+        else if(prefix_char == '!'){
+            next_index(i, code.size());
+
+            if(code[i] == '='){
+                tokens.push_back(TOKEN_INEQUALITY);
+            }
+            else {
+                i--;
+                // TODO: 'not' operator
+                std::cerr << "lexer error: " + code.substr(i, 1) <<  std::endl;
+                return 1;
+            }
         }
         else if(prefix_char == '+'){
             tokens.push_back(TOKEN_ADD);

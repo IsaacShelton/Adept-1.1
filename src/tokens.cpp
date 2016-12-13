@@ -235,6 +235,12 @@ std::string Token::toString(){
     case TOKENID_ADDRESS:
         str = "address";
         break;
+    case TOKENID_EQUALITY:
+        str = "equality";
+        break;
+    case TOKENID_INEQUALITY:
+        str = "inequality";
+        break;
     }
 
     return str;
@@ -242,6 +248,10 @@ std::string Token::toString(){
 
 int Token::getPrecedence(){
     switch(id){
+    // Very Low Precedence
+    case TOKENID_EQUALITY:
+    case TOKENID_INEQUALITY:
+        return 1;
     // Low Precedence
     case TOKENID_ADD:
     case TOKENID_SUBTRACT:

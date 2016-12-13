@@ -26,10 +26,10 @@ void jit_init(){
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
 }
-int jit_main(AssembleContext& context, std::string& result){
-    llvm::Function *entry_point = context.module->getFunction("main");
+int jit_run(AssembleContext& context, std::string func_name, std::string& result, std::vector<llvm::GenericValue> args){
+    llvm::Function *entry_point = context.module->getFunction(func_name.c_str());
     if(!entry_point) {
-        std::cout << "No 'main' function" << std::endl;
+        std::cout << "Can't invoke function '" + func_name + "' because it does not exist" << std::endl;
         return 1;
     }
 
@@ -39,8 +39,7 @@ int jit_main(AssembleContext& context, std::string& result){
 
     if(execution_engine != 0) {
         // Call main function
-        std::vector<llvm::GenericValue> entry_args(0);
-        llvm::GenericValue return_value = execution_engine->runFunction(entry_point, entry_args);
+        llvm::GenericValue return_value = execution_engine->runFunction(entry_point, args);
 
         // Output results
         result = return_value.IntVal.toString(10, true);

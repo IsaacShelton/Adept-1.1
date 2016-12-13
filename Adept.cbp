@@ -70,6 +70,7 @@
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
 			<Add option="-fno-exceptions -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -fno-rtti -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS" />
+			<Add option="-fpermissive" />
 			<Add directory="C:/LLVM/include" />
 		</Compiler>
 		<Linker>
@@ -79,6 +80,8 @@
 		</Linker>
 		<Unit filename="include/asmcontext.h" />
 		<Unit filename="include/assemble.h" />
+		<Unit filename="include/attribute.h" />
+		<Unit filename="include/build.h" />
 		<Unit filename="include/clock.h" />
 		<Unit filename="include/config.h" />
 		<Unit filename="include/die.h" />
@@ -96,6 +99,8 @@
 		<Unit filename="include/type.h" />
 		<Unit filename="src/asmcontext.cpp" />
 		<Unit filename="src/assemble.cpp" />
+		<Unit filename="src/attribute.cpp" />
+		<Unit filename="src/build.cpp" />
 		<Unit filename="src/clock.cpp" />
 		<Unit filename="src/config.cpp" />
 		<Unit filename="src/expression.cpp" />

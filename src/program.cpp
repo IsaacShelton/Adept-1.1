@@ -3,13 +3,6 @@
 #include "../include/errors.h"
 #include "../include/program.h"
 
-ModuleDependency::ModuleDependency(const ModuleDependency& other){
-    name = other.name;
-    target_bc = other.target_bc;
-    target_obj = other.target_obj;
-    program = new Program(*other.program);
-    config = new Configuration(*other.config);
-}
 ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std::string mod_obj, Program* mod_program, Configuration* mod_config){
     name = mod_name;
     target_bc = mod_bc;
@@ -18,7 +11,7 @@ ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std
     config = mod_config;
 }
 
-int Program::import_merge(const Program& other){
+int Program::import_merge(const Program& other, bool public_import){
     // Merge Dependencies
     for(const ModuleDependency& new_dependency : other.imports){
         bool already_exists = false;
@@ -59,7 +52,7 @@ int Program::import_merge(const Program& other){
                 arg_typenames[i] = new_func.arguments[i].type;
             }
 
-            externs.push_back( External{new_func.name, arg_typenames, new_func.return_type, false} );
+            externs.push_back( External{new_func.name, arg_typenames, new_func.return_type, public_import} );
         }
     }
 
@@ -81,7 +74,9 @@ int Program::import_merge(const Program& other){
         }
 
         if(!already_exists){
-            structures.push_back(new_structure);
+            Structure target = new_structure;
+            target.is_public = public_import;
+            structures.push_back(target);
         }
     }
 
@@ -99,23 +94,25 @@ int Program::import_merge(const Program& other){
         }
 
         if(!already_exists){
-            externs.push_back(new_external);
+            External target = new_external;
+            target.is_public = public_import;
+            externs.push_back(target);
         }
     }
 
-    // Merge LLVM Types
-    for(const Type& new_type : other.types){
+    // Merge Extra Libraries
+    for(const std::string& new_lib : other.extra_libs){
         bool already_exists = false;
 
-        for(const Type& type : types){
-            if(new_type.name == type.name){
+        for(const std::string& lib : extra_libs){
+            if(new_lib == lib){
                 already_exists = true;
                 break;
             }
         }
 
         if(!already_exists){
-            types.push_back(new_type);
+            extra_libs.push_back(new_lib);
         }
     }
 
@@ -130,6 +127,7 @@ int Program::generate_types(AssembleContext& context){
     }
 
     types.push_back( Type("void", llvm::Type::getInt8Ty(context.context)) );
+    types.push_back( Type("bool", llvm::Type::getInt1Ty(context.context)) );
     types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(context.context)) );
     types.push_back( Type("int", llvm::Type::getInt32Ty(context.context)) );
     types.push_back( Type("uint", llvm::Type::getInt32Ty(context.context)) );
@@ -221,6 +219,7 @@ void Program::print(){
 }
 void Program::print_functions(){
     for(Function& f : functions){
+        std::cout << (f.is_public ? "public " : "private ");
         std::cout << "def " << f.name << "(";
         for(size_t a = 0; a != f.arguments.size(); a++){
             std::cout << f.arguments[a].name << " " << f.arguments[a].type;
@@ -228,13 +227,14 @@ void Program::print_functions(){
         }
         std::cout << ") " << f.return_type << " {" << std::endl;
         for(size_t a = 0; a != f.statements.size(); a++){
-            std::cout << "    " << f.statements[a].toString() << std::endl;
+            std::cout << f.statements[a].toString(1) << std::endl;
         }
         std::cout << "}" << std::endl;
     }
 }
 void Program::print_externals(){
     for(External& e : externs){
+        std::cout << (e.is_public ? "public " : "private ");
         std::cout << "foreign " << e.name << "(";
         for(size_t a = 0; a != e.arguments.size(); a++){
             std::cout << e.arguments[a];
@@ -245,6 +245,7 @@ void Program::print_externals(){
 }
 void Program::print_structures(){
     for(Structure& s : structures){
+        std::cout << (s.is_public ? "public " : "private ");
         std::cout << "type " << s.name << " {" << std::endl;
 
         for(Field f : s.members){

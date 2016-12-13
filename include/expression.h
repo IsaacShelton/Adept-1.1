@@ -35,6 +35,19 @@ class OperatorExp : public PlainExp {
     bool getType(Program&, Function&, std::string&);
 };
 
+class BoolExp : public PlainExp {
+    public:
+    bool value;
+
+    BoolExp();
+    BoolExp(bool);
+    ~BoolExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+    bool getType(Program&, Function&, std::string&);
+};
+
 class ByteExp : public PlainExp {
     public:
     int8_t value;
@@ -241,6 +254,16 @@ class MemberExp : public PlainExp {
     MemberExp();
     MemberExp(PlainExp*, const std::string&);
     ~MemberExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+    bool getType(Program&, Function&, std::string&);
+};
+
+class NullExp : public PlainExp {
+    public:
+    NullExp();
+    ~NullExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();

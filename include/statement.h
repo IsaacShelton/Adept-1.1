@@ -9,6 +9,8 @@
 #define STATEMENT_ASSIGN(a,b,c,d)     Statement(4, new AssignStatement(a, b, c, d))
 #define STATEMENT_ASSIGNMEMBER(a,b,c) Statement(5, new AssignMemberStatement(a, b, c))
 #define STATEMENT_CALL(a,b)           Statement(6, new CallStatement(a, b))
+#define STATEMENT_IF(a,b)             Statement(7, new ConditionalStatement(a, b))
+#define STATEMENT_WHILE(a,b)          Statement(8, new ConditionalStatement(a, b))
 
 #define STATEMENTID_NONE         0
 #define STATEMENTID_DECLARE      1
@@ -17,6 +19,8 @@
 #define STATEMENTID_ASSIGN       4
 #define STATEMENTID_ASSIGNMEMBER 5
 #define STATEMENTID_CALL         6
+#define STATEMENTID_IF           7
+#define STATEMENTID_WHILE        8
 
 #include <string>
 #include <vector>
@@ -39,7 +43,7 @@ struct Statement {
     ~Statement();
     void reset();
     void free();
-    std::string toString();
+    std::string toString(unsigned int indent = 0);
 };
 
 // Possible structures pointed to by 'void* Statement::data'
@@ -97,8 +101,17 @@ struct CallStatement {
     std::vector<PlainExp*> args;
 
     CallStatement(const CallStatement&);
-    CallStatement(std::string, std::vector<PlainExp*>);
+    CallStatement(std::string, const std::vector<PlainExp*>&);
     ~CallStatement();
+};
+
+struct ConditionalStatement {
+    PlainExp* condition;
+    std::vector<Statement> statements;
+
+    ConditionalStatement(const ConditionalStatement&);
+    ConditionalStatement(PlainExp*, const std::vector<Statement>&);
+    ~ConditionalStatement();
 };
 
 #endif // STATEMENT_H_INCLUDED

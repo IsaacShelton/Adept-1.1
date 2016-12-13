@@ -7,16 +7,17 @@
 #include "../include/finalize.h"
 
 int finalize(Configuration& config, AssembleContext& assemble){
-    printf("---------------------------------------\n");
-    config.clock.print_since_start("Total Time");
-    config.clock.remember();
+    if(config.time and !config.silent){
+        printf("---------------------------------------\n");
+        config.clock.print_since_start("Total Time");
+        config.clock.remember();
+    }
 
     if(config.jit){
         std::string result;
 
         // Run just in time
-        jit_init();
-        if(jit_main(assemble, result) != 0) return 1;
+        if(jit_run(assemble, "main", result) != 0) return 1;
 
         // Print Execution Time
         config.clock.print_since("Execution Finished");

@@ -24,7 +24,10 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
+#include "../include/jit.h"
+#include "../include/build.h"
 #include "../include/errors.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
@@ -35,6 +38,34 @@ int build(AssembleContext& context, Configuration& config, Program& program){
     std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
     std::vector<ModuleDependency> dependencies;
     std::string linked_objects;
+
+    std::string build_result;
+    AssembleContext build_context;
+    llvm::Function* build_function = context.module->getFunction("build");
+
+    if(build_function != NULL){
+        // Prepare to run 'build()'
+        adept_current_program = &program;
+        adept_current_config = &config;
+
+        adept_build_config = new BuildConfig;
+        adept_build_config->sourceFilename = config.filename.c_str();
+        adept_build_config->programFilename = target_name.c_str();
+        adept_build_config->objectFilename = target_obj.c_str();
+        adept_build_config->bytecodeFilename = target_bc.c_str();
+
+        // Clone module that contains 'build()'
+        build_context.module = llvm::CloneModule(context.module.get());
+
+        // Run 'build()'
+        if(jit_run(build_context, "build", build_result) != 0) return 1;
+        if(build_result != "0") return 1;
+        build_function->eraseFromParent();
+
+        // Delete build_config
+        delete adept_build_config;
+        return 0;
+    }
 
     std::error_code error_str;
     llvm::raw_ostream* out_stream;
@@ -63,28 +94,37 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         delete program.imports[i].program;
     }
 
-    // TODO: Replace 'system' call
-    system((std::string("llc \"") + target_bc + "\" -filetype=obj -o \"" + target_obj + "\"").c_str());
-
-    if(!config.obj){
-        // TODO: Replace 'system' call
-        // NOTE: '-Wl,--start-group' can be used disable smart linking and allow any order of linking
-        system(("C:/MinGW64/bin/gcc \"" + target_obj + "\" " + linked_objects + "C:/MinGW64/lib/gcc/x86_64-w64-mingw32/5.3.0/libstdc++.a -o " + target_name).c_str());
+    for(const std::string& lib : program.extra_libs){
+        linked_objects += "\"" + lib + "\" ";
     }
 
-    if(access(target_name.c_str(), F_OK ) == -1){
-        fail( FAILED_TO_CREATE(filename_name(target_name)) );
-        return 1;
+    // TODO: Replace 'system' call
+    system( ("llc \"" + target_bc + "\" -filetype=obj -o \"" + target_obj + "\"").c_str() );
+
+    if(config.link){
+        // TODO: Replace 'system' call
+        // NOTE: '-Wl,--start-group' can be used disable smart linking and allow any order of linking
+        system( ("C:/MinGW64/bin/gcc -Wl,--start-group \"" + target_obj + "\" " + linked_objects + " -o " + target_name).c_str() );
+
+        if(access(target_name.c_str(), F_OK ) == -1){
+            fail( FAILED_TO_CREATE(filename_name(target_name)) );
+            return 1;
+        }
     }
 
     // Print Build Time
-    std::cout << "Build Finished     (" << config.clock.since() << "s)" << std::endl;
-    config.clock.remember();
+    if(config.time and !config.silent){
+        std::cout << "Build Finished     (" << config.clock.since() << "s)" << std::endl;
+        config.clock.remember();
+    }
+
     return 0;
 }
 int assemble(AssembleContext& assemble, Configuration& config, Program& program){
     assemble.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), assemble.context);
     if(program.generate_types(assemble) != 0) return 1;
+    build_add_symbols();
+    jit_init();
 
     for(size_t i = 0; i != program.externs.size(); i++){
         if(assemble_external(assemble, config, program, program.externs[i]) != 0) return 1;
@@ -104,7 +144,7 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
         config.clock.remember();
     }
 
-    if(!config.jit and !config.obj and !config.bytecode){
+    if(!config.jit and !config.obj and !config.bytecode and config.link){
         if(build(assemble, config, program) != 0) return 1;
     }
 
@@ -112,6 +152,7 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
 }
 
 int assemble_structure(AssembleContext& context, Configuration& config, Program& program, Structure& structure){
+    // Currently structures don't require any special assembly
     return 0;
 }
 int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func){
@@ -380,25 +421,36 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             Variable variable;
             llvm::Type* struct_type;
             llvm::Value* member_ptr;
+            std::string struct_name;
 
             if(func.find_variable(data.path[0].name, &variable) != 0){
                 die( UNDECLARED_VARIABLE(data.path[0].name) );
             }
-            if(program.find_struct(variable.type, &target) != 0){
-                die( UNDECLARED_STRUCT(variable.type) );
+            struct_name = variable.type;
+            member_ptr = variable.variable;
+
+            if(struct_name == ""){
+                die("Undeclared type ''");
+            }
+            else if(struct_name[0] == '*'){
+                member_ptr = context.builder.CreateLoad(member_ptr, "loadtmp");
+                struct_name = struct_name.substr(1, struct_name.length()-1);
+            }
+
+            if(program.find_struct(struct_name, &target) != 0){
+                die( UNDECLARED_STRUCT(struct_name) );
             }
             if(target.find_index(data.path[1].name, &index) != 0){
                 die( UNDECLARED_MEMBER(data.path[1].name, target.name) );
             }
-            member_ptr = variable.variable;
 
             llvm::Value* member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
             std::vector<llvm::Value*> indices(2);
             indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
             indices[1] = member_index;
 
-            if(program.find_type(variable.type, &struct_type) != 0){
-                die( UNDECLARED_TYPE(variable.type) );
+            if(program.find_type(struct_name, &struct_type) != 0){
+                die( UNDECLARED_TYPE(struct_name) );
             }
             member_ptr = context.builder.CreateGEP(struct_type, member_ptr, indices, "memberptr");
 
@@ -407,7 +459,16 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             //    member_ptr
 
             for(size_t i = 2; i != data.path.size(); i++){
-                std::string struct_name = target.members[index].type;
+                struct_name = target.members[index].type;
+
+                if(struct_name == ""){
+                    die("Undeclared struct_name ''");
+                }
+                else if(struct_name[0] == '*'){
+                    member_ptr = context.builder.CreateLoad(member_ptr, "loadtmp");
+                    struct_name = struct_name.substr(1, struct_name.length()-1);
+                }
+
                 if(program.find_struct(struct_name, &target) != 0){
                     die( UNDECLARED_STRUCT(target.members[index].type) );
                 }
@@ -477,6 +538,78 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             }
 
             context.builder.CreateCall(target, argument_values, "calltmp");
+            break;
+        }
+    case STATEMENTID_IF:
+        {
+            ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
+            llvm::Function* llvm_function = context.module->getFunction(func.name);
+
+            llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+            llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+
+            std::string expr_typename;
+            llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
+            if(expr_value == NULL) return 1;
+
+            if(expr_typename != "bool"){
+                die("Expression type for conditional must be 'bool'");
+            }
+
+            context.builder.CreateCondBr(expr_value, true_block, false_block);
+            context.builder.SetInsertPoint(true_block);
+
+            bool terminated = false;
+            for(size_t j = 0; j != data.statements.size(); j++){
+                if(data.statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(false_block);
+            context.builder.SetInsertPoint(false_block);
+            break;
+        }
+    case STATEMENTID_WHILE:
+        {
+            ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
+            llvm::Function* llvm_function = context.module->getFunction(func.name);
+
+            llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
+            llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+            llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+
+            context.builder.CreateBr(test_block);
+            context.builder.SetInsertPoint(test_block);
+
+            std::string expr_typename;
+            llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
+            if(expr_value == NULL) return 1;
+
+            if(expr_typename != "bool"){
+                die("Expression type for conditional must be 'bool'");
+            }
+
+            context.builder.CreateCondBr(expr_value, true_block, false_block);
+            context.builder.SetInsertPoint(true_block);
+
+            bool terminated = false;
+            for(size_t j = 0; j != data.statements.size(); j++){
+                if(data.statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(test_block);
+            context.builder.SetInsertPoint(false_block);
             break;
         }
     }
