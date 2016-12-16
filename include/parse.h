@@ -28,6 +28,7 @@ int parse_external(Configuration& config, std::vector<Token>& tokens, Program& p
 int parse_attribute(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
 int parse_import(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
 int parse_lib(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
+int parse_constant(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
 
 int parse_block(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i);
 int parse_block_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name);

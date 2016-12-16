@@ -15,6 +15,7 @@ Token::Token(const Token& other){
     case TOKENID_STRING:
     case TOKENID_WORD:
     case TOKENID_KEYWORD:
+    case TOKENID_CONSTANT:
         data = new std::string( *(static_cast<std::string*>(other.data)) );
         break;
     case TOKENID_BYTE:
@@ -71,6 +72,7 @@ void Token::free(){
     case TOKENID_STRING:
     case TOKENID_WORD:
     case TOKENID_KEYWORD:
+    case TOKENID_CONSTANT:
         delete static_cast<std::string*>(data);
         break;
     case TOKENID_BYTE:
@@ -181,6 +183,9 @@ std::string Token::toString(){
         break;
     case TOKENID_ULONG:
         str = "unsigned long : " + to_str(getULong());
+        break;
+    case TOKENID_CONSTANT:
+        str = "constant : " + getString();
         break;
     // Control Flow
     case TOKENID_WORD:

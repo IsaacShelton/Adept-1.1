@@ -21,7 +21,7 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
 
     std::string line;
     while( std::getline(adept, line) ){
-        tokenize_string(line + "\n", *tokens);
+        if(tokenize_string(line + "\n", *tokens) != 0) return 1;
     }
 
     adept.close();
@@ -53,7 +53,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             while( (prefix_char>=65 && prefix_char<=90)
             ||  (prefix_char>=48 && prefix_char<=57)
             ||  (prefix_char>=97 && prefix_char<=122)
-            ||  (prefix_char==95) || (prefix_char=='.') ){
+            ||  (prefix_char==95) || (prefix_char==':') ){
                 word += prefix_char;
                 next_index(i, code_size);
                 prefix_char = code[i];
@@ -62,7 +62,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             // TODO: Clean up keyword selection
             if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import"
                or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
-               or word == "null" or word == "if" or word == "while"){
+               or word == "null" or word == "if" or word == "while" or word == "constant"){
                 tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
             }
             else {
@@ -168,8 +168,25 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
                 tokens.push_back(TOKEN_DIVIDE);
             }
         }
-        else if(prefix_char == ':'){
+        else if(prefix_char == '.'){
             tokens.push_back(TOKEN_MEMBER);
+        }
+        else if(prefix_char == '$'){
+            std::string word;
+            next_index(i, code_size);
+            prefix_char = code[i];
+
+            while( (prefix_char>=65 && prefix_char<=90)
+            ||  (prefix_char>=48 && prefix_char<=57)
+            ||  (prefix_char>=97 && prefix_char<=122)
+            ||  (prefix_char==95) ){
+                word += prefix_char;
+                next_index(i, code_size);
+                prefix_char = code[i];
+            }
+
+            tokens.push_back( TOKEN_CONSTANT( new std::string(word) ) );
+            i--;
         }
         else if(prefix_char == '&'){
             tokens.push_back(TOKEN_ADDRESS);

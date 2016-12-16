@@ -59,20 +59,31 @@ struct ModuleDependency {
     ModuleDependency(std::string, std::string, std::string, Program*, Configuration*);
 };
 
+struct Constant {
+    std::string name;
+    PlainExp* value;
+
+    Constant();
+    Constant(const std::string&, PlainExp*);
+};
+
 struct Program {
     std::vector<ModuleDependency> imports;
     std::vector<std::string> extra_libs;
 
     std::vector<Function> functions;
     std::vector<Structure> structures;
+    std::vector<Constant> constants;
     std::vector<External> externs;
     std::vector<Type> types;
 
+    ~Program();
     int import_merge(const Program&, bool);
     int generate_types(AssembleContext&);
     int find_type(std::string, llvm::Type**);
     int find_func(std::string, External*);
     int find_struct(std::string, Structure*);
+    int find_const(std::string, Constant*);
 
     void print();
     void print_types();

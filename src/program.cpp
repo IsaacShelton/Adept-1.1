@@ -11,6 +11,17 @@ ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std
     config = mod_config;
 }
 
+Constant::Constant(){}
+Constant::Constant(const std::string& n, PlainExp* v){
+    name = n;
+    value = v;
+}
+
+Program::~Program(){
+    for(Constant& constant : constants){
+        delete constant.value;
+    }
+}
 int Program::import_merge(const Program& other, bool public_import){
     // Merge Dependencies
     for(const ModuleDependency& new_dependency : other.imports){
@@ -116,6 +127,22 @@ int Program::import_merge(const Program& other, bool public_import){
         }
     }
 
+    // Merge Constants
+    for(const Constant& new_constant : other.constants){
+        bool already_exists = false;
+
+        for(const Constant& constant : constants){
+            if(new_constant.name == constant.name){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            constants.push_back( Constant(new_constant.name, new_constant.value->clone()) );
+        }
+    }
+
     return 0;
 }
 int Program::generate_types(AssembleContext& context){
@@ -204,6 +231,16 @@ int Program::find_struct(std::string name, Structure* structure){
     for(size_t i = 0; i != structures.size(); i++){
         if(structures[i].name == name){
             *structure = structures[i];
+            return 0;
+        }
+    }
+
+    return 1;
+}
+int Program::find_const(std::string name, Constant* constant){
+    for(size_t i = 0; i != constants.size(); i++){
+        if(constants[i].name == name){
+            *constant = constants[i];
             return 0;
         }
     }

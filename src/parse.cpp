@@ -82,6 +82,9 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
     else if(keyword == "link"){
         if(parse_lib(config, tokens, program, i) != 0) return 1;
     }
+    else if(keyword == "constant"){
+        if(parse_constant(config, tokens, program, i) != 0) return 1;
+    }
     else {
         die( UNEXPECTED_KEYWORD(keyword) );
     }
@@ -369,6 +372,22 @@ int parse_lib(Configuration& config, std::vector<Token>& tokens, Program& progra
     program.extra_libs.push_back(name);
     return 0;
 }
+int parse_constant(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+    // constant $CONSTANT_NAME <expression>
+    //                 ^
+
+    if(tokens[i].id != TOKENID_CONSTANT){
+        die("Expected constant name after 'constant' keyword");
+    }
+
+    PlainExp* value;
+    std::string name = tokens[i].getString();
+    next_index(i, tokens.size());
+
+    if(parse_expression(config, tokens, program, i, &value) != 0) return 1;
+    program.constants.push_back( Constant(name, value) );
+    return 0;
+}
 
 int parse_block(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i){
     // { some code; some more code; }
@@ -654,6 +673,16 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
             } else {
                 die( UNEXPECTED_KEYWORD_INEXPR(keyword) )
             }
+        }
+        return 0;
+    case TOKENID_CONSTANT:
+        {
+            std::string const_name = tokens[i].getString();
+            Constant constant;
+
+            next_index(i, tokens.size());
+            if(program.find_const(const_name, &constant) != 0) return 1;
+            *expression = constant.value->clone();
         }
         return 0;
     case TOKENID_ADDRESS:

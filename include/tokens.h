@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-// 0-19 : Literals (12 / 20 Used)
+// 0-19 : Literals (13 / 20 Used)
 #define TOKEN_NONE          Token(0)
 #define TOKEN_STRING(a)     Token(1, a)
 #define TOKEN_BYTE(a)       Token(2, new int8_t(a))
@@ -18,6 +18,7 @@
 #define TOKEN_ULONG(a)      Token(9, new uint64_t(a))
 #define TOKEN_FLOAT(a)      Token(10, new float(a))
 #define TOKEN_DOUBLE(a)     Token(11, new double(a))
+#define TOKEN_CONSTANT(a)   Token(12, a)
 // 20-39 : Control Flow (10 / 20 Used)
 #define TOKEN_WORD(a)       Token(20, a)
 #define TOKEN_KEYWORD(a)    Token(21, a)
@@ -53,6 +54,7 @@
 #define TOKENID_ULONG         9
 #define TOKENID_FLOAT         10
 #define TOKENID_DOUBLE        11
+#define TOKENID_CONSTANT      12
 // Indices : Control Flow 20-39
 #define TOKENID_WORD          20
 #define TOKENID_KEYWORD       21
