@@ -19,6 +19,7 @@
 #define UNDECLARED_FUNC(a)      ("ERROR: Undeclared function '" + std::string(a) + "'")
 #define UNDECLARED_STRUCT(a)    ("ERROR: Undeclared struct '" + std::string(a) + "'")
 #define UNDECLARED_MEMBER(a, b) ("ERROR: Undeclared member '" + std::string(a) + "' in structure '" + std::string(b) + "'")
+#define UNDECLARED_CONST(a)     ("ERROR: Undeclared constant '$" + std::string(a) + "'")
 
 // Unexpected
 

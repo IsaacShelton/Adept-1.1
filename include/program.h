@@ -62,9 +62,10 @@ struct ModuleDependency {
 struct Constant {
     std::string name;
     PlainExp* value;
+    bool is_public;
 
     Constant();
-    Constant(const std::string&, PlainExp*);
+    Constant(const std::string&, PlainExp*, bool);
 };
 
 struct Program {

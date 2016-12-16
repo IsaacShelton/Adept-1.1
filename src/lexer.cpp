@@ -21,7 +21,7 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
 
     std::string line;
     while( std::getline(adept, line) ){
-        if(tokenize_string(line + "\n", *tokens) != 0) return 1;
+        if(tokenize_line(line + "\n", *tokens) != 0) return 1;
     }
 
     adept.close();
@@ -33,7 +33,7 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
     }
     return 0;
 }
-int tokenize_string(const std::string& code, std::vector<Token>& tokens){
+int tokenize_line(const std::string& code, std::vector<Token>& tokens){
     size_t code_size = code.size();
 
     char prefix_char;
@@ -53,7 +53,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             while( (prefix_char>=65 && prefix_char<=90)
             ||  (prefix_char>=48 && prefix_char<=57)
             ||  (prefix_char>=97 && prefix_char<=122)
-            ||  (prefix_char==95) || (prefix_char==':') ){
+            ||  (prefix_char==95) || (prefix_char=='.') ){
                 word += prefix_char;
                 next_index(i, code_size);
                 prefix_char = code[i];
@@ -123,35 +123,12 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             prefix_char = code[i];
 
             if(prefix_char >= 48 and prefix_char <= 57){
-                std::string content = "-";
-
-                while(prefix_char >= 48 and prefix_char <= 57){
-                    content += prefix_char;
-                    next_index(i, code_size);
-                    prefix_char = code[i];
-                }
-
-                if(prefix_char == '.'){
-                    next_index(i, code_size);
-                    prefix_char = code[i];
-
-                    content += ".";
-                    while(prefix_char >= 48 and prefix_char <= 57){
-                        content += prefix_char;
-                        next_index(i, code_size);
-                        prefix_char = code[i];
-                    }
-
-                    tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
-                } else {
-                    tokens.push_back( TOKEN_INT( to_int(content) ) );
-                }
+                if(tokenize_number(true, prefix_char, i, code_size, code, tokens) != 0) return 1;
             }
             else {
                 tokens.push_back(TOKEN_SUBTRACT);
+                i--;
             }
-
-            i--;
         }
         else if(prefix_char == '*'){
             tokens.push_back(TOKEN_MULTIPLY);
@@ -168,7 +145,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
                 tokens.push_back(TOKEN_DIVIDE);
             }
         }
-        else if(prefix_char == '.'){
+        else if(prefix_char == ':'){
             tokens.push_back(TOKEN_MEMBER);
         }
         else if(prefix_char == '$'){
@@ -192,86 +169,7 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
             tokens.push_back(TOKEN_ADDRESS);
         }
         else if(prefix_char >= 48 and prefix_char <= 57){
-            std::string content;
-
-            while(prefix_char >= 48 and prefix_char <= 57){
-                content += prefix_char;
-                next_index(i, code_size);
-                prefix_char = code[i];
-            }
-            if(prefix_char == '.'){
-                next_index(i, code_size);
-                prefix_char = code[i];
-
-                content += ".";
-                while(prefix_char >= 48 and prefix_char <= 57){
-                    content += prefix_char;
-                    next_index(i, code_size);
-                    prefix_char = code[i];
-                }
-
-                if(prefix_char == 'f'){
-                    tokens.push_back( TOKEN_FLOAT( to_float(content) ) );
-                }
-                else if(prefix_char == 'd'){
-                    tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
-                }
-                else {
-                    tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
-                    i--;
-                }
-            }
-            else {
-                switch(prefix_char){
-                case 'u':
-                    next_index(i, code_size);
-                    prefix_char = code[i];
-
-                    switch(prefix_char){
-                    case 'b':
-                        tokens.push_back( TOKEN_UBYTE( to_ubyte(content) ) );
-                        break;
-                    case 's':
-                        tokens.push_back( TOKEN_USHORT( to_ushort(content) ) );
-                        break;
-                    case 'i':
-                        tokens.push_back( TOKEN_UINT( to_uint(content) ) );
-                        break;
-                    case 'l':
-                        tokens.push_back( TOKEN_ULONG( to_ulong(content) ) );
-                        break;
-                    default:
-                        tokens.push_back( TOKEN_UINT( to_uint(content) ) );
-                        i--;
-                    }
-                    break;
-                case 's':
-                    next_index(i, code_size);
-                    prefix_char = code[i];
-
-                    switch(prefix_char){
-                    case 'b':
-                        tokens.push_back( TOKEN_BYTE( to_byte(content) ) );
-                        break;
-                    case 's':
-                        tokens.push_back( TOKEN_SHORT( to_short(content) ) );
-                        break;
-                    case 'i':
-                        tokens.push_back( TOKEN_INT( to_int(content) ) );
-                        break;
-                    case 'l':
-                        tokens.push_back( TOKEN_LONG( to_long(content) ) );
-                        break;
-                    default:
-                        tokens.push_back( TOKEN_INT( to_int(content) ) );
-                        i--;
-                    }
-                    break;
-                default:
-                    tokens.push_back( TOKEN_INT( to_int(content) ) );
-                    i--;
-                }
-            }
+            if(tokenize_number(false, prefix_char, i, code_size, code, tokens) != 0) return 1;
         }
         else if(prefix_char == '"'){
             std::string* content = new std::string;
@@ -283,6 +181,90 @@ int tokenize_string(const std::string& code, std::vector<Token>& tokens){
         else {
             std::cerr << "lexer error: " + code.substr(i, 1) <<  std::endl;
             return 1;
+        }
+    }
+
+    return 0;
+}
+int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code_size, const std::string& code, std::vector<Token>& tokens){
+    std::string content = (is_negative) ? "-" : "" ;
+
+    while(prefix_char >= 48 and prefix_char <= 57){
+        content += prefix_char;
+        next_index(i, code_size);
+        prefix_char = code[i];
+    }
+    if(prefix_char == '.'){
+        next_index(i, code_size);
+        prefix_char = code[i];
+
+        content += ".";
+        while(prefix_char >= 48 and prefix_char <= 57){
+            content += prefix_char;
+            next_index(i, code_size);
+            prefix_char = code[i];
+        }
+
+        if(prefix_char == 'f'){
+            tokens.push_back( TOKEN_FLOAT( to_float(content) ) );
+        }
+        else if(prefix_char == 'd'){
+            tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
+        }
+        else {
+            tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
+            i--;
+        }
+    }
+    else {
+        switch(prefix_char){
+        case 'u':
+            next_index(i, code_size);
+            prefix_char = code[i];
+
+            switch(prefix_char){
+            case 'b':
+                tokens.push_back( TOKEN_UBYTE( to_ubyte(content) ) );
+                break;
+            case 's':
+                tokens.push_back( TOKEN_USHORT( to_ushort(content) ) );
+                break;
+            case 'i':
+                tokens.push_back( TOKEN_UINT( to_uint(content) ) );
+                break;
+            case 'l':
+                tokens.push_back( TOKEN_ULONG( to_ulong(content) ) );
+                break;
+            default:
+                tokens.push_back( TOKEN_UINT( to_uint(content) ) );
+                i--;
+            }
+            break;
+        case 's':
+            next_index(i, code_size);
+            prefix_char = code[i];
+
+            switch(prefix_char){
+            case 'b':
+                tokens.push_back( TOKEN_BYTE( to_byte(content) ) );
+                break;
+            case 's':
+                tokens.push_back( TOKEN_SHORT( to_short(content) ) );
+                break;
+            case 'i':
+                tokens.push_back( TOKEN_INT( to_int(content) ) );
+                break;
+            case 'l':
+                tokens.push_back( TOKEN_LONG( to_long(content) ) );
+                break;
+            default:
+                tokens.push_back( TOKEN_INT( to_int(content) ) );
+                i--;
+            }
+            break;
+        default:
+            tokens.push_back( TOKEN_INT( to_int(content) ) );
+            i--;
         }
     }
 

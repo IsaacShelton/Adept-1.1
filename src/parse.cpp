@@ -83,7 +83,7 @@ int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& pr
         if(parse_lib(config, tokens, program, i) != 0) return 1;
     }
     else if(keyword == "constant"){
-        if(parse_constant(config, tokens, program, i) != 0) return 1;
+        if(parse_constant(config, tokens, program, i, attr_info) != 0) return 1;
     }
     else {
         die( UNEXPECTED_KEYWORD(keyword) );
@@ -372,7 +372,7 @@ int parse_lib(Configuration& config, std::vector<Token>& tokens, Program& progra
     program.extra_libs.push_back(name);
     return 0;
 }
-int parse_constant(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i){
+int parse_constant(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info){
     // constant $CONSTANT_NAME <expression>
     //                 ^
 
@@ -385,7 +385,7 @@ int parse_constant(Configuration& config, std::vector<Token>& tokens, Program& p
     next_index(i, tokens.size());
 
     if(parse_expression(config, tokens, program, i, &value) != 0) return 1;
-    program.constants.push_back( Constant(name, value) );
+    program.constants.push_back( Constant(name, value, attr_info.is_public) );
     return 0;
 }
 
@@ -681,7 +681,7 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
             Constant constant;
 
             next_index(i, tokens.size());
-            if(program.find_const(const_name, &constant) != 0) return 1;
+            if(program.find_const(const_name, &constant) != 0) die( UNDECLARED_CONST(const_name) );
             *expression = constant.value->clone();
         }
         return 0;

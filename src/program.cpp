@@ -12,9 +12,10 @@ ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std
 }
 
 Constant::Constant(){}
-Constant::Constant(const std::string& n, PlainExp* v){
+Constant::Constant(const std::string& n, PlainExp* v, bool p){
     name = n;
     value = v;
+    is_public = p;
 }
 
 Program::~Program(){
@@ -129,6 +130,7 @@ int Program::import_merge(const Program& other, bool public_import){
 
     // Merge Constants
     for(const Constant& new_constant : other.constants){
+        if(!new_constant.is_public) continue;
         bool already_exists = false;
 
         for(const Constant& constant : constants){
@@ -139,7 +141,7 @@ int Program::import_merge(const Program& other, bool public_import){
         }
 
         if(!already_exists){
-            constants.push_back( Constant(new_constant.name, new_constant.value->clone()) );
+            constants.push_back( Constant(new_constant.name, new_constant.value->clone(), public_import) );
         }
     }
 
