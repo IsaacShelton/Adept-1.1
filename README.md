@@ -9,7 +9,7 @@ Generally it runs as fast or faster than C code.
 ```
 def main() int {
     age int = 36
-    total = 10 + 3
+    total int = 10 + 3
     return age + total
 }
 ```
