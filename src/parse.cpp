@@ -19,7 +19,7 @@ int parse(Configuration& config, std::vector<Token>* tokens, Program& program){
 
     // Print Parser Time
     if(config.time and !config.silent){
-        config.clock.print_since("Parser Finished");
+        config.clock.print_since("Parser Finished", filename_name(config.filename));
         config.clock.remember();
     }
     return 0;
@@ -296,7 +296,7 @@ int parse_import(Configuration& config, std::vector<Token>& tokens, Program& pro
     // import PackageName
     //             ^
 
-    if(tokens[i].id != TOKENID_WORD and tokens[i].id != TOKENID_STRING){
+    if(tokens[i].id != TOKENID_STRING){
         die("Expected module name after 'import'");
     }
 
@@ -307,14 +307,14 @@ int parse_import(Configuration& config, std::vector<Token>& tokens, Program& pro
     std::string target_bc;
     std::string target_obj;
 
-    import_config->silent = true;
-    import_config->time = false;
+    import_config->silent = config.silent;
+    import_config->time = config.time;
     import_config->link = false;
     import_config->obj = false;
     import_config->bytecode = false;
 
-    std::string local_file = filename_path(config.filename) + name + ".adept";
-    std::string public_file = "C:/Users/" + config.username + "/.adept/import/" + name + ".adept";
+    std::string local_file = filename_path(config.filename) + name;
+    std::string public_file = "C:/Users/" + config.username + "/.adept/import/" + name;
 
     if( access(local_file.c_str(), F_OK) != -1 ){
         name = local_file;
@@ -436,6 +436,12 @@ int parse_block_keyword(Configuration& config, std::vector<Token>& tokens, Progr
     else if(keyword == "while"){
         if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_WHILE) != 0) return 1;
     }
+    else if(keyword == "unless"){
+        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_UNLESS) != 0) return 1;
+    }
+    else if(keyword == "until"){
+        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_UNTIL) != 0) return 1;
+    }
     else {
         die( UNEXPECTED_KEYWORD(keyword) );
     }
@@ -469,7 +475,7 @@ int parse_block_word(Configuration& config, std::vector<Token>& tokens, Program&
         if(parse_block_member_assign(config, tokens, program, statements, i, name) != 0) return 1;
         break;
     default:
-        fail("Unexpected Operator after word in block");
+        fail("Unexpected Operator after word in block: " + tokens[i].toString());
         return 1;
     }
 
@@ -633,6 +639,12 @@ int parse_block_conditional(Configuration& config, std::vector<Token>& tokens, P
     case CONDITIONAL_WHILE:
         statements.push_back(std::move( STATEMENT_WHILE(expression, conditional_statements) ));
         break;
+    case CONDITIONAL_UNLESS:
+        statements.push_back(std::move( STATEMENT_UNLESS(expression, conditional_statements) ));
+        break;
+    case CONDITIONAL_UNTIL:
+        statements.push_back(std::move( STATEMENT_UNTIL(expression, conditional_statements) ));
+        break;
     default:
         die("Invalid conditional type");
     }
@@ -757,6 +769,14 @@ int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, 
                 return 1;
             }
             next_index(i, tokens.size()); // eat ).
+        }
+        return 0;
+    case TOKENID_NOT:
+        {
+            PlainExp* not_expresion;
+            next_index(i, tokens.size());
+            if(parse_expression_primary(config, tokens, program, i, &not_expresion) != 0) return 1;
+            *expression = new NotExp(not_expresion);
         }
         return 0;
     default:

@@ -29,6 +29,7 @@
 #include "../include/jit.h"
 #include "../include/build.h"
 #include "../include/errors.h"
+#include "../include/native.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
 
@@ -80,15 +81,17 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         ModuleDependency* dependency = &program.imports[i];
 
         if(assemble(import_context, *dependency->config, *dependency->program) != 0) return 1;
-        linked_objects += "\"" + dependency->target_obj + "\" ";
 
-        out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
-        llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
-        out_stream->flush();
-        delete out_stream;
 
-        // TODO: Replace 'system' call
-        system((std::string("llc \"") + dependency->target_bc + "\" -filetype=obj -o \"" + dependency->target_obj + "\"").c_str());
+        if(dependency->program->functions.size() != 0){
+            out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
+            llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
+            out_stream->flush();
+            delete out_stream;
+
+            native_build_module(context, dependency->target_bc, dependency->target_obj);
+            linked_objects += "\"" + dependency->target_obj + "\" ";
+        }
 
         delete program.imports[i].config;
         delete program.imports[i].program;
@@ -98,8 +101,13 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         linked_objects += "\"" + lib + "\" ";
     }
 
-    // TODO: Replace 'system' call
-    system( ("llc \"" + target_bc + "\" -filetype=obj -o \"" + target_obj + "\"").c_str() );
+    native_build_module(context, target_bc, target_obj);
+
+    // Print Native Export Time
+    if(config.time and !config.silent){
+        config.clock.print_since("Build Finished", filename_name(config.filename));
+        config.clock.remember();
+    }
 
     if(config.link){
         // TODO: Replace 'system' call
@@ -112,9 +120,9 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         }
     }
 
-    // Print Build Time
+    // Print Linker Time
     if(config.time and !config.silent){
-        std::cout << "Build Finished     (" << config.clock.since() << "s)" << std::endl;
+        config.clock.print_since("Linker Finished", filename_name(config.filename));
         config.clock.remember();
     }
 
@@ -140,7 +148,7 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
 
     // Print Assembler Time
     if(config.time and !config.silent){
-        config.clock.print_since("Assembler Finished");
+        config.clock.print_since("Assembler Finished", filename_name(config.filename));
         config.clock.remember();
     }
 
@@ -205,7 +213,6 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
             func.variables.push_back( Variable{func.arguments[i].name, func.arguments[i].type, alloca} );
             i++;
         }
-        context.builder.CreateBr(body);
 
         context.builder.SetInsertPoint(quit);
 
@@ -233,17 +240,17 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
 
     return 0;
 }
-int assemble_function_body(AssembleContext& assemble, Configuration& config, Program& program, Function& func){
-    llvm::Function* llvm_function = assemble.module->getFunction(func.name);
+int assemble_function_body(AssembleContext& context, Configuration& config, Program& program, Function& func){
+    llvm::Function* llvm_function = context.module->getFunction(func.name);
     AssembleFunction& asm_func = func.asm_func;
 
-    assemble.builder.SetInsertPoint(asm_func.body);
+    context.builder.SetInsertPoint(asm_func.body);
     bool terminated = false;
 
     for(size_t j = 0; j != func.statements.size(); j++){
         if(func.statements[j].id == STATEMENTID_RETURN) terminated = true;
 
-        if(assemble_statement(assemble, config, program, func, asm_func, func.statements[j]) != 0){
+        if(assemble_statement(context, config, program, func, asm_func, func.statements[j]) != 0){
             llvm_function->eraseFromParent();
             return 1;
         }
@@ -251,7 +258,10 @@ int assemble_function_body(AssembleContext& assemble, Configuration& config, Pro
         if(terminated) break;
     }
 
-    if(!terminated) assemble.builder.CreateBr(asm_func.quit);
+    if(!terminated) context.builder.CreateBr(asm_func.quit);
+
+    context.builder.SetInsertPoint(asm_func.entry);
+    context.builder.CreateBr(asm_func.body);
 
     llvm::verifyFunction(*llvm_function);
     return 0;
@@ -321,7 +331,13 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 die( UNDECLARED_TYPE(data.type) );
             }
 
-            llvm::AllocaInst* alloc = context.builder.CreateAlloca(var_type, 0, data.name.c_str());
+            llvm::AllocaInst* alloc;
+            llvm::BasicBlock* block = context.builder.GetInsertBlock();
+
+            context.builder.SetInsertPoint(asm_func.entry);
+            alloc = context.builder.CreateAlloca(var_type, 0, data.name.c_str());
+            context.builder.SetInsertPoint(block);
+
             func.variables.push_back( Variable{data.name, data.type, alloc} );
             break;
         }
@@ -340,7 +356,13 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 die( INCOMPATIBLE_TYPES(expr_typename, data.type) );
             }
 
-            llvm::AllocaInst* alloc = context.builder.CreateAlloca(var_type, 0, data.name.c_str());
+            llvm::AllocaInst* alloc;
+            llvm::BasicBlock* block = context.builder.GetInsertBlock();
+
+            context.builder.SetInsertPoint(asm_func.entry);
+            alloc = context.builder.CreateAlloca(var_type, 0, data.name.c_str());
+
+            context.builder.SetInsertPoint(block);
             context.builder.CreateStore(value, alloc);
 
             func.variables.push_back( Variable{data.name, data.type, alloc} );
@@ -552,8 +574,10 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
             if(expr_value == NULL) return 1;
 
+            assemble_merge_conditional_types(context, expr_typename, &expr_value);
+
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool'");
+                die("Expression type for conditional must be 'bool' or another compatible primitive");
             }
 
             context.builder.CreateCondBr(expr_value, true_block, false_block);
@@ -590,11 +614,89 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
             if(expr_value == NULL) return 1;
 
+            assemble_merge_conditional_types(context, expr_typename, &expr_value);
+
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool'");
+                die("Expression type for conditional must be 'bool' or another compatible primitive");
             }
 
             context.builder.CreateCondBr(expr_value, true_block, false_block);
+            context.builder.SetInsertPoint(true_block);
+
+            bool terminated = false;
+            for(size_t j = 0; j != data.statements.size(); j++){
+                if(data.statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(test_block);
+            context.builder.SetInsertPoint(false_block);
+            break;
+        }
+    case STATEMENTID_UNLESS:
+        {
+            ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
+            llvm::Function* llvm_function = context.module->getFunction(func.name);
+
+            llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+            llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+
+            std::string expr_typename;
+            llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
+            if(expr_value == NULL) return 1;
+
+            assemble_merge_conditional_types(context, expr_typename, &expr_value);
+
+            if(expr_typename != "bool"){
+                die("Expression type for conditional must be 'bool' or another compatible primitive");
+            }
+
+            context.builder.CreateCondBr(expr_value, false_block, true_block);
+            context.builder.SetInsertPoint(true_block);
+
+            bool terminated = false;
+            for(size_t j = 0; j != data.statements.size(); j++){
+                if(data.statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(false_block);
+            context.builder.SetInsertPoint(false_block);
+            break;
+        }
+    case STATEMENTID_UNTIL:
+        {
+            ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
+            llvm::Function* llvm_function = context.module->getFunction(func.name);
+
+            llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
+            llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+            llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+
+            context.builder.CreateBr(test_block);
+            context.builder.SetInsertPoint(test_block);
+
+            std::string expr_typename;
+            llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
+            if(expr_value == NULL) return 1;
+
+            assemble_merge_conditional_types(context, expr_typename, &expr_value);
+
+            if(expr_typename != "bool"){
+                die("Expression type for conditional must be 'bool' or another compatible primitive");
+            }
+
+            context.builder.CreateCondBr(expr_value, false_block, true_block);
             context.builder.SetInsertPoint(true_block);
 
             bool terminated = false;
@@ -617,6 +719,65 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     return 0;
 }
 
+void assemble_merge_conditional_types(AssembleContext& context, std::string& type, llvm::Value** expr){
+    // If type isn't a boolean, try to convert it to one
+    // TODO: Clean up code in 'if' blocks
+
+    if(type == "bool") return;
+    if(type == "void") return;
+    if(type == "") return;
+
+    if(type == "ubyte"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, false));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "byte"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, true));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "ushort"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, false));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "short"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, true));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "uint"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "int"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "ulong"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, false));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+    else if(type == "long"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, true));
+        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        type = "bool";
+        return;
+    }
+
+    return;
+}
 int assemble_merge_types(AssembleContext& context, const std::string& type_a, const std::string& type_b, llvm::Value** expr_a, llvm::Value** expr_b, std::string* out){
     // Merge a and b if possible
 

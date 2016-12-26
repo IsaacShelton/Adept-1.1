@@ -6,6 +6,7 @@
 
 // General
 
+#define SUICIDE                 ("ERROR: An unintended part of this compiler was reached :\\\n    (line #" + to_str(__LINE__) + " in " + std::string(__FILE__) + ")")
 #define FAILED_TO_CREATE(a)     ("ERROR: Failed to create '" + std::string(a) + "'")
 #define UNKNOWN_OPTION(a)       ("ERROR: Unknown option '" + std::string(a) + "'")
 #define UNKNOWN_MODULE(a)       ("ERROR: Unknown module '" + std::string(a) + "'")

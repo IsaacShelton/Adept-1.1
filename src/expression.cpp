@@ -62,9 +62,11 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         return NULL;
     }
     if(expr_type != NULL) *expr_type = type_name;
+    if(type_name == "") return NULL;
 
     if(type_name == "int" or type_name == "uint" or type_name == "short" or type_name == "ushort"
-       or type_name == "long" or type_name == "ulong" or type_name == "byte" or type_name == "ubyte"){
+       or type_name == "long" or type_name == "ulong" or type_name == "byte"
+       or type_name == "ubyte" or type_name == "bool" or type_name == "ptr" or type_name[0] == '*'){
         switch (operation) {
         case TOKENID_ADD:
             return context.builder.CreateAdd(left_value, right_value, "addtmp");
@@ -572,4 +574,91 @@ std::string NullExp::toString(){
 }
 PlainExp* NullExp::clone(){
     return new NullExp();
+}
+
+NotExp::NotExp(){}
+NotExp::NotExp(PlainExp* val){
+    value = val;
+}
+NotExp::~NotExp(){
+    delete value;
+}
+llvm::Value* NotExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+    *expr_type = type_name;
+
+    if(type_name == "bool"){
+        return context.builder.CreateNot(llvm_value, "nottmp");
+    }
+    else if(type_name == "byte"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, true));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt8Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "ubyte"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, false));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt8Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "short"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, true));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt16Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "ushort"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, false));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt16Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "int"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt32Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "uint"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt32Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "long"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, true));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt64Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else if(type_name == "ulong"){
+        llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, false));
+        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
+        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt64Ty(context.context), "zexttmp");
+        return llvm_value;
+    }
+    else {
+        fail("Can't use 'not' operator on type '" + type_name + "'");
+        return NULL;
+    }
+
+    fail(SUICIDE);
+    return NULL;
+}
+std::string NotExp::toString(){
+    return "!" + value->toString();
+}
+PlainExp* NotExp::clone(){
+    return new NotExp(value->clone());
 }

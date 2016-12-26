@@ -3,13 +3,14 @@
 #include "../include/lexer.h"
 #include "../include/parse.h"
 #include "../include/config.h"
+#include "../include/strings.h"
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
 int finalize(Configuration& config, AssembleContext& assemble){
     if(config.time and !config.silent){
-        printf("---------------------------------------\n");
-        config.clock.print_since_start("Total Time");
+        printf("-------------------------------------------------\n");
+        config.clock.print_since_start("Total Time", filename_name(config.filename));
         config.clock.remember();
     }
 
@@ -20,7 +21,7 @@ int finalize(Configuration& config, AssembleContext& assemble){
         if(jit_run(assemble, "main", result) != 0) return 1;
 
         // Print Execution Time
-        config.clock.print_since("Execution Finished");
+        config.clock.print_since("Execution Finished", filename_name(config.filename));
         printf("=> %s\n", result.c_str());
         config.clock.remember();
     }

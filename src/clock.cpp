@@ -25,26 +25,26 @@ double Clock::since_start(){
     return (std::chrono::duration<double, std::milli> (finish - start_time).count())/1000;
 }
 
-void Clock::print_since(std::string message){
+void Clock::print_since(std::string message, std::string file){
     int spaces = 18 - (int) message.length();
     std::string spaces_str;
 
     if(spaces >= 0) {
         for(int i = 0; i != spaces; i++) spaces_str += " ";
-        std::cout << message << spaces_str << " (" << since() << "s)" << std::endl;
+        std::cout << message << spaces_str << " (" << since() << "s)  " << file << std::endl;
     } else {
-        std::cout << message.substr(0, 15) << "... (" << since() << "s)" << std::endl;
+        std::cout << message.substr(0, 15) << "... (" << since() << "s)  " << file << std::endl;
     }
 }
 
-void Clock::print_since_start(std::string message){
+void Clock::print_since_start(std::string message, std::string file){
     int spaces = 18 - (int) message.length();
     std::string spaces_str;
 
     if(spaces >= 0) {
         for(int i = 0; i != spaces; i++) spaces_str += " ";
-        std::cout << message << spaces_str << " (" << since_start() << "s)" << std::endl;
+        std::cout << message << spaces_str << " (" << since_start() << "s)  " << file << std::endl;
     } else {
-        std::cout << message.substr(0, 15) << "... (" << since_start() << "s)" << std::endl;
+        std::cout << message.substr(0, 15) << "... (" << since_start() << "s)  " << file << std::endl;
     }
 }

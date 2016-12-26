@@ -31,6 +31,8 @@ Statement::Statement(const Statement& other){
         break;
     case STATEMENTID_IF:
     case STATEMENTID_WHILE:
+    case STATEMENTID_UNLESS:
+    case STATEMENTID_UNTIL:
         data = new ConditionalStatement( *(static_cast<ConditionalStatement*>(other.data)) );
         break;
     default:
@@ -70,6 +72,8 @@ void Statement::free(){
         break;
     case STATEMENTID_IF:
     case STATEMENTID_WHILE:
+    case STATEMENTID_UNLESS:
+    case STATEMENTID_UNTIL:
         delete static_cast<ConditionalStatement*>(data);
         break;
     }
@@ -165,6 +169,7 @@ std::string Statement::toString(unsigned int indent){
             for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "}";
         }
+        break;
     case STATEMENTID_WHILE:
         {
             ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
@@ -179,6 +184,37 @@ std::string Statement::toString(unsigned int indent){
             for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "}";
         }
+        break;
+    case STATEMENTID_UNLESS:
+        {
+            ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "unless " + extra->condition->toString() + "{\n";
+
+            for(size_t a = 0; a != extra->statements.size(); a++){
+                str += extra->statements[a].toString(indent+1) + "\n";
+            }
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "}";
+        }
+        break;
+    case STATEMENTID_UNTIL:
+        {
+            ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "until " + extra->condition->toString() + "{\n";
+
+            for(size_t a = 0; a != extra->statements.size(); a++){
+                str += extra->statements[a].toString(indent+1) + "\n";
+            }
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "}";
+        }
+        break;
     }
 
     return str;

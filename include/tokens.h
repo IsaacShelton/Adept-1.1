@@ -30,7 +30,7 @@
 #define TOKEN_MEMBER        Token(27)
 #define TOKEN_BRACKET_OPEN  Token(28)
 #define TOKEN_BRACKET_CLOSE Token(29)
-// 40-59 : Operators (9 / 20 Used)
+// 40-59 : Operators (10 / 20 Used)
 #define TOKEN_ADD           Token(40)
 #define TOKEN_SUBTRACT      Token(41)
 #define TOKEN_MULTIPLY      Token(42)
@@ -40,6 +40,7 @@
 #define TOKEN_ADDRESS       Token(46)
 #define TOKEN_EQUALITY      Token(47)
 #define TOKEN_INEQUALITY    Token(48)
+#define TOKEN_NOT           Token(49)
 
 // Indices : Literals 0-19
 #define TOKENID_NONE          0
@@ -76,6 +77,7 @@
 #define TOKENID_ADDRESS       46
 #define TOKENID_EQUALITY      47
 #define TOKENID_INEQUALITY    48
+#define TOKENID_NOT           49
 
 struct Token {
     uint16_t id;

@@ -13,8 +13,8 @@ class Clock {
     void remember(); // Stores current time into 'last'
     double since(); // Returns seconds since 'last'
     double since_start(); // Returns time since clock 'start'
-    void print_since(std::string); // Print time since 'last'
-    void print_since_start(std::string); // Print time since 'start'
+    void print_since(std::string, std::string file); // Print time since 'last'
+    void print_since_start(std::string, std::string file); // Print time since 'start'
 };
 
 #endif // CLOCK_H_INCLUDED

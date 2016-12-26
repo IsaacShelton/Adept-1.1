@@ -11,6 +11,8 @@
 #define STATEMENT_CALL(a,b)           Statement(6, new CallStatement(a, b))
 #define STATEMENT_IF(a,b)             Statement(7, new ConditionalStatement(a, b))
 #define STATEMENT_WHILE(a,b)          Statement(8, new ConditionalStatement(a, b))
+#define STATEMENT_UNLESS(a,b)         Statement(9, new ConditionalStatement(a, b))
+#define STATEMENT_UNTIL(a,b)          Statement(10, new ConditionalStatement(a, b))
 
 #define STATEMENTID_NONE         0
 #define STATEMENTID_DECLARE      1
@@ -21,6 +23,8 @@
 #define STATEMENTID_CALL         6
 #define STATEMENTID_IF           7
 #define STATEMENTID_WHILE        8
+#define STATEMENTID_UNLESS       9
+#define STATEMENTID_UNTIL        10
 
 #include <string>
 #include <vector>

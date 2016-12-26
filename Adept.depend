@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1481855644 source:c:\users\isaac\google drive\adept\src\main.cpp
+1482772427 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<stdio.h>
 	<stdlib.h>
@@ -15,7 +15,7 @@
 	"config.h"
 	"tokens.h"
 
-1481855743 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1482771651 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -25,11 +25,11 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1481837187 c:\users\isaac\google drive\adept\include\tokens.h
+1481924551 c:\users\isaac\google drive\adept\include\tokens.h
 	<string>
 	<vector>
 
-1481837260 source:c:\users\isaac\google drive\adept\src\tokens.cpp
+1481924896 source:c:\users\isaac\google drive\adept\src\tokens.cpp
 	<iostream>
 	"../include/tokens.h"
 	"../include/strings.h"
@@ -55,7 +55,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1481854728 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1482771813 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -74,23 +74,23 @@
 1481670683 c:\users\isaac\google drive\adept\include\config.h
 	"clock.h"
 
-1481585732 c:\users\isaac\google drive\adept\include\die.h
+1482771040 c:\users\isaac\google drive\adept\include\die.h
 	<iostream>
 	"errors.h"
 
-1481418560 c:\users\isaac\google drive\adept\include\statement.h
+1482769098 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
 	"tokens.h"
 	"expression.h"
 
-1481419256 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1482772260 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"../include/strings.h"
 	"../include/statement.h"
 
-1481584267 c:\users\isaac\google drive\adept\include\assemble.h
+1481929972 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -98,7 +98,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1481670557 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1482772092 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -128,6 +128,7 @@
 	"../include/jit.h"
 	"../include/build.h"
 	"../include/errors.h"
+	"../include/native.h"
 	"../include/strings.h"
 	"../include/assemble.h"
 
@@ -1134,13 +1135,13 @@
 	"llvm/Config/AsmParsers.def"
 	"llvm/Config/Disassemblers.def"
 
-1481421039 c:\users\isaac\google drive\adept\include\expression.h
+1481925292 c:\users\isaac\google drive\adept\include\expression.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 	"asmcontext.h"
 
-1481581588 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1481930427 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1206,10 +1207,10 @@
 	"../include/errors.h"
 	"../include/program.h"
 
-1479505562 c:\users\isaac\google drive\adept\include\clock.h
+1482702106 c:\users\isaac\google drive\adept\include\clock.h
 	<chrono>
 
-1479505468 source:c:\users\isaac\google drive\adept\src\clock.cpp
+1482702317 source:c:\users\isaac\google drive\adept\src\clock.cpp
 	<iostream>
 	"../include/clock.h"
 
@@ -1273,11 +1274,12 @@
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1481582644 source:c:\users\isaac\google drive\adept\src\finalize.cpp
+1482702252 source:c:\users\isaac\google drive\adept\src\finalize.cpp
 	"../include/jit.h"
 	"../include/lexer.h"
 	"../include/parse.h"
 	"../include/config.h"
+	"../include/strings.h"
 	"../include/assemble.h"
 	"../include/finalize.h"
 
@@ -1287,7 +1289,7 @@
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1481854751 c:\users\isaac\google drive\adept\include\errors.h
+1481928813 c:\users\isaac\google drive\adept\include\errors.h
 	"die.h"
 
 1481321161 source:c:\users\isaac\google drive\adept\src\asmcontext.cpp
@@ -1375,4 +1377,475 @@
 	"../include/strings.h"
 	"../include/assemble.h"
 	"../include/finalize.h"
+
+1482699663 source:c:\users\isaac\google drive\adept\src\llc.cpp
+	<memory>
+	<iostream>
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/Triple.h"
+	"llvm/Analysis/TargetLibraryInfo.h"
+	"llvm/CodeGen/CommandFlags.h"
+	"llvm/CodeGen/LinkAllAsmWriterComponents.h"
+	"llvm/CodeGen/LinkAllCodegenComponents.h"
+	"llvm/CodeGen/MIRParser/MIRParser.h"
+	"llvm/CodeGen/MachineFunctionPass.h"
+	"llvm/CodeGen/MachineModuleInfo.h"
+	"llvm/CodeGen/TargetPassConfig.h"
+	"llvm/IR/DataLayout.h"
+	"llvm/IR/DiagnosticInfo.h"
+	"llvm/IR/DiagnosticPrinter.h"
+	"llvm/IR/IRPrintingPasses.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/LegacyPassManager.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Verifier.h"
+	"llvm/IRReader/IRReader.h"
+	"llvm/MC/SubtargetFeature.h"
+	"llvm/Pass.h"
+	"llvm/Support/CommandLine.h"
+	"llvm/Support/Debug.h"
+	"llvm/Support/FileSystem.h"
+	"llvm/Support/FormattedStream.h"
+	"llvm/Support/Host.h"
+	"llvm/Support/ManagedStatic.h"
+	"llvm/Support/PluginLoader.h"
+	"llvm/Support/PrettyStackTrace.h"
+	"llvm/Support/Signals.h"
+	"llvm/Support/SourceMgr.h"
+	"llvm/Support/TargetRegistry.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/ToolOutputFile.h"
+	"llvm/Target/TargetMachine.h"
+	"llvm/Target/TargetSubtargetInfo.h"
+	"llvm/Transforms/Utils/Cloning.h"
+	"../include/asmcontext.h"
+
+1465519930 c:\llvm\include\llvm\codegen\commandflags.h
+	"llvm/ADT/StringExtras.h"
+	"llvm/IR/Instructions.h"
+	"llvm/IR/Intrinsics.h"
+	"llvm/IR/Module.h"
+	"llvm/MC/MCTargetOptionsCommandFlags.h"
+	"llvm/MC/SubtargetFeature.h"
+	"llvm/Support/CodeGen.h"
+	"llvm/Support/CommandLine.h"
+	"llvm/Support/Host.h"
+	"llvm/Target/TargetMachine.h"
+	"llvm/Target/TargetOptions.h"
+	"llvm/Target/TargetRecip.h"
+	<string>
+
+1450735767 c:\llvm\include\llvm\mc\mctargetoptionscommandflags.h
+	"llvm/MC/MCTargetOptions.h"
+	"llvm/Support/CommandLine.h"
+
+1364219266 c:\llvm\include\llvm\codegen\linkallasmwritercomponents.h
+	"llvm/CodeGen/GCs.h"
+	<cstdlib>
+
+1435052993 c:\llvm\include\llvm\codegen\gcs.h
+
+1432084043 c:\llvm\include\llvm\codegen\linkallcodegencomponents.h
+	"llvm/CodeGen/GCs.h"
+	"llvm/CodeGen/Passes.h"
+	"llvm/CodeGen/SchedulerRegistry.h"
+	"llvm/Target/TargetMachine.h"
+	<cstdlib>
+
+1468469193 c:\llvm\include\llvm\codegen\passes.h
+	<functional>
+	<string>
+
+1438064284 c:\llvm\include\llvm\codegen\schedulerregistry.h
+	"llvm/CodeGen/MachinePassRegistry.h"
+	"llvm/Target/TargetMachine.h"
+
+1428718305 c:\llvm\include\llvm\codegen\machinepassregistry.h
+	"llvm/CodeGen/Passes.h"
+	"llvm/Support/CommandLine.h"
+
+1460971049 c:\llvm\include\llvm\codegen\mirparser\mirparser.h
+	"llvm/CodeGen/MachineFunctionInitializer.h"
+	"llvm/IR/Module.h"
+	"llvm/Support/MemoryBuffer.h"
+	<memory>
+
+1434400222 c:\llvm\include\llvm\codegen\machinefunctioninitializer.h
+
+1459184730 c:\llvm\include\llvm\codegen\machinefunctionpass.h
+	"llvm/Pass.h"
+	"llvm/CodeGen/MachineFunction.h"
+
+1468607219 c:\llvm\include\llvm\codegen\machinefunction.h
+	"llvm/ADT/BitVector.h"
+	"llvm/ADT/ilist.h"
+	"llvm/CodeGen/MachineBasicBlock.h"
+	"llvm/CodeGen/MachineMemOperand.h"
+	"llvm/IR/DebugLoc.h"
+	"llvm/IR/Metadata.h"
+	"llvm/Support/Allocator.h"
+	"llvm/Support/ArrayRecycler.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/Recycler.h"
+
+1466113513 c:\llvm\include\llvm\adt\bitvector.h
+	"llvm/Support/MathExtras.h"
+	<algorithm>
+	<cassert>
+	<climits>
+	<cstdint>
+	<cstdlib>
+	<cstring>
+
+1471277191 c:\llvm\include\llvm\codegen\machinebasicblock.h
+	"llvm/ADT/GraphTraits.h"
+	"llvm/ADT/iterator_range.h"
+	"llvm/CodeGen/MachineInstrBundleIterator.h"
+	"llvm/CodeGen/MachineInstr.h"
+	"llvm/Support/BranchProbability.h"
+	"llvm/MC/MCRegisterInfo.h"
+	"llvm/Support/DataTypes.h"
+	<functional>
+
+1471277191 c:\llvm\include\llvm\adt\graphtraits.h
+
+1456176615 c:\llvm\include\llvm\codegen\machineinstrbundleiterator.h
+	"llvm/ADT/ilist.h"
+	<iterator>
+
+1466621468 c:\llvm\include\llvm\codegen\machineinstr.h
+	"llvm/ADT/DenseMapInfo.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/ilist.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/ADT/iterator_range.h"
+	"llvm/Analysis/AliasAnalysis.h"
+	"llvm/CodeGen/MachineOperand.h"
+	"llvm/IR/DebugLoc.h"
+	"llvm/IR/InlineAsm.h"
+	"llvm/MC/MCInstrDesc.h"
+	"llvm/Support/ArrayRecycler.h"
+	"llvm/Target/TargetOpcodes.h"
+
+1465575586 c:\llvm\include\llvm\codegen\machineoperand.h
+	"llvm/Support/DataTypes.h"
+	<cassert>
+
+1468847851 c:\llvm\include\llvm\ir\inlineasm.h
+	"llvm/ADT/StringRef.h"
+	"llvm/IR/Value.h"
+	<vector>
+
+1449299615 c:\llvm\include\llvm\mc\mcinstrdesc.h
+	"llvm/MC/MCRegisterInfo.h"
+	"llvm/Support/DataTypes.h"
+	<string>
+
+1455137749 c:\llvm\include\llvm\mc\mcregisterinfo.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/Support/ErrorHandling.h"
+	<cassert>
+
+1435052993 c:\llvm\include\llvm\support\arrayrecycler.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/Support/Allocator.h"
+	"llvm/Support/MathExtras.h"
+
+1455225416 c:\llvm\include\llvm\target\targetopcodes.h
+	"llvm/Target/TargetOpcodes.def"
+
+1468517389 c:\llvm\include\llvm\target\targetopcodes.def
+
+1455510637 c:\llvm\include\llvm\support\branchprobability.h
+	"llvm/Support/DataTypes.h"
+	<algorithm>
+	<cassert>
+	<climits>
+	<numeric>
+
+1468520120 c:\llvm\include\llvm\codegen\machinememoperand.h
+	"llvm/ADT/BitmaskEnum.h"
+	"llvm/ADT/PointerUnion.h"
+	"llvm/CodeGen/PseudoSourceValue.h"
+	"llvm/IR/Metadata.h"
+	"llvm/IR/Value.h"
+	"llvm/Support/DataTypes.h"
+
+1468453939 c:\llvm\include\llvm\adt\bitmaskenum.h
+	<cassert>
+	<type_traits>
+	<utility>
+	"llvm/Support/MathExtras.h"
+
+1454521949 c:\llvm\include\llvm\codegen\pseudosourcevalue.h
+	"llvm/ADT/StringMap.h"
+	"llvm/IR/GlobalValue.h"
+	"llvm/IR/Value.h"
+	"llvm/IR/ValueMap.h"
+	<map>
+
+1444250949 c:\llvm\include\llvm\support\recycler.h
+	"llvm/ADT/ilist.h"
+	"llvm/Support/AlignOf.h"
+	"llvm/Support/Allocator.h"
+	"llvm/Support/ErrorHandling.h"
+	<cassert>
+
+1451379981 c:\llvm\include\llvm\codegen\machinemoduleinfo.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/Analysis/EHPersonalities.h"
+	"llvm/IR/DebugLoc.h"
+	"llvm/IR/Metadata.h"
+	"llvm/IR/ValueHandle.h"
+	"llvm/MC/MCContext.h"
+	"llvm/MC/MCSymbol.h"
+	"llvm/MC/MachineLocation.h"
+	"llvm/Pass.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/Dwarf.h"
+
+1464659287 c:\llvm\include\llvm\analysis\ehpersonalities.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/TinyPtrVector.h"
+	"llvm/Support/ErrorHandling.h"
+
+1463435867 c:\llvm\include\llvm\adt\tinyptrvector.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/PointerUnion.h"
+	"llvm/ADT/SmallVector.h"
+
+1467353258 c:\llvm\include\llvm\mc\mccontext.h
+	"llvm/ADT/DenseMap.h"
+	"llvm/ADT/SetVector.h"
+	"llvm/ADT/SmallString.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/ADT/Twine.h"
+	"llvm/MC/MCCodeView.h"
+	"llvm/MC/MCDwarf.h"
+	"llvm/MC/MCSubtargetInfo.h"
+	"llvm/MC/SectionKind.h"
+	"llvm/Support/Allocator.h"
+	"llvm/Support/Compiler.h"
+	"llvm/Support/raw_ostream.h"
+	<map>
+	<tuple>
+	<vector>
+
+1466705626 c:\llvm\include\llvm\adt\setvector.h
+	"llvm/ADT/DenseSet.h"
+	"llvm/ADT/SmallSet.h"
+	<algorithm>
+	<cassert>
+	<utility>
+	<vector>
+
+1454364316 c:\llvm\include\llvm\adt\smallset.h
+	"llvm/ADT/None.h"
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/ADT/SmallVector.h"
+	<set>
+
+1454637349 c:\llvm\include\llvm\mc\mccodeview.h
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/MC/MCObjectStreamer.h"
+	"llvm/MC/MCFragment.h"
+	<map>
+	<vector>
+
+1465632737 c:\llvm\include\llvm\mc\mcobjectstreamer.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/MC/MCAssembler.h"
+	"llvm/MC/MCSection.h"
+	"llvm/MC/MCStreamer.h"
+
+1464128154 c:\llvm\include\llvm\mc\mcassembler.h
+	"llvm/ADT/SmallPtrSet.h"
+	"llvm/ADT/ilist.h"
+	"llvm/ADT/ilist_node.h"
+	"llvm/ADT/iterator.h"
+	"llvm/MC/MCDirectives.h"
+	"llvm/MC/MCDwarf.h"
+	"llvm/MC/MCFixup.h"
+	"llvm/MC/MCFragment.h"
+	"llvm/MC/MCInst.h"
+	"llvm/MC/MCLinkerOptimizationHint.h"
+	"llvm/MC/MCSubtargetInfo.h"
+	"llvm/MC/MCSymbol.h"
+
+1466637788 c:\llvm\include\llvm\mc\mclinkeroptimizationhint.h
+	"llvm/ADT/SmallVector.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/StringSwitch.h"
+	"llvm/Support/raw_ostream.h"
+
+1441877159 c:\llvm\include\llvm\adt\stringswitch.h
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/Compiler.h"
+	<cassert>
+	<cstring>
+
+1460971049 c:\llvm\include\llvm\mc\mcsubtargetinfo.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/MC/MCInstrItineraries.h"
+	"llvm/MC/SubtargetFeature.h"
+	<string>
+
+1447858979 c:\llvm\include\llvm\mc\mcinstritineraries.h
+	"llvm/MC/MCSchedule.h"
+	<algorithm>
+
+1457915779 c:\llvm\include\llvm\mc\mcschedule.h
+	"llvm/Support/DataTypes.h"
+	<cassert>
+
+1466741125 c:\llvm\include\llvm\mc\mcsymbol.h
+	"llvm/ADT/PointerIntPair.h"
+	"llvm/ADT/PointerUnion.h"
+	"llvm/ADT/StringMap.h"
+	"llvm/MC/MCFragment.h"
+	"llvm/Support/Compiler.h"
+
+1468240934 c:\llvm\include\llvm\mc\mcstreamer.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/MC/MCDirectives.h"
+	"llvm/MC/MCDwarf.h"
+	"llvm/MC/MCLinkerOptimizationHint.h"
+	"llvm/MC/MCSymbol.h"
+	"llvm/MC/MCWinEH.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/SMLoc.h"
+	<string>
+
+1462231338 c:\llvm\include\llvm\mc\mcwineh.h
+	<vector>
+
+1446168350 c:\llvm\include\llvm\mc\machinelocation.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/DataTypes.h"
+
+1468453186 c:\llvm\include\llvm\codegen\targetpassconfig.h
+	"llvm/Pass.h"
+	"llvm/Support/CodeGen.h"
+	<string>
+
+1437597971 c:\llvm\include\llvm\ir\diagnosticprinter.h
+	<string>
+
+1466122261 c:\llvm\include\llvm\ir\irprintingpasses.h
+	"llvm/ADT/StringRef.h"
+	<string>
+
+1435052993 c:\llvm\include\llvm\ir\legacypassmanager.h
+	"llvm/Pass.h"
+	"llvm/Support/CBindingWrapping.h"
+
+1460971049 c:\llvm\include\llvm\irreader\irreader.h
+	<memory>
+
+1435052993 c:\llvm\include\llvm\support\formattedstream.h
+	"llvm/Support/raw_ostream.h"
+	<utility>
+
+1435052993 c:\llvm\include\llvm\support\pluginloader.h
+	"llvm/Support/CommandLine.h"
+
+1464294115 c:\llvm\include\llvm\support\prettystacktrace.h
+	"llvm/Support/Compiler.h"
+
+1465433601 c:\llvm\include\llvm\support\signals.h
+	<string>
+
+1435052993 c:\llvm\include\llvm\support\sourcemgr.h
+	"llvm/ADT/ArrayRef.h"
+	"llvm/ADT/StringRef.h"
+	"llvm/ADT/Twine.h"
+	"llvm/Support/MemoryBuffer.h"
+	"llvm/Support/SMLoc.h"
+	<string>
+
+1467311111 c:\llvm\include\llvm\support\targetregistry.h
+	"llvm-c/Disassembler.h"
+	"llvm/ADT/Optional.h"
+	"llvm/ADT/Triple.h"
+	"llvm/Support/CodeGen.h"
+	"llvm/Support/FormattedStream.h"
+	<cassert>
+	<memory>
+	<string>
+
+1459186808 c:\llvm\include\llvm-c\disassembler.h
+	"llvm/Support/DataTypes.h"
+	<cstddef>
+	<stddef.h>
+
+1435052993 c:\llvm\include\llvm\support\tooloutputfile.h
+	"llvm/Support/raw_ostream.h"
+
+1467332607 c:\llvm\include\llvm\target\targetsubtargetinfo.h
+	"llvm/CodeGen/PBQPRAConstraint.h"
+	"llvm/CodeGen/SchedulerRegistry.h"
+	"llvm/CodeGen/ScheduleDAGMutation.h"
+	"llvm/MC/MCSubtargetInfo.h"
+	"llvm/Support/CodeGen.h"
+	<vector>
+
+1435052993 c:\llvm\include\llvm\codegen\pbqpraconstraint.h
+	<memory>
+	<vector>
+
+1457192723 c:\llvm\include\llvm\codegen\scheduledagmutation.h
+
+1482699948 c:\users\isaac\google drive\adept\include\llc.h
+	"../include/asmcontext.h"
+
+1482700696 c:\users\isaac\google drive\adept\include\native.h
+	"../include/asmcontext.h"
+
+1482700702 source:c:\users\isaac\google drive\adept\src\native.cpp
+	<memory>
+	<iostream>
+	"llvm/ADT/STLExtras.h"
+	"llvm/ADT/Triple.h"
+	"llvm/Analysis/TargetLibraryInfo.h"
+	"llvm/CodeGen/CommandFlags.h"
+	"llvm/CodeGen/LinkAllAsmWriterComponents.h"
+	"llvm/CodeGen/LinkAllCodegenComponents.h"
+	"llvm/CodeGen/MIRParser/MIRParser.h"
+	"llvm/CodeGen/MachineFunctionPass.h"
+	"llvm/CodeGen/MachineModuleInfo.h"
+	"llvm/CodeGen/TargetPassConfig.h"
+	"llvm/IR/DataLayout.h"
+	"llvm/IR/DiagnosticInfo.h"
+	"llvm/IR/DiagnosticPrinter.h"
+	"llvm/IR/IRPrintingPasses.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/LegacyPassManager.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Verifier.h"
+	"llvm/IRReader/IRReader.h"
+	"llvm/MC/SubtargetFeature.h"
+	"llvm/Pass.h"
+	"llvm/Support/CommandLine.h"
+	"llvm/Support/Debug.h"
+	"llvm/Support/FileSystem.h"
+	"llvm/Support/FormattedStream.h"
+	"llvm/Support/Host.h"
+	"llvm/Support/ManagedStatic.h"
+	"llvm/Support/PluginLoader.h"
+	"llvm/Support/PrettyStackTrace.h"
+	"llvm/Support/Signals.h"
+	"llvm/Support/SourceMgr.h"
+	"llvm/Support/TargetRegistry.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/ToolOutputFile.h"
+	"llvm/Target/TargetMachine.h"
+	"llvm/Target/TargetSubtargetInfo.h"
+	"llvm/Transforms/Utils/Cloning.h"
+	"../include/asmcontext.h"
 

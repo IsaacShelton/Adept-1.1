@@ -270,4 +270,18 @@ class NullExp : public PlainExp {
     bool getType(Program&, Function&, std::string&);
 };
 
+class NotExp : public PlainExp {
+    public:
+    PlainExp* value;
+
+    NotExp();
+    NotExp(PlainExp*);
+    NotExp(const NotExp&);
+    ~NotExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+    bool getType(Program&, Function&, std::string&);
+};
+
 #endif // EXPRESSION_H_INCLUDED
