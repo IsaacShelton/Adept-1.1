@@ -6,6 +6,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
+#include "errors.h"
 #include "asmcontext.h"
 
 struct Program;
@@ -13,6 +14,12 @@ struct Function;
 
 class PlainExp {
     public:
+    // Filename & line in case of error
+    ErrorHandler errors;
+
+    PlainExp();
+    PlainExp(const PlainExp&);
+    PlainExp(ErrorHandler&);
     virtual ~PlainExp();
     virtual llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*) = 0;
     virtual std::string toString() = 0;
@@ -25,9 +32,9 @@ class OperatorExp : public PlainExp {
     PlainExp* left;
     PlainExp* right;
 
-    OperatorExp();
+    OperatorExp(ErrorHandler&);
     OperatorExp(const OperatorExp&);
-    OperatorExp(uint16_t, PlainExp*, PlainExp*);
+    OperatorExp(uint16_t, PlainExp*, PlainExp*, ErrorHandler&);
     ~OperatorExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -39,8 +46,8 @@ class BoolExp : public PlainExp {
     public:
     bool value;
 
-    BoolExp();
-    BoolExp(bool);
+    BoolExp(ErrorHandler&);
+    BoolExp(bool, ErrorHandler&);
     ~BoolExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -52,8 +59,8 @@ class ByteExp : public PlainExp {
     public:
     int8_t value;
 
-    ByteExp();
-    ByteExp(int8_t);
+    ByteExp(ErrorHandler&);
+    ByteExp(int8_t, ErrorHandler&);
     ~ByteExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -65,8 +72,8 @@ class ShortExp : public PlainExp {
     public:
     int16_t value;
 
-    ShortExp();
-    ShortExp(int16_t);
+    ShortExp(ErrorHandler&);
+    ShortExp(int16_t, ErrorHandler&);
     ~ShortExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -78,8 +85,8 @@ class IntegerExp : public PlainExp {
     public:
     int32_t value;
 
-    IntegerExp();
-    IntegerExp(int32_t);
+    IntegerExp(ErrorHandler&);
+    IntegerExp(int32_t, ErrorHandler&);
     ~IntegerExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -91,8 +98,8 @@ class LongExp : public PlainExp {
     public:
     int64_t value;
 
-    LongExp();
-    LongExp(int64_t);
+    LongExp(ErrorHandler&);
+    LongExp(int64_t, ErrorHandler&);
     ~LongExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -104,8 +111,8 @@ class UnsignedByteExp : public PlainExp {
     public:
     uint8_t value;
 
-    UnsignedByteExp();
-    UnsignedByteExp(uint8_t);
+    UnsignedByteExp(ErrorHandler&);
+    UnsignedByteExp(uint8_t, ErrorHandler&);
     ~UnsignedByteExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -117,8 +124,8 @@ class UnsignedShortExp : public PlainExp {
     public:
     uint16_t value;
 
-    UnsignedShortExp();
-    UnsignedShortExp(uint16_t);
+    UnsignedShortExp(ErrorHandler&);
+    UnsignedShortExp(uint16_t, ErrorHandler&);
     ~UnsignedShortExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -130,8 +137,8 @@ class UnsignedIntegerExp : public PlainExp {
     public:
     uint32_t value;
 
-    UnsignedIntegerExp();
-    UnsignedIntegerExp(uint32_t);
+    UnsignedIntegerExp(ErrorHandler&);
+    UnsignedIntegerExp(uint32_t, ErrorHandler&);
     ~UnsignedIntegerExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -143,8 +150,8 @@ class UnsignedLongExp : public PlainExp {
     public:
     uint64_t value;
 
-    UnsignedLongExp();
-    UnsignedLongExp(uint64_t);
+    UnsignedLongExp(ErrorHandler&);
+    UnsignedLongExp(uint64_t, ErrorHandler&);
     ~UnsignedLongExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -156,8 +163,8 @@ class FloatExp : public PlainExp {
     public:
     float value;
 
-    FloatExp();
-    FloatExp(float);
+    FloatExp(ErrorHandler&);
+    FloatExp(float, ErrorHandler&);
     ~FloatExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -169,8 +176,8 @@ class DoubleExp : public PlainExp {
     public:
     double value;
 
-    DoubleExp();
-    DoubleExp(double);
+    DoubleExp(ErrorHandler&);
+    DoubleExp(double, ErrorHandler&);
     ~DoubleExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -182,8 +189,8 @@ class StringExp : public PlainExp {
     public:
     std::string value;
 
-    StringExp();
-    StringExp(const std::string&);
+    StringExp(ErrorHandler&);
+    StringExp(const std::string&, ErrorHandler&);
     ~StringExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -195,8 +202,8 @@ class WordExp : public PlainExp {
     public:
     std::string value;
 
-    WordExp();
-    WordExp(const std::string&);
+    WordExp(ErrorHandler&);
+    WordExp(const std::string&, ErrorHandler&);
     ~WordExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -208,8 +215,8 @@ class AddrWordExp : public PlainExp {
     public:
     std::string value;
 
-    AddrWordExp();
-    AddrWordExp(const std::string&);
+    AddrWordExp(ErrorHandler&);
+    AddrWordExp(const std::string&, ErrorHandler&);
     ~AddrWordExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -221,8 +228,8 @@ class LoadExp : public PlainExp {
     public:
     PlainExp* value;
 
-    LoadExp();
-    LoadExp(PlainExp*);
+    LoadExp(ErrorHandler&);
+    LoadExp(PlainExp*, ErrorHandler&);
     LoadExp(const LoadExp&);
     ~LoadExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
@@ -236,9 +243,9 @@ class CallExp : public PlainExp {
     std::string name;
     std::vector<PlainExp*> args;
 
-    CallExp();
+    CallExp(ErrorHandler&);
     CallExp(const CallExp&);
-    CallExp(std::string, const std::vector<PlainExp*>&);
+    CallExp(std::string, const std::vector<PlainExp*>&, ErrorHandler&);
     ~CallExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -251,8 +258,8 @@ class MemberExp : public PlainExp {
     PlainExp* value;
     std::string member;
 
-    MemberExp();
-    MemberExp(PlainExp*, const std::string&);
+    MemberExp(ErrorHandler&);
+    MemberExp(PlainExp*, const std::string&, ErrorHandler&);
     ~MemberExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -262,7 +269,7 @@ class MemberExp : public PlainExp {
 
 class NullExp : public PlainExp {
     public:
-    NullExp();
+    NullExp(ErrorHandler&);
     ~NullExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
@@ -274,8 +281,8 @@ class NotExp : public PlainExp {
     public:
     PlainExp* value;
 
-    NotExp();
-    NotExp(PlainExp*);
+    NotExp(ErrorHandler&);
+    NotExp(PlainExp*, ErrorHandler&);
     NotExp(const NotExp&);
     ~NotExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);

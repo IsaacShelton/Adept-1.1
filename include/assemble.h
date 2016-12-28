@@ -10,7 +10,7 @@
 #include "config.h"
 #include "asmcontext.h"
 
-int assemble(AssembleContext&, Configuration&, Program&);
+int assemble(AssembleContext&, Configuration&, Program&, ErrorHandler& errors);
 int build(AssembleContext&, Configuration&, Program&);
 
 int assemble_structure(AssembleContext&, Configuration&, Program&, Structure&);

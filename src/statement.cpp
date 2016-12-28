@@ -35,6 +35,10 @@ Statement::Statement(const Statement& other){
     case STATEMENTID_UNTIL:
         data = new ConditionalStatement( *(static_cast<ConditionalStatement*>(other.data)) );
         break;
+    case STATEMENTID_IFELSE:
+    case STATEMENTID_UNLESSELSE:
+        data = new SplitConditionalStatement( *(static_cast<SplitConditionalStatement*>(other.data)) );
+        break;
     default:
         data = NULL;
     }
@@ -75,6 +79,10 @@ void Statement::free(){
     case STATEMENTID_UNLESS:
     case STATEMENTID_UNTIL:
         delete static_cast<ConditionalStatement*>(data);
+        break;
+    case STATEMENTID_IFELSE:
+    case STATEMENTID_UNLESSELSE:
+        delete static_cast<SplitConditionalStatement*>(data);
         break;
     }
 
@@ -215,6 +223,48 @@ std::string Statement::toString(unsigned int indent){
             str += "}";
         }
         break;
+    case STATEMENTID_IFELSE:
+        {
+            SplitConditionalStatement* extra = static_cast<SplitConditionalStatement*>(data);
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "if " + extra->condition->toString() + "{\n";
+
+            for(size_t a = 0; a != extra->true_statements.size(); a++){
+                str += extra->true_statements[a].toString(indent+1) + "\n";
+            }
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "} else {\n";
+
+            for(size_t a = 0; a != extra->false_statements.size(); a++){
+                str += extra->false_statements[a].toString(indent+1) + "\n";
+            }
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "}\n";
+        }
+        break;
+    case STATEMENTID_UNLESSELSE:
+        {
+            SplitConditionalStatement* extra = static_cast<SplitConditionalStatement*>(data);
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "unless " + extra->condition->toString() + "{\n";
+
+            for(size_t a = 0; a != extra->true_statements.size(); a++){
+                str += extra->true_statements[a].toString(indent+1) + "\n";
+            }
+
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "} else {\n";
+
+            for(size_t a = 0; a != extra->false_statements.size(); a++){
+                str += extra->false_statements[a].toString(indent+1) + "\n";
+            }
+            for(unsigned int i = 0; i != indent; i++) str += "    ";
+            str += "}\n";
+        }
+        break;
     }
 
     return str;
@@ -327,6 +377,20 @@ ConditionalStatement::ConditionalStatement(PlainExp* c, const std::vector<Statem
     statements = s;
 }
 ConditionalStatement::~ConditionalStatement(){
+    delete condition;
+}
+
+SplitConditionalStatement::SplitConditionalStatement(const SplitConditionalStatement& other){
+    condition = other.condition->clone();
+    true_statements = other.true_statements;
+    false_statements = other.false_statements;
+}
+SplitConditionalStatement::SplitConditionalStatement(PlainExp* c, const std::vector<Statement>& ts, const std::vector<Statement>& fs){
+    condition = c;
+    true_statements = ts;
+    false_statements = fs;
+}
+SplitConditionalStatement::~SplitConditionalStatement(){
     delete condition;
 }
 

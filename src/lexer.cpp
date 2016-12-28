@@ -8,12 +8,12 @@
 #include "../include/errors.h"
 #include "../include/strings.h"
 
-int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens){
+int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens, ErrorHandler& errors){
     std::ifstream adept;
 
     adept.open(filename.c_str());
     if(!adept.is_open()){
-        std::cerr << "Failed to open file" << std::endl;
+        errors.panic( FAILED_TO_OPEN_FILE(filename_name(filename)) );
         return 1;
     }
 
@@ -21,19 +21,19 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
 
     std::string line;
     while( std::getline(adept, line) ){
-        if(tokenize_line(line + "\n", *tokens) != 0) return 1;
+        if(tokenize_line(line + "\n", *tokens, errors) != 0) return 1;
     }
 
     adept.close();
 
     // Print Lexer Time
     if(config.time and !config.silent){
-        config.clock.print_since("Lexer Finished", filename_name(config.filename));
+        config.clock.print_since("LEXER DONE", filename_name(config.filename));
         config.clock.remember();
     }
     return 0;
 }
-int tokenize_line(const std::string& code, std::vector<Token>& tokens){
+int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
     size_t code_size = code.size();
 
     char prefix_char;
@@ -86,7 +86,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens){
             prefix_char = code[i];
 
             if(prefix_char >= 48 and prefix_char <= 57){
-                if(tokenize_number(true, prefix_char, i, code_size, code, tokens) != 0) return 1;
+                if(tokenize_number(true, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
                 i++;
             }
             else { tokens.push_back(TOKEN_SUBTRACT); }
@@ -146,9 +146,16 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens){
                 if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import"
                 or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
                 or word == "null" or word == "if" or word == "while"  or word == "unless" or word == "until"
-                or word == "constant"){
+                or word == "else" or word == "constant"){
                     tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
-                } else {
+                }
+                else if(word == "and"){
+                    tokens.push_back( TOKEN_AND );
+                }
+                else if(word == "or"){
+                    tokens.push_back( TOKEN_OR );
+                }
+                else {
                     tokens.push_back( TOKEN_WORD( new std::string(word) ) );
                 }
             }
@@ -217,7 +224,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens){
         case 54: case 55: case 56:
         case 57: // 0-9
             {
-                if(tokenize_number(false, prefix_char, i, code_size, code, tokens) != 0) return 1;
+                if(tokenize_number(false, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
                 i++;
             }
             break;
@@ -229,7 +236,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens){
 
     return 0;
 }
-int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code_size, const std::string& code, std::vector<Token>& tokens){
+int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code_size, const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
     std::string content = (is_negative) ? "-" : "" ;
 
     while(prefix_char >= 48 and prefix_char <= 57){

@@ -4,7 +4,7 @@
 #include "../include/config.h"
 #include "../include/errors.h"
 
-int configure(Configuration& config, std::string filename){
+int configure(Configuration& config, std::string filename, ErrorHandler& errors){
     // Default Config
     config.jit = false;
     config.obj = false;
@@ -13,10 +13,11 @@ int configure(Configuration& config, std::string filename){
     config.link = true;
     config.silent = false;
     config.time = false;
+    config.optimization = 0;
 
     char* username = getenv("USERNAME");
     if(username == NULL) {
-        die("Failed to get username");
+        errors.panic_plain( FAILED_TO_GET_USERNAME );
     }
 
     config.username = username;
@@ -25,7 +26,7 @@ int configure(Configuration& config, std::string filename){
     return 0;
 }
 
-int configure(Configuration& config, int argc, char** argv){
+int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors){
     if(argc < 2){
         std::cout << "Adept Compiler (c) 2016 Isaac Shelton" << std::endl;
         std::cout << "Usage: adept <filename>" << std::endl;
@@ -40,6 +41,7 @@ int configure(Configuration& config, int argc, char** argv){
     config.link = true;
     config.silent = false;
     config.time = false;
+    config.optimization = 0;
 
     for(int i = 2; i != argc; i++){
         if(strcmp(argv[i], "--jit") == 0){
@@ -61,13 +63,13 @@ int configure(Configuration& config, int argc, char** argv){
             config.link = false;
         }
         else {
-            die( UNKNOWN_OPTION(argv[i]) );
+            errors.panic_plain( UNKNOWN_OPTION(argv[i]) );
         }
     }
 
     char* username = getenv("USERNAME");
     if(username == NULL) {
-        die("Failed to get username");
+        errors.panic_plain( FAILED_TO_GET_USERNAME );
     }
 
     config.username = username;

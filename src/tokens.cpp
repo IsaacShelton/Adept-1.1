@@ -253,21 +253,22 @@ std::string Token::toString(){
 
 int Token::getPrecedence(){
     switch(id){
-    // Very Low Precedence
+    // Low Precedence
+    case TOKENID_AND:
+    case TOKENID_OR:
+        return 1;
     case TOKENID_EQUALITY:
     case TOKENID_INEQUALITY:
-        return 1;
-    // Low Precedence
+        return 2;
     case TOKENID_ADD:
     case TOKENID_SUBTRACT:
-        return 2;
-    // Medium Precedence
+        return 3;
     case TOKENID_MULTIPLY:
     case TOKENID_DIVIDE:
-        return 3;
+        return 4;
     // High Precedence
     case TOKENID_MEMBER:
-        return 4;
+        return 5;
     // No Precedence
     default:
         return 0;

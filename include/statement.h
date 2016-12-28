@@ -13,6 +13,8 @@
 #define STATEMENT_WHILE(a,b)          Statement(8, new ConditionalStatement(a, b))
 #define STATEMENT_UNLESS(a,b)         Statement(9, new ConditionalStatement(a, b))
 #define STATEMENT_UNTIL(a,b)          Statement(10, new ConditionalStatement(a, b))
+#define STATEMENT_IFELSE(a,b,c)       Statement(11, new SplitConditionalStatement(a, b,c))
+#define STATEMENT_UNLESSELSE(a,b,c)   Statement(12, new SplitConditionalStatement(a, b,c))
 
 #define STATEMENTID_NONE         0
 #define STATEMENTID_DECLARE      1
@@ -25,6 +27,8 @@
 #define STATEMENTID_WHILE        8
 #define STATEMENTID_UNLESS       9
 #define STATEMENTID_UNTIL        10
+#define STATEMENTID_IFELSE       11
+#define STATEMENTID_UNLESSELSE   12
 
 #include <string>
 #include <vector>
@@ -50,7 +54,9 @@ struct Statement {
     std::string toString(unsigned int indent = 0);
 };
 
-// Possible structures pointed to by 'void* Statement::data'
+typedef std::vector<Statement> StatementList;
+
+// Possible structures pointed to by 'void* Statement::data'...
 
 struct DeclareStatement {
     std::string name;
@@ -116,6 +122,16 @@ struct ConditionalStatement {
     ConditionalStatement(const ConditionalStatement&);
     ConditionalStatement(PlainExp*, const std::vector<Statement>&);
     ~ConditionalStatement();
+};
+
+struct SplitConditionalStatement {
+    PlainExp* condition;
+    std::vector<Statement> true_statements;
+    std::vector<Statement> false_statements;
+
+    SplitConditionalStatement(const SplitConditionalStatement&);
+    SplitConditionalStatement(PlainExp*, const std::vector<Statement>&, const std::vector<Statement>&);
+    ~SplitConditionalStatement();
 };
 
 #endif // STATEMENT_H_INCLUDED

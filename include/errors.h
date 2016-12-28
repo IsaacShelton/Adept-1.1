@@ -5,40 +5,59 @@
 #include "die.h"
 
 // General
-
-#define SUICIDE                 ("ERROR: An unintended part of this compiler was reached :\\\n    (line #" + to_str(__LINE__) + " in " + std::string(__FILE__) + ")")
-#define FAILED_TO_CREATE(a)     ("ERROR: Failed to create '" + std::string(a) + "'")
-#define UNKNOWN_OPTION(a)       ("ERROR: Unknown option '" + std::string(a) + "'")
-#define UNKNOWN_MODULE(a)       ("ERROR: Unknown module '" + std::string(a) + "'")
-#define EXPRESSION_IS_VOID      ("ERROR: Expression is void")
-#define MAIN_IS_PRIVATE         ("ERROR: The 'main' function is private")
+#define SUICIDE                 ("An unintended part of this compiler was reached :\\\n    (line #" + to_str(__LINE__) + " in " + std::string(__FILE__) + ")")
+#define FAILED_TO_CREATE(a)     ("Failed to create '" + std::string(a) + "'")
+#define UNKNOWN_OPTION(a)       ("Unknown option '" + std::string(a) + "'")
+#define UNKNOWN_MODULE(a)       ("Unknown module '" + std::string(a) + "'")
+#define EXPRESSION_IS_VOID      ("Expression is void")
+#define MAIN_IS_PRIVATE         ("The 'main' function is private")
+#define FAILED_TO_GET_USERNAME  ("Failed to get current username")
+#define FAILED_TO_OPEN_FILE(a)  ("Failed to open file '" + a + "'")
 
 // Undefined
+#define UNDECLARED_VARIABLE(a)  ("Undeclared variable '" + std::string(a) + "'")
+#define UNDECLARED_TYPE(a)      ("Undeclared type '" + std::string(a) + "'")
+#define UNDECLARED_FUNC(a)      ("Undeclared function '" + std::string(a) + "'")
+#define UNDECLARED_STRUCT(a)    ("Undeclared struct '" + std::string(a) + "'")
+#define UNDECLARED_MEMBER(a, b) ("Undeclared member '" + std::string(a) + "' in structure '" + std::string(b) + "'")
+#define UNDECLARED_CONST(a)     ("Undeclared constant '$" + std::string(a) + "'")
 
-#define UNDECLARED_VARIABLE(a)  ("ERROR: Undeclared variable '" + std::string(a) + "'")
-#define UNDECLARED_TYPE(a)      ("ERROR: Undeclared type '" + std::string(a) + "'")
-#define UNDECLARED_FUNC(a)      ("ERROR: Undeclared function '" + std::string(a) + "'")
-#define UNDECLARED_STRUCT(a)    ("ERROR: Undeclared struct '" + std::string(a) + "'")
-#define UNDECLARED_MEMBER(a, b) ("ERROR: Undeclared member '" + std::string(a) + "' in structure '" + std::string(b) + "'")
-#define UNDECLARED_CONST(a)     ("ERROR: Undeclared constant '$" + std::string(a) + "'")
+// Expected
+#define EXPECTED_NAME_OF_TYPE        ("Expected name of type")
+#define EXPECTED_DEFINITION          ("Expected definition of a function or type")
 
 // Unexpected
-
-#define UNEXPECTED_KEYWORD(a)        ("ERROR: Unexpected keyword '" + std::string(a) + "'")
-#define UNEXPECTED_KEYWORD_INEXPR(a) ("ERROR: Unexpected keyword '" + std::string(a) + "' in expression")
+#define UNEXPECTED_KEYWORD(a)        ("Unexpected keyword '" + std::string(a) + "'")
+#define UNEXPECTED_KEYWORD_INEXPR(a) ("Unexpected keyword '" + std::string(a) + "' in expression")
+#define UNEXPECTED_OPERATOR(a)       ("Unexpected operator: "  + std::string(a))
 
 // Duplicate
-
-#define DUPLICATE_FUNC(a)    ("ERROR: Duplicate function definition '" + std::string(a) + "'")
-#define DUPLICATE_STRUCT(a)  ("ERROR: Duplicate type definition '" + std::string(a) + "'")
-#define DUPLICATE_MEMBER(a)  ("ERROR: Duplicate member definition '" + std::string(a) + "'")
-#define DUPLICATE_VARIBLE(a) ("ERROR: Duplicate variable definition '" + std::string(a) + "'")
+#define DUPLICATE_FUNC(a)    ("Duplicate function definition '" + std::string(a) + "'")
+#define DUPLICATE_STRUCT(a)  ("Duplicate type definition '" + std::string(a) + "'")
+#define DUPLICATE_MEMBER(a)  ("Duplicate member definition '" + std::string(a) + "'")
+#define DUPLICATE_VARIBLE(a) ("Duplicate variable definition '" + std::string(a) + "'")
 
 // Validation
+#define INCOMPATIBLE_TYPES_VAGUE ("Expression contains incompatible types")
+#define INCOMPATIBLE_TYPES(a,b)  ("Expression contains incompatible types '" + std::string(a) + "' and '" + std::string(b) + "'")
+#define INCOMPATIBLE_EXPRESSION  ("Expression type is incompatible")
+#define INCOMPATIBLE_WITH_RETURN ("Expression type is incompatible with return type")
 
-#define INCOMPATIBLE_TYPES_VAGUE ("ERROR: Expression contains incompatible types")
-#define INCOMPATIBLE_TYPES(a,b)  ("ERROR: Expression contains incompatible types '" + std::string(a) + "' and '" + std::string(b) + "'")
-#define INCOMPATIBLE_EXPRESSION  ("ERROR: Expression type is incompatible")
-#define INCOMPATIBLE_WITH_RETURN ("ERROR: Expression type is incompatible with return type")
+class ErrorHandler {
+    public:
+    std::string filename;
+    size_t line;
+
+    ErrorHandler();
+    ErrorHandler(std::string file);
+
+    // Errors with filename & line
+    void warn(std::string);
+    void panic(std::string);
+
+    // Errors without filename & line
+    void warn_plain(std::string);
+    void panic_plain(std::string);
+};
 
 #endif // ERRORS_H_INCLUDED

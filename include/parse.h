@@ -17,32 +17,32 @@
 #define CONDITIONAL_UNTIL  3
 #define CONDITIONAL_FOR    4
 
-int parse(Configuration& config, std::vector<Token>* tokens, Program& program);
+int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors);
 
-int parse_token(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_word(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
-int parse_structure(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
-int parse_function(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
-int parse_external(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
-int parse_attribute(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_import(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
-int parse_lib(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i);
-int parse_constant(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, const AttributeInfo& attr_info);
+int parse_token(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
+int parse_word(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
+int parse_keyword(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_structure(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_external(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
+int parse_import(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
+int parse_constant(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 
-int parse_block(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i);
-int parse_block_keyword(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name);
-int parse_block_word(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i);
-int parse_block_variable_declaration(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name);
-int parse_block_call(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name);
-int parse_block_assign(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name, int loads);
-int parse_block_member_assign(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, std::string name);
-int parse_block_dereference(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i);
-int parse_block_conditional(Configuration& config, std::vector<Token>& tokens, Program& program, std::vector<Statement>& statements, size_t& i, uint16_t conditional_type);
+int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors);
+int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors);
+int parse_block_word(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors);
+int parse_block_variable_declaration(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors);
+int parse_block_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors);
+int parse_block_assign(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, int loads, ErrorHandler& errors);
+int parse_block_member_assign(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors);
+int parse_block_dereference(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors);
+int parse_block_conditional(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, uint16_t conditional_type, ErrorHandler& errors);
 
-int parse_expression(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, PlainExp** expression);
-int parse_expression_primary(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, PlainExp** expression);
-int parse_expression_operator_right(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, int precedence, PlainExp** left);
-int parse_expression_call(Configuration& config, std::vector<Token>& tokens, Program& program, size_t& i, PlainExp** expression);
+int parse_expression(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors);
+int parse_expression_primary(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors);
+int parse_expression_operator_right(Configuration& config, TokenList& tokens, Program& program, size_t& i, int precedence, PlainExp** left, ErrorHandler& errors);
+int parse_expression_call(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors);
 
 #endif // PARSE_H_INCLUDED

@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <iostream>
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
@@ -44,50 +45,60 @@
 #include "llvm/Target/TargetSubtargetInfo.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
-#include "../include/asmcontext.h"
+#include "../include/native.h"
 
 using namespace llvm;
-
-struct ModuleBuildOptions {
-    bool skip = false;
-    bool no_verify = false;
-    //Triple TargetTriple;
-    char optimization = '2';
-    bool disable_integrated_asm = false;
-    bool show_mc_encoding = false;
-    bool enable_dwarf_directory = false;
-    bool asm_verbose = false;
-    bool preserve_comments = false;
-    bool disable_simplify_lib_calls = false;
-    bool compile_twice = false;
-    std::vector<std::string> run_pass_names;
-    TargetMachine::CodeGenFileType filetype = TargetMachine::CGFT_ObjectFile;
-    llvm::FloatABI::ABIType float_abi_for_calls = FloatABI::Default;
-    std::string start_after;
-    std::string stop_after;
-};
 
 static std::unique_ptr<tool_output_file> getOutputStream(const char*, Triple::OSType, std::string, std::string, ModuleBuildOptions& options);
 static bool addPass(PassManagerBase &PM, const char *argv0, StringRef PassName, TargetPassConfig &TPC, ModuleBuildOptions& options);
 
-int native_build_module(AssembleContext& context, std::string bitcode_filename, std::string output_filename) {
+static void DiagnosticHandler(const DiagnosticInfo &DI, void *Context) {
+    bool *HasError = static_cast<bool *>(Context);
+    if (DI.getSeverity() == DS_Error) *HasError = true;
+
+    DiagnosticPrinterRawOStream DP(errs());
+    errs() << LLVMContext::getDiagnosticMessagePrefix(DI.getSeverity()) << ": ";
+    DI.print(DP);
+    errs() << "\n";
+}
+
+int native_build_module(AssembleContext& context, std::string bitcode_filename, std::string output_filename, ModuleBuildOptions& options) {
+    // Initialize targets first, so that --version shows registered targets.
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmPrinters();
+    InitializeAllAsmParsers();
+
+    // Initialize codegen and IR passes used by llc so that the -print-after,
+    // -print-before, and -stop-after options work.
+    PassRegistry *Registry = PassRegistry::getPassRegistry();
+    initializeCore(*Registry);
+    initializeCodeGen(*Registry);
+    initializeLoopStrengthReducePass(*Registry);
+    initializeLowerIntrinsicsPass(*Registry);
+    initializeUnreachableBlockElimLegacyPassPass(*Registry);
+
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+
+    bool has_error = false;
+    context.context.setDiagnosticHandler(DiagnosticHandler, &has_error);
+
     SMDiagnostic err;
     std::unique_ptr<Module> module;
     std::unique_ptr<MIRParser> mir_parser;
     Triple triple;
-    ModuleBuildOptions options;
 
-    const char** argv = new const char*[4];
-    argv[0] = "llc.exe";
-    argv[1] = bitcode_filename.c_str();
-    argv[2] = "-filetype=obj";
-    argv[3] = ("-o" + output_filename).c_str();
+    const char** argv = new const char*[1];
+    argv[0] = "adept.exe";
 
     if (!options.skip) {
         if (StringRef(bitcode_filename).endswith_lower(".mir")) {
             mir_parser = createMIRParserFromFile(bitcode_filename, err, context.context);
             if (mir_parser) module = mir_parser->parseLLVMModule();
-        } else module = parseIRFile(bitcode_filename, err, context.context);
+        } else {
+            module = parseIRFile(bitcode_filename, err, context.context);
+        }
 
         if (!module) {
             err.print(argv[0], errs());
@@ -109,11 +120,12 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
         //triple = Triple(Triple::normalize(TargetTriple));
     }
 
+    // Triple init originally here
     if (triple.getTriple().empty()) triple.setTriple(sys::getDefaultTargetTriple());
 
     // Get the target specific parser.
     std::string error_str;
-    const Target *TheTarget = TargetRegistry::lookupTarget(MArch, triple, error_str);
+    const Target* TheTarget = TargetRegistry::lookupTarget(MArch, triple, error_str);
 
     if (!TheTarget) {
         errs() << argv[0] << ": " << error_str;
@@ -124,15 +136,15 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
     std::string features = getFeaturesStr();
 
     CodeGenOpt::Level OLvl = CodeGenOpt::Default;
+
     switch (options.optimization) {
         default:
-            errs() << argv[0] << ": invalid optimization level.\n";
+            errs() << "adept.exe: invalid optimization level\n";
             return 1;
-        case ' ': break;
-        case '0': OLvl = CodeGenOpt::None; break;
-        case '1': OLvl = CodeGenOpt::Less; break;
-        case '2': OLvl = CodeGenOpt::Default; break;
-        case '3': OLvl = CodeGenOpt::Aggressive; break;
+        case 0: OLvl = CodeGenOpt::None; break;
+        case 1: OLvl = CodeGenOpt::Less; break;
+        case 2: OLvl = CodeGenOpt::Default; break;
+        case 3: OLvl = CodeGenOpt::Aggressive; break;
     }
 
     TargetOptions target_options = InitTargetOptionsFromCodeGenFlags();

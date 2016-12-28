@@ -28,22 +28,31 @@
 #include "../include/assemble.h"
 #include "../include/expression.h"
 
+PlainExp::PlainExp(){}
+PlainExp::PlainExp(const PlainExp& other){
+    errors = other.errors;
+}
+PlainExp::PlainExp(ErrorHandler& err){
+    errors = err;
+}
 PlainExp::~PlainExp(){}
 
-OperatorExp::OperatorExp(){
+OperatorExp::OperatorExp(ErrorHandler& err){
     operation = 0;
     left = NULL;
     right = NULL;
+    errors = err;
 }
-OperatorExp::OperatorExp(const OperatorExp& other){
+OperatorExp::OperatorExp(const OperatorExp& other) : PlainExp(other) {
     operation = other.operation;
     left = other.left->clone();
     right = other.right->clone();
 }
-OperatorExp::OperatorExp(uint16_t o, PlainExp* l, PlainExp* r){
+OperatorExp::OperatorExp(uint16_t o, PlainExp* l, PlainExp* r, ErrorHandler& err){
     operation = o;
     left = l;
     right = r;
+    errors = err;
 }
 OperatorExp::~OperatorExp(){
     delete left;
@@ -58,7 +67,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
 
     if(left_value == NULL or right_value == NULL) return NULL;
     if(assemble_merge_types(context, left_typename, right_typename, &left_value, &right_value, &type_name) != 0){
-        fail( INCOMPATIBLE_TYPES(left_typename, right_typename) );
+        errors.panic( INCOMPATIBLE_TYPES(left_typename, right_typename) );
         return NULL;
     }
     if(expr_type != NULL) *expr_type = type_name;
@@ -82,6 +91,18 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         case TOKENID_INEQUALITY:
             *expr_type = "bool";
             return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
+        case TOKENID_AND:
+            if(type_name != "bool"){
+                errors.panic("Operands to operator 'and' must have a type of 'bool'");
+                return NULL;
+            }
+            return context.builder.CreateAnd(left_value, right_value, "andtmp");
+        case TOKENID_OR:
+            if(type_name != "bool"){
+                errors.panic("Operands to operator 'and' must have a type of 'bool'");
+                return NULL;
+            }
+            return context.builder.CreateOr(left_value, right_value, "ortmp");
         default:
             std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
             return NULL;
@@ -134,6 +155,11 @@ std::string OperatorExp::toString(){
         break;
     case TOKENID_INEQUALITY:
         operator_str = "!=";
+    case TOKENID_AND:
+        operator_str = "and";
+        break;
+    case TOKENID_OR:
+        operator_str = "or";
         break;
     default:
         operator_str = "<unknown operator>";
@@ -146,9 +172,12 @@ PlainExp* OperatorExp::clone(){
     return new OperatorExp(*this);
 }
 
-BoolExp::BoolExp(){}
-BoolExp::BoolExp(bool val){
+BoolExp::BoolExp(ErrorHandler& err){
+    errors = err;
+}
+BoolExp::BoolExp(bool val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 BoolExp::~BoolExp(){}
 llvm::Value* BoolExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -162,9 +191,12 @@ PlainExp* BoolExp::clone(){
     return new BoolExp(*this);
 }
 
-ByteExp::ByteExp(){}
-ByteExp::ByteExp(int8_t val){
+ByteExp::ByteExp(ErrorHandler& err){
+    errors = err;
+}
+ByteExp::ByteExp(int8_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 ByteExp::~ByteExp(){}
 llvm::Value* ByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -178,9 +210,12 @@ PlainExp* ByteExp::clone(){
     return new ByteExp(*this);
 }
 
-ShortExp::ShortExp(){}
-ShortExp::ShortExp(int16_t val){
+ShortExp::ShortExp(ErrorHandler& err){
+    errors = err;
+}
+ShortExp::ShortExp(int16_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 ShortExp::~ShortExp(){}
 llvm::Value* ShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -194,9 +229,12 @@ PlainExp* ShortExp::clone(){
     return new ShortExp(*this);
 }
 
-IntegerExp::IntegerExp(){}
-IntegerExp::IntegerExp(int32_t val){
+IntegerExp::IntegerExp(ErrorHandler& err){
+    errors = err;
+}
+IntegerExp::IntegerExp(int32_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 IntegerExp::~IntegerExp(){}
 llvm::Value* IntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -210,9 +248,12 @@ PlainExp* IntegerExp::clone(){
     return new IntegerExp(*this);
 }
 
-LongExp::LongExp(){}
-LongExp::LongExp(int64_t val){
+LongExp::LongExp(ErrorHandler& err){
+    errors = err;
+}
+LongExp::LongExp(int64_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 LongExp::~LongExp(){}
 llvm::Value* LongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -226,9 +267,12 @@ PlainExp* LongExp::clone(){
     return new LongExp(*this);
 }
 
-UnsignedByteExp::UnsignedByteExp(){}
-UnsignedByteExp::UnsignedByteExp(uint8_t val){
+UnsignedByteExp::UnsignedByteExp(ErrorHandler& err){
+    errors = err;
+}
+UnsignedByteExp::UnsignedByteExp(uint8_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 UnsignedByteExp::~UnsignedByteExp(){}
 llvm::Value* UnsignedByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -242,9 +286,12 @@ PlainExp* UnsignedByteExp::clone(){
     return new UnsignedByteExp(*this);
 }
 
-UnsignedShortExp::UnsignedShortExp(){}
-UnsignedShortExp::UnsignedShortExp(uint16_t val){
+UnsignedShortExp::UnsignedShortExp(ErrorHandler& err){
+    errors = err;
+}
+UnsignedShortExp::UnsignedShortExp(uint16_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 UnsignedShortExp::~UnsignedShortExp(){}
 llvm::Value* UnsignedShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -258,9 +305,12 @@ PlainExp* UnsignedShortExp::clone(){
     return new UnsignedShortExp(*this);
 }
 
-UnsignedIntegerExp::UnsignedIntegerExp(){}
-UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val){
+UnsignedIntegerExp::UnsignedIntegerExp(ErrorHandler& err){
+    errors = err;
+}
+UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 UnsignedIntegerExp::~UnsignedIntegerExp(){}
 llvm::Value* UnsignedIntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -274,9 +324,12 @@ PlainExp* UnsignedIntegerExp::clone(){
     return new UnsignedIntegerExp(*this);
 }
 
-UnsignedLongExp::UnsignedLongExp(){}
-UnsignedLongExp::UnsignedLongExp(uint64_t val){
+UnsignedLongExp::UnsignedLongExp(ErrorHandler& err){
+    errors = err;
+}
+UnsignedLongExp::UnsignedLongExp(uint64_t val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 UnsignedLongExp::~UnsignedLongExp(){}
 llvm::Value* UnsignedLongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -291,9 +344,12 @@ PlainExp* UnsignedLongExp::clone(){
 }
 
 
-FloatExp::FloatExp(){}
-FloatExp::FloatExp(float val){
+FloatExp::FloatExp(ErrorHandler& err){
+    errors = err;
+}
+FloatExp::FloatExp(float val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 FloatExp::~FloatExp(){}
 llvm::Value* FloatExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -307,9 +363,12 @@ PlainExp* FloatExp::clone(){
     return new FloatExp(*this);
 }
 
-DoubleExp::DoubleExp(){}
-DoubleExp::DoubleExp(double val){
+DoubleExp::DoubleExp(ErrorHandler& err){
+    errors = err;
+}
+DoubleExp::DoubleExp(double val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 DoubleExp::~DoubleExp(){}
 llvm::Value* DoubleExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -323,9 +382,12 @@ PlainExp* DoubleExp::clone(){
     return new DoubleExp(*this);
 }
 
-StringExp::StringExp(){}
-StringExp::StringExp(const std::string& val){
+StringExp::StringExp(ErrorHandler& err){
+    errors = err;
+}
+StringExp::StringExp(const std::string& val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 StringExp::~StringExp(){}
 llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -353,16 +415,19 @@ PlainExp* StringExp::clone(){
     return new StringExp(*this);
 }
 
-WordExp::WordExp(){}
-WordExp::WordExp(const std::string& val){
+WordExp::WordExp(ErrorHandler& err){
+    errors = err;
+}
+WordExp::WordExp(const std::string& val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 WordExp::~WordExp(){}
 llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
 
     if(func.find_variable(value, &var) != 0){
-        fail( UNDECLARED_VARIABLE(value) );
+        errors.panic( UNDECLARED_VARIABLE(value) );
         return NULL;
     }
 
@@ -376,16 +441,19 @@ PlainExp* WordExp::clone(){
     return new WordExp(*this);
 }
 
-AddrWordExp::AddrWordExp(){}
-AddrWordExp::AddrWordExp(const std::string& val){
+AddrWordExp::AddrWordExp(ErrorHandler& err){
+    errors = err;
+}
+AddrWordExp::AddrWordExp(const std::string& val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 AddrWordExp::~AddrWordExp(){}
 llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
 
     if(func.find_variable(value, &var) != 0){
-        fail( UNDECLARED_VARIABLE(value) );
+        errors.panic( UNDECLARED_VARIABLE(value) );
         return NULL;
     }
 
@@ -399,11 +467,14 @@ PlainExp* AddrWordExp::clone(){
     return new AddrWordExp(*this);
 }
 
-LoadExp::LoadExp(){}
-LoadExp::LoadExp(PlainExp* val){
-    value = val;
+LoadExp::LoadExp(ErrorHandler& err){
+    errors = err;
 }
-LoadExp::LoadExp(const LoadExp& other){
+LoadExp::LoadExp(PlainExp* val, ErrorHandler& err){
+    value = val;
+    errors = err;
+}
+LoadExp::LoadExp(const LoadExp& other) : PlainExp(other) {
     value = other.value->clone();
 }
 LoadExp::~LoadExp(){
@@ -415,7 +486,7 @@ llvm::Value* LoadExp::assemble(Program& program, Function& func, AssembleContext
     if(pointer_value == NULL) return NULL;
 
     if(pointer_typename[0] != '*' or !pointer_value->getType()->isPointerTy()){
-        fail("Can't dereference non-pointer type '" + pointer_typename + "'");
+        errors.panic("Can't dereference non-pointer type '" + pointer_typename + "'");
         return NULL;
     }
 
@@ -429,14 +500,17 @@ PlainExp* LoadExp::clone(){
     return new LoadExp(*this);
 }
 
-CallExp::CallExp(){}
-CallExp::CallExp(const CallExp& other){
+CallExp::CallExp(ErrorHandler& err){
+    errors = err;
+}
+CallExp::CallExp(const CallExp& other) : PlainExp(other) {
     name = other.name;
     for(PlainExp* e : other.args) args.push_back( e->clone() );
 }
-CallExp::CallExp(std::string n, const std::vector<PlainExp*>& a){
+CallExp::CallExp(std::string n, const std::vector<PlainExp*>& a, ErrorHandler& err){
     name = n;
     args = a;
+    errors = err;
 }
 CallExp::~CallExp(){
     for(PlainExp* e : args){
@@ -448,7 +522,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
     External func_data;
 
     if (!target){
-        fail( UNDECLARED_FUNC(name) );
+        errors.panic( UNDECLARED_FUNC(name) );
         return NULL;
     }
 
@@ -471,12 +545,12 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
         if(expr_value == NULL) return NULL;
 
         if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
-            fail( UNDECLARED_TYPE(func_data.arguments[i]) );
+            errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
             return NULL;
         }
 
         if(assemble_merge_types_oneway(context, expr_typename, func_data.arguments[i], &expr_value, expected_arg_type, NULL) != 0){
-            fail( INCOMPATIBLE_TYPES(expr_typename, func_data.arguments[i]) );
+            errors.panic( INCOMPATIBLE_TYPES(expr_typename, func_data.arguments[i]) );
             return NULL;
         }
 
@@ -500,10 +574,13 @@ PlainExp* CallExp::clone(){
     return new CallExp(*this);
 }
 
-MemberExp::MemberExp(){}
-MemberExp::MemberExp(PlainExp* v, const std::string& m){
+MemberExp::MemberExp(ErrorHandler& err){
+    errors = err;
+}
+MemberExp::MemberExp(PlainExp* v, const std::string& m, ErrorHandler& err){
     value = v;
     member = m;
+    errors = err;
 }
 MemberExp::~MemberExp(){
     //delete value;
@@ -517,7 +594,7 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
     if(data == NULL) return NULL;
 
     if(type_name == ""){
-        fail("Undeclared type ''");
+        errors.panic("Undeclared type ''");
         return NULL;
     }
     else if(type_name[0] == '*'){
@@ -526,18 +603,18 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
     }
 
     if(program.find_struct(type_name, &target) != 0){
-        fail( UNDECLARED_STRUCT(type_name) );
+        errors.panic( UNDECLARED_STRUCT(type_name) );
         return NULL;
     }
 
     if(target.find_index(member, &index) != 0){
-        fail( UNDECLARED_MEMBER(member, target.name) );
+        errors.panic( UNDECLARED_MEMBER(member, target.name) );
         return NULL;
     }
 
     llvm::Type* alloc_type;
     if(program.find_type(type_name, &alloc_type) != 0){
-        fail( UNDECLARED_TYPE(type_name) );
+        errors.panic( UNDECLARED_TYPE(type_name) );
         return NULL;
     }
 
@@ -563,7 +640,9 @@ PlainExp* MemberExp::clone(){
     return new MemberExp(*this);
 }
 
-NullExp::NullExp(){}
+NullExp::NullExp(ErrorHandler& err){
+    errors = err;
+}
 NullExp::~NullExp(){}
 llvm::Value* NullExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     *expr_type = "ptr";
@@ -573,12 +652,15 @@ std::string NullExp::toString(){
     return "null";
 }
 PlainExp* NullExp::clone(){
-    return new NullExp();
+    return new NullExp(errors);
 }
 
-NotExp::NotExp(){}
-NotExp::NotExp(PlainExp* val){
+NotExp::NotExp(ErrorHandler& err){
+    errors = err;
+}
+NotExp::NotExp(PlainExp* val, ErrorHandler& err){
     value = val;
+    errors = err;
 }
 NotExp::~NotExp(){
     delete value;
@@ -587,78 +669,62 @@ llvm::Value* NotExp::assemble(Program& program, Function& func, AssembleContext&
     std::string type_name;
     llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
-    *expr_type = type_name;
+    *expr_type = "bool";
 
     if(type_name == "bool"){
         return context.builder.CreateNot(llvm_value, "nottmp");
     }
     else if(type_name == "byte"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, true));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt8Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "ubyte"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, false));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt8Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "short"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, true));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt16Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "ushort"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, false));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt16Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "int"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt32Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "uint"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt32Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "long"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, true));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt64Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else if(type_name == "ulong"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, false));
-        llvm_value = context.builder.CreateICmpNE(llvm_value, zero, "cmptmp");
-        llvm_value = context.builder.CreateXor(llvm_value, llvm::ConstantInt::get(context.context, llvm::APInt(1, true, true)), "xortmp");
-        llvm_value = context.builder.CreateZExt(llvm_value, llvm::Type::getInt64Ty(context.context), "zexttmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
         return llvm_value;
     }
     else {
-        fail("Can't use 'not' operator on type '" + type_name + "'");
+        errors.panic("Can't use 'not' operator on type '" + type_name + "'");
         return NULL;
     }
 
-    fail(SUICIDE);
+    errors.panic(SUICIDE);
     return NULL;
 }
 std::string NotExp::toString(){
     return "!" + value->toString();
 }
 PlainExp* NotExp::clone(){
-    return new NotExp(value->clone());
+    return new NotExp(value->clone(), errors);
 }

@@ -3,6 +3,7 @@
 #define CONFIG_H_INCLUDED
 
 #include "clock.h"
+#include "errors.h"
 
 struct Configuration {
     std::string username;
@@ -15,9 +16,10 @@ struct Configuration {
 
     bool silent;
     bool time;
+    char optimization;
 };
 
-int configure(Configuration& config, std::string filename);
-int configure(Configuration& config, int argc, char** argv);
+int configure(Configuration& config, std::string filename, ErrorHandler& errors);
+int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors);
 
 #endif // CONFIG_H_INCLUDED

@@ -33,12 +33,16 @@
 #include "../include/strings.h"
 #include "../include/assemble.h"
 
-int build(AssembleContext& context, Configuration& config, Program& program){
+int build(AssembleContext& context, Configuration& config, Program& program, ErrorHandler& errors){
     std::string target_name = filename_change_ext(config.filename, "exe");
     std::string target_obj  = (config.obj)      ? filename_change_ext(config.filename, "obj") : "C:/Users/" + config.username + "/.adept/obj/object.o";
     std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
     std::vector<ModuleDependency> dependencies;
     std::string linked_objects;
+    ModuleBuildOptions module_build_options;
+
+    // Configure module_build_options using config
+    module_build_options.optimization = config.optimization;
 
     std::string build_result;
     AssembleContext build_context;
@@ -49,11 +53,13 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         adept_current_program = &program;
         adept_current_config = &config;
 
-        adept_build_config = new BuildConfig;
-        adept_build_config->sourceFilename = config.filename.c_str();
-        adept_build_config->programFilename = target_name.c_str();
-        adept_build_config->objectFilename = target_obj.c_str();
-        adept_build_config->bytecodeFilename = target_bc.c_str();
+        adept_default_build_config.sourceFilename = config.filename.c_str();
+        adept_default_build_config.programFilename = target_name.c_str();
+        adept_default_build_config.objectFilename = target_obj.c_str();
+        adept_default_build_config.bytecodeFilename = target_bc.c_str();
+        adept_default_build_config.time = config.time;
+        adept_default_build_config.silent = config.silent;
+        adept_default_build_config.optimization = config.optimization;
 
         // Clone module that contains 'build()'
         build_context.module = llvm::CloneModule(context.module.get());
@@ -63,8 +69,6 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         if(build_result != "0") return 1;
         build_function->eraseFromParent();
 
-        // Delete build_config
-        delete adept_build_config;
         return 0;
     }
 
@@ -80,8 +84,7 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         AssembleContext import_context;
         ModuleDependency* dependency = &program.imports[i];
 
-        if(assemble(import_context, *dependency->config, *dependency->program) != 0) return 1;
-
+        if(assemble(import_context, *dependency->config, *dependency->program, errors) != 0) return 1;
 
         if(dependency->program->functions.size() != 0){
             out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
@@ -89,7 +92,7 @@ int build(AssembleContext& context, Configuration& config, Program& program){
             out_stream->flush();
             delete out_stream;
 
-            native_build_module(context, dependency->target_bc, dependency->target_obj);
+            native_build_module(context, dependency->target_bc, dependency->target_obj, module_build_options);
             linked_objects += "\"" + dependency->target_obj + "\" ";
         }
 
@@ -101,11 +104,11 @@ int build(AssembleContext& context, Configuration& config, Program& program){
         linked_objects += "\"" + lib + "\" ";
     }
 
-    native_build_module(context, target_bc, target_obj);
+    native_build_module(context, target_bc, target_obj, module_build_options);
 
     // Print Native Export Time
     if(config.time and !config.silent){
-        config.clock.print_since("Build Finished", filename_name(config.filename));
+        config.clock.print_since("NATIVE DONE", filename_name(config.filename));
         config.clock.remember();
     }
 
@@ -122,13 +125,13 @@ int build(AssembleContext& context, Configuration& config, Program& program){
 
     // Print Linker Time
     if(config.time and !config.silent){
-        config.clock.print_since("Linker Finished", filename_name(config.filename));
+        config.clock.print_since("LINKER DONE", filename_name(config.filename));
         config.clock.remember();
     }
 
     return 0;
 }
-int assemble(AssembleContext& assemble, Configuration& config, Program& program){
+int assemble(AssembleContext& assemble, Configuration& config, Program& program, ErrorHandler& errors){
     assemble.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), assemble.context);
     if(program.generate_types(assemble) != 0) return 1;
     build_add_symbols();
@@ -148,12 +151,12 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program)
 
     // Print Assembler Time
     if(config.time and !config.silent){
-        config.clock.print_since("Assembler Finished", filename_name(config.filename));
+        config.clock.print_since("ASSEMBLER DONE", filename_name(config.filename));
         config.clock.remember();
     }
 
     if(!config.jit and !config.obj and !config.bytecode and config.link){
-        if(build(assemble, config, program) != 0) return 1;
+        if(build(assemble, config, program, errors) != 0) return 1;
     }
 
     return 0;
@@ -712,6 +715,108 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
 
             if(!terminated) context.builder.CreateBr(test_block);
             context.builder.SetInsertPoint(false_block);
+            break;
+        }
+    case STATEMENTID_IFELSE:
+        {
+            SplitConditionalStatement data = *( static_cast<SplitConditionalStatement*>(statement.data) );
+            llvm::Function* llvm_function = context.module->getFunction(func.name);
+
+            llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+            llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+            llvm::BasicBlock* continue_block = llvm::BasicBlock::Create(context.context, "continue", llvm_function);
+
+            std::string expr_typename;
+            llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
+            if(expr_value == NULL) return 1;
+
+            assemble_merge_conditional_types(context, expr_typename, &expr_value);
+
+            if(expr_typename != "bool"){
+                die("Expression type for conditional must be 'bool' or another compatible primitive");
+            }
+
+            context.builder.CreateCondBr(expr_value, true_block, false_block);
+            context.builder.SetInsertPoint(true_block);
+
+            bool terminated = false;
+            for(size_t j = 0; j != data.true_statements.size(); j++){
+                if(data.true_statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.true_statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(continue_block);
+            context.builder.SetInsertPoint(false_block);
+
+            terminated = false;
+            for(size_t j = 0; j != data.false_statements.size(); j++){
+                if(data.false_statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.false_statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(continue_block);
+            context.builder.SetInsertPoint(continue_block);
+            break;
+        }
+    case STATEMENTID_UNLESSELSE:
+        {
+            SplitConditionalStatement data = *( static_cast<SplitConditionalStatement*>(statement.data) );
+            llvm::Function* llvm_function = context.module->getFunction(func.name);
+
+            llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+            llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+            llvm::BasicBlock* continue_block = llvm::BasicBlock::Create(context.context, "continue", llvm_function);
+
+            std::string expr_typename;
+            llvm::Value* expr_value = data.condition->assemble(program, func, context, &expr_typename);
+            if(expr_value == NULL) return 1;
+
+            assemble_merge_conditional_types(context, expr_typename, &expr_value);
+
+            if(expr_typename != "bool"){
+                die("Expression type for conditional must be 'bool' or another compatible primitive");
+            }
+
+            context.builder.CreateCondBr(expr_value, false_block, true_block);
+            context.builder.SetInsertPoint(true_block);
+
+            bool terminated = false;
+            for(size_t j = 0; j != data.true_statements.size(); j++){
+                if(data.true_statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.true_statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(continue_block);
+            context.builder.SetInsertPoint(false_block);
+
+            terminated = false;
+            for(size_t j = 0; j != data.false_statements.size(); j++){
+                if(data.false_statements[j].id == STATEMENTID_RETURN) terminated = true;
+
+                if(assemble_statement(context, config, program, func, asm_func, data.false_statements[j]) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context.builder.CreateBr(continue_block);
+            context.builder.SetInsertPoint(continue_block);
             break;
         }
     }

@@ -20,6 +20,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Support/DynamicLibrary.h"
 
 #include <unistd.h>
 #include "../include/build.h"
@@ -30,39 +31,73 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
-BuildConfig* adept_build_config;
 Program* adept_current_program;
 Configuration* adept_current_config;
+BuildConfig adept_default_build_config;
 
 void build_add_symbols(){
-    llvm::sys::DynamicLibrary::AddSymbol("adept.getBuildConfig", (void*) adept_getBuildConfig);
-    llvm::sys::DynamicLibrary::AddSymbol("adept.compile", (void*) adept_compile);
-    llvm::sys::DynamicLibrary::AddSymbol("adept.dependency.add", (void*) adept_dependency_add);
-    llvm::sys::DynamicLibrary::AddSymbol("adept.dependency.addForced", (void*) adept_dependency_addForced);
-    llvm::sys::DynamicLibrary::AddSymbol("adept.dependency.exists", (void*) adept_dependency_exists);
+    llvm::sys::DynamicLibrary::AddSymbol("adept\\config", (void*) adept_config);
+    llvm::sys::DynamicLibrary::AddSymbol("adept\\compile", (void*) adept_compile);
+    llvm::sys::DynamicLibrary::AddSymbol("adept\\loadLibrary", (void*) adept_loadLibrary);
+    llvm::sys::DynamicLibrary::AddSymbol("adept\\dependency\\add", (void*) adept_dependency_add);
+    llvm::sys::DynamicLibrary::AddSymbol("adept\\dependency\\addForced", (void*) adept_dependency_addForced);
+    llvm::sys::DynamicLibrary::AddSymbol("adept\\dependency\\exists", (void*) adept_dependency_exists);
 }
 
-void build_config_to_config(Configuration* config){
-
+void build_transfer_config(Configuration* config, BuildConfig* build_config){
+    config->time = build_config->time;
+    config->silent = build_config->silent;
+    config->optimization = build_config->optimization;
+    config->jit = build_config->jit;
 }
 
-extern "C" void* adept_getBuildConfig(){
-    return adept_build_config;
+extern "C" BuildConfig adept_config(){
+    return adept_default_build_config;
 }
 
-extern "C" int adept_compile(const char* file) {
+extern "C" int adept_compile(const char* file, BuildConfig* build_config) {
     Program program;
     Configuration config;
     AssembleContext context;
     TokenList* tokens;
+    ErrorHandler errors(filename_name(file));
 
+    // Setup a configuration for the file
+    if(configure(config, file, errors) != 0) return 1;
+    if(build_config != NULL) build_transfer_config(&config, build_config);
+
+    // Build the file
     tokens = new TokenList;
-    if( configure(config, file)            != 0) return 1;
-    if( tokenize(config, file, tokens)     != 0 ) return 1;
-    if( parse(config, tokens, program)     != 0 ) return 1;
-    if( assemble(context, config, program) != 0 ) return 1;
-    if( finalize(config, context)          != 0 ) return 1;
+    if( tokenize(config, file, tokens, errors)     != 0 ) return 1;
+    if( parse(config, tokens, program, errors)     != 0 ) return 1;
+    if( assemble(context, config, program, errors) != 0 ) return 1;
+    if( finalize(config, context, errors)          != 0 ) return 1;
+
+    // Output divider if needed
+    if(config.time and !config.silent){
+        printf("-------------------------------------------------\n");
+    }
+
     return 0;
+}
+
+extern "C" bool adept_loadLibrary(const char* file){
+    std::string name = file;
+    std::string local_file = filename_path(adept_current_config->filename) + name;
+    std::string public_file = "C:/Users/" + adept_current_config->username + "/.adept/lib/" + name;
+
+    if( access(local_file.c_str(), F_OK) != -1 ){
+        name = local_file;
+    }
+    else if( access(public_file.c_str(), F_OK) != -1 ){
+        name = public_file;
+    }
+    else if( access(file, F_OK) == -1 ){
+        // File doesn't exist globally either
+        fail( UNKNOWN_MODULE(file) );
+    }
+
+    return llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str());
 }
 
 extern "C" void adept_dependency_add(const char* name){

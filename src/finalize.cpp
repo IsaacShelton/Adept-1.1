@@ -7,10 +7,9 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
-int finalize(Configuration& config, AssembleContext& assemble){
+int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& errors){
     if(config.time and !config.silent){
-        printf("-------------------------------------------------\n");
-        config.clock.print_since_start("Total Time", filename_name(config.filename));
+        config.clock.print_since_start("DONE", filename_name(config.filename));
         config.clock.remember();
     }
 
@@ -21,11 +20,10 @@ int finalize(Configuration& config, AssembleContext& assemble){
         if(jit_run(assemble, "main", result) != 0) return 1;
 
         // Print Execution Time
-        config.clock.print_since("Execution Finished", filename_name(config.filename));
+        config.clock.print_since("EXECUTION DONE", filename_name(config.filename));
         printf("=> %s\n", result.c_str());
         config.clock.remember();
     }
 
-    llvm::llvm_shutdown();
     return 0;
 }

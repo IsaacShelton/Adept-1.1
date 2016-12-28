@@ -1,21 +1,24 @@
 # depslib dependency file v1.0
-1482772427 source:c:\users\isaac\google drive\adept\src\main.cpp
+1482875975 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
+	<memory>
 	<stdio.h>
 	<stdlib.h>
 	<iostream>
 	"../include/lexer.h"
 	"../include/parse.h"
 	"../include/errors.h"
+	"../include/strings.h"
 	"../include/assemble.h"
 	"../include/finalize.h"
 
-1481855496 c:\users\isaac\google drive\adept\include\lexer.h
+1482873016 c:\users\isaac\google drive\adept\include\lexer.h
 	<vector>
 	"config.h"
 	"tokens.h"
+	"errors.h"
 
-1482771651 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1482935033 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -25,11 +28,11 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1481924551 c:\users\isaac\google drive\adept\include\tokens.h
+1482934804 c:\users\isaac\google drive\adept\include\tokens.h
 	<string>
 	<vector>
 
-1481924896 source:c:\users\isaac\google drive\adept\src\tokens.cpp
+1482935122 source:c:\users\isaac\google drive\adept\src\tokens.cpp
 	<iostream>
 	"../include/tokens.h"
 	"../include/strings.h"
@@ -45,7 +48,7 @@
 	<fstream>
 	<stdlib.h>
 
-1481854236 c:\users\isaac\google drive\adept\include\parse.h
+1482874508 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -55,7 +58,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1482771813 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1482878195 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -65,32 +68,33 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1481670754 source:c:\users\isaac\google drive\adept\src\config.cpp
+1482872805 source:c:\users\isaac\google drive\adept\src\config.cpp
 	<cstring>
 	<iostream>
 	"../include/config.h"
 	"../include/errors.h"
 
-1481670683 c:\users\isaac\google drive\adept\include\config.h
+1482872798 c:\users\isaac\google drive\adept\include\config.h
 	"clock.h"
+	"errors.h"
 
 1482771040 c:\users\isaac\google drive\adept\include\die.h
 	<iostream>
 	"errors.h"
 
-1482769098 c:\users\isaac\google drive\adept\include\statement.h
+1482873292 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
 	"tokens.h"
 	"expression.h"
 
-1482772260 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1482865473 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"../include/strings.h"
 	"../include/statement.h"
 
-1481929972 c:\users\isaac\google drive\adept\include\assemble.h
+1482874422 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -98,7 +102,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1482772092 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1482874451 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -1135,13 +1139,14 @@
 	"llvm/Config/AsmParsers.def"
 	"llvm/Config/Disassemblers.def"
 
-1481925292 c:\users\isaac\google drive\adept\include\expression.h
+1482878323 c:\users\isaac\google drive\adept\include\expression.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
+	"errors.h"
 	"asmcontext.h"
 
-1481930427 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1482878487 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1182,7 +1187,7 @@
 	<vector>
 	<string>
 
-1479071818 source:c:\users\isaac\google drive\adept\src\type.cpp
+1482874709 source:c:\users\isaac\google drive\adept\src\type.cpp
 	<iostream>
 	"../include/type.h"
 	"../include/parse.h"
@@ -1274,7 +1279,7 @@
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1482702252 source:c:\users\isaac\google drive\adept\src\finalize.cpp
+1482874377 source:c:\users\isaac\google drive\adept\src\finalize.cpp
 	"../include/jit.h"
 	"../include/lexer.h"
 	"../include/parse.h"
@@ -1283,13 +1288,14 @@
 	"../include/assemble.h"
 	"../include/finalize.h"
 
-1479863530 c:\users\isaac\google drive\adept\include\finalize.h
+1482874392 c:\users\isaac\google drive\adept\include\finalize.h
 	"../include/parse.h"
+	"../include/errors.h"
 	"../include/config.h"
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1481928813 c:\users\isaac\google drive\adept\include\errors.h
+1482878041 c:\users\isaac\google drive\adept\include\errors.h
 	"die.h"
 
 1481321161 source:c:\users\isaac\google drive\adept\src\asmcontext.cpp
@@ -1343,11 +1349,11 @@
 1464210201 c:\llvm\include\llvm\transforms\utils\valuemapper.h
 	"llvm/IR/ValueMap.h"
 
-1481670532 c:\users\isaac\google drive\adept\include\build.h
+1482879756 c:\users\isaac\google drive\adept\include\build.h
 	"config.h"
 	"program.h"
 
-1481670714 source:c:\users\isaac\google drive\adept\src\build.cpp
+1482881151 source:c:\users\isaac\google drive\adept\src\build.cpp
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
@@ -1369,6 +1375,7 @@
 	"llvm/Support/TargetSelect.h"
 	"llvm/Support/FileSystem.h"
 	"llvm/Transforms/Utils/Cloning.h"
+	"llvm/Support/DynamicLibrary.h"
 	<unistd.h>
 	"../include/build.h"
 	"../include/lexer.h"
@@ -1804,10 +1811,13 @@
 1482699948 c:\users\isaac\google drive\adept\include\llc.h
 	"../include/asmcontext.h"
 
-1482700696 c:\users\isaac\google drive\adept\include\native.h
+1482858761 c:\users\isaac\google drive\adept\include\native.h
+	"llvm/Target/TargetMachine.h"
+	"llvm/Target/TargetOptions.h"
+	"llvm/Target/TargetSubtargetInfo.h"
 	"../include/asmcontext.h"
 
-1482700702 source:c:\users\isaac\google drive\adept\src\native.cpp
+1482858839 source:c:\users\isaac\google drive\adept\src\native.cpp
 	<memory>
 	<iostream>
 	"llvm/ADT/STLExtras.h"
@@ -1847,5 +1857,63 @@
 	"llvm/Target/TargetMachine.h"
 	"llvm/Target/TargetSubtargetInfo.h"
 	"llvm/Transforms/Utils/Cloning.h"
-	"../include/asmcontext.h"
+	"../include/native.h"
+
+1469468263 c:\llvm\include\llvm-c\core.h
+	"llvm-c/ErrorHandling.h"
+	"llvm-c/Types.h"
+
+1453910737 c:\llvm\include\llvm-c\errorhandling.h
+
+1450403212 c:\llvm\include\llvm-c\irreader.h
+	"llvm-c/Types.h"
+
+1457397427 c:\llvm\include\llvm\asmparser\parser.h
+	"llvm/Support/MemoryBuffer.h"
+
+1464379456 c:\llvm\include\llvm\support\timer.h
+	"llvm/ADT/StringRef.h"
+	"llvm/Support/DataTypes.h"
+	<cassert>
+	<string>
+	<utility>
+	<vector>
+
+1459488791 c:\llvm\include\llvm\bitcode\bitstreamreader.h
+	"llvm/Bitcode/BitCodes.h"
+	"llvm/Support/Endian.h"
+	"llvm/Support/MathExtras.h"
+	"llvm/Support/StreamingMemoryObject.h"
+	<climits>
+	<string>
+	<vector>
+
+1455144468 c:\llvm\include\llvm\bitcode\bitcodes.h
+	"llvm/ADT/IntrusiveRefCntPtr.h"
+	"llvm/ADT/SmallVector.h"
+	"llvm/Support/DataTypes.h"
+	"llvm/Support/ErrorHandling.h"
+	<cassert>
+
+1459119659 c:\llvm\include\llvm\support\streamingmemoryobject.h
+	"llvm/Support/Compiler.h"
+	"llvm/Support/DataStream.h"
+	"llvm/Support/ErrorHandling.h"
+	"llvm/Support/MemoryObject.h"
+	<memory>
+	<vector>
+
+1435052993 c:\llvm\include\llvm\support\datastream.h
+	<memory>
+	<string>
+
+1435052993 c:\llvm\include\llvm\support\memoryobject.h
+	"llvm/Support/DataTypes.h"
+
+1467619289 c:\llvm\include\llvm\bitcode\llvmbitcodes.h
+	"llvm/Bitcode/BitCodes.h"
+
+1482878052 source:c:\users\isaac\google drive\adept\src\errors.cpp
+	"../include/errors.h"
+	"../include/strings.h"
 

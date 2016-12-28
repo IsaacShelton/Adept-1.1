@@ -1,4 +1,8 @@
 
+/*
+    This file shouldn't contain any 'type.o's
+*/
+
 #include <iostream>
 #include "../include/type.h"
 #include "../include/parse.h"
