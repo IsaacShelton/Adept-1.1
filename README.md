@@ -79,19 +79,22 @@ public def main() int {
 build.adept
 ```
 private import "adept/build.adept"
-private import "adept/system.adept"
+private import "system/system.adept"
 
 private def build() int {
-    config *adept.BuildConfig = adept.getBuildConfig()
-    
-    if adept.compile("main.adept") != 0 {
-    	puts("Failed to compile 'main.adept'")
-        return 1
-    }
-    
-    puts("Successfully created 'main.exe'")
-    return 0
+	config adept\BuildConfig = adept\config()
+	
+	config:time = true
+	config:optimization = $ADEPT\OPTIMIZATION_HIGH
+
+	unless adept\compile("main.adept", &config) == 0 {
+		return 1
+	}
+	
+	puts("Build Complete!")
+	return 0
 }
+
 ```
 main.adept
 ```
@@ -102,4 +105,5 @@ public def main() int {
     return 0
 }
 ```
-Compiling a program with a function named 'build' will run the program as a build script (using 'build' as the entry point)<br>
+Adept treats any program with a function named 'build' as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you just run the command ```adept build.adept```<br>
+
