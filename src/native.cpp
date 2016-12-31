@@ -81,6 +81,10 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
 
+    context.context.setDiscardValueNames(false); // Discard Names?
+
+    EnableDebugBuffering = true;
+
     bool has_error = false;
     context.context.setDiagnosticHandler(DiagnosticHandler, &has_error);
 

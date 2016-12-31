@@ -13,6 +13,7 @@ struct Configuration {
     bool obj;
     bool bytecode;
     bool link;
+    bool load_dyn;
 
     bool silent;
     bool time;

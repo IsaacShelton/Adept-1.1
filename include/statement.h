@@ -2,19 +2,19 @@
 #ifndef STATEMENT_H_INCLUDED
 #define STATEMENT_H_INCLUDED
 
-#define STATEMENT_NONE                Statement(0)
-#define STATEMENT_DECLARE(a, b)       Statement(1, new DeclareStatement(a, b))
-#define STATEMENT_DECLAREAS(a,b,c)    Statement(2, new DeclareAsStatement(a, b, c))
-#define STATEMENT_RETURN(a)           Statement(3, new ReturnStatement(a))
-#define STATEMENT_ASSIGN(a,b,c,d)     Statement(4, new AssignStatement(a, b, c, d))
-#define STATEMENT_ASSIGNMEMBER(a,b,c) Statement(5, new AssignMemberStatement(a, b, c))
-#define STATEMENT_CALL(a,b)           Statement(6, new CallStatement(a, b))
-#define STATEMENT_IF(a,b)             Statement(7, new ConditionalStatement(a, b))
-#define STATEMENT_WHILE(a,b)          Statement(8, new ConditionalStatement(a, b))
-#define STATEMENT_UNLESS(a,b)         Statement(9, new ConditionalStatement(a, b))
-#define STATEMENT_UNTIL(a,b)          Statement(10, new ConditionalStatement(a, b))
-#define STATEMENT_IFELSE(a,b,c)       Statement(11, new SplitConditionalStatement(a, b,c))
-#define STATEMENT_UNLESSELSE(a,b,c)   Statement(12, new SplitConditionalStatement(a, b,c))
+#define STATEMENT_NONE(E)               Statement(0, E)
+#define STATEMENT_DECLARE(a,b,E)        Statement(1, new DeclareStatement(a, b), E)
+#define STATEMENT_DECLAREAS(a,b,c,E)    Statement(2, new DeclareAsStatement(a, b, c),E)
+#define STATEMENT_RETURN(a,E)           Statement(3, new ReturnStatement(a), E)
+#define STATEMENT_ASSIGN(a,b,c,d,E)     Statement(4, new AssignStatement(a, b, c, d), E)
+#define STATEMENT_ASSIGNMEMBER(a,b,c,E) Statement(5, new AssignMemberStatement(a, b, c), E)
+#define STATEMENT_CALL(a,b,E)           Statement(6, new CallStatement(a, b), E)
+#define STATEMENT_IF(a,b,E)             Statement(7, new ConditionalStatement(a, b), E)
+#define STATEMENT_WHILE(a,b,E)          Statement(8, new ConditionalStatement(a, b), E)
+#define STATEMENT_UNLESS(a,b,E)         Statement(9, new ConditionalStatement(a, b), E)
+#define STATEMENT_UNTIL(a,b,E)          Statement(10, new ConditionalStatement(a, b), E)
+#define STATEMENT_IFELSE(a,b,c,E)       Statement(11, new SplitConditionalStatement(a, b, c), E)
+#define STATEMENT_UNLESSELSE(a,b,c,E)   Statement(12, new SplitConditionalStatement(a, b, c), E)
 
 #define STATEMENTID_NONE         0
 #define STATEMENTID_DECLARE      1
@@ -34,6 +34,7 @@
 #include <vector>
 #include <stdint.h>
 #include "tokens.h"
+#include "errors.h"
 #include "expression.h"
 
 // Helper Structures
@@ -43,15 +44,16 @@ struct AssignMemberPathNode { std::string name; std::vector<PlainExp*> gep_loads
 struct Statement {
     uint16_t id;
     void* data;
+    ErrorHandler errors;
 
     Statement();
     Statement(const Statement&);
-    Statement(uint16_t);
-    Statement(uint16_t, void*);
+    Statement(uint16_t, ErrorHandler&);
+    Statement(uint16_t, void*, ErrorHandler&);
     ~Statement();
     void reset();
     void free();
-    std::string toString(unsigned int indent = 0);
+    std::string toString(unsigned int indent = 0, bool skip_initial_indent = false);
 };
 
 typedef std::vector<Statement> StatementList;

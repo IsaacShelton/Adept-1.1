@@ -57,9 +57,10 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
         adept_default_build_config.programFilename = target_name.c_str();
         adept_default_build_config.objectFilename = target_obj.c_str();
         adept_default_build_config.bytecodeFilename = target_bc.c_str();
+        adept_default_build_config.optimization = config.optimization;
         adept_default_build_config.time = config.time;
         adept_default_build_config.silent = config.silent;
-        adept_default_build_config.optimization = config.optimization;
+        adept_default_build_config.jit = false;
 
         // Clone module that contains 'build()'
         build_context.module = llvm::CloneModule(context.module.get());
@@ -67,7 +68,6 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
         // Run 'build()'
         if(jit_run(build_context, "build", build_result) != 0) return 1;
         if(build_result != "0") return 1;
-        build_function->eraseFromParent();
 
         return 0;
     }
@@ -254,7 +254,6 @@ int assemble_function_body(AssembleContext& context, Configuration& config, Prog
         if(func.statements[j].id == STATEMENTID_RETURN) terminated = true;
 
         if(assemble_statement(context, config, program, func, asm_func, func.statements[j]) != 0){
-            llvm_function->eraseFromParent();
             return 1;
         }
 
@@ -313,7 +312,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 if(expr_value == NULL) return 1;
 
                 if(assemble_merge_types_oneway(context, expr_typename, func.return_type, &expr_value, func.asm_func.return_type, NULL) != 0){
-                    die( INCOMPATIBLE_TYPES(expr_typename, func.return_type) );
+                    statement.errors.panic( INCOMPATIBLE_TYPES(expr_typename, func.return_type) );
+                    return 1;
                 }
 
                 context.builder.CreateStore(expr_value, asm_func.exitval);
@@ -331,7 +331,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             llvm::Type* var_type;
 
             if(program.find_type(data.type, &var_type) != 0){
-                die( UNDECLARED_TYPE(data.type) );
+                statement.errors.panic( UNDECLARED_TYPE(data.type) );
+                return 1;
             }
 
             llvm::AllocaInst* alloc;
@@ -350,13 +351,17 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             std::string expr_typename;
             llvm::Type* var_type;
 
-            if(program.find_type(data.type, &var_type) != 0) die( UNDECLARED_TYPE(data.type) );
+            if(program.find_type(data.type, &var_type) != 0){
+                statement.errors.panic( UNDECLARED_TYPE(data.type) );
+                return 1;
+            }
 
             llvm::Value* value = data.value->assemble(program, func, context, &expr_typename);
             if(value == NULL) return 1;
 
             if(assemble_merge_types_oneway(context, expr_typename, data.type, &value, var_type, NULL) != 0){
-                die( INCOMPATIBLE_TYPES(expr_typename, data.type) );
+                statement.errors.panic( INCOMPATIBLE_TYPES(expr_typename, data.type) );
+                return 1;
             }
 
             llvm::AllocaInst* alloc;
@@ -380,7 +385,10 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             std::string var_typename;
 
             // Fetch the variable data
-            if(func.find_variable(data.name, &variable) != 0) return 1;
+            if(func.find_variable(data.name, &variable) != 0){
+                statement.errors.panic( UNDECLARED_VARIABLE(data.name) );
+                return 1;
+            }
 
             // Set the default storage location (might be modified by dereferences later)
             store_location = variable.variable;
@@ -388,7 +396,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             // Dereference value (using [] dereferences)
             for(size_t i = 0; i != data.gep_loads.size(); i++){
                 if(variable.type[i] != '*'){
-                    die("Can't dereference non-pointer type '" + variable.type.substr(i, variable.type.length()-i) + "'");
+                    statement.errors.panic("Can't dereference non-pointer type '" + variable.type.substr(i, variable.type.length()-i) + "'");
+                    return 1;
                 }
 
                 std::string member_index_typename;
@@ -396,7 +405,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 if(member_index == NULL) return 1;
 
                 if(member_index_typename != "int"){
-                    die("Expected 'int' type when using []");
+                    statement.errors.panic("Expected 'int' type when using []");
+                    return 1;
                 }
 
                 std::vector<llvm::Value*> indices(1);
@@ -408,11 +418,11 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
 
             // Remove (pointers '*') from typename for [] dereferences
             var_typename = variable.type.substr(data.gep_loads.size(), variable.type.length()-data.gep_loads.size());
-
             // Dereference value (using plain dereferences)
             for(int i = 0; i != data.loads; i++){
                 if(variable.type[i] != '*'){
-                    die("Can't dereference non-pointer type '" + variable.type.substr(i, variable.type.length()-i) + "'");
+                    statement.errors.panic("Can't dereference non-pointer type '" + variable.type.substr(i, variable.type.length()-i) + "'");
+                    return 1;
                 }
 
                 store_location = context.builder.CreateLoad(store_location, "loadtmp");
@@ -422,7 +432,10 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             var_typename = var_typename.substr(data.loads, var_typename.length()-data.loads);
 
             // Find LLVM type for final storage location
-            if(program.find_type(var_typename, &var_type) != 0) die( UNDECLARED_TYPE(var_typename) );
+            if(program.find_type(var_typename, &var_type) != 0){
+                statement.errors.panic( UNDECLARED_TYPE(var_typename) );
+                return 1;
+            }
 
             std::string expr_typename;
             llvm::Value* expr_value = data.value->assemble(program, func, context, &expr_typename);
@@ -430,7 +443,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
 
             // Merge expression type into required type if possible
             if(assemble_merge_types_oneway(context, expr_typename, var_typename, &expr_value, var_type, NULL) != 0){
-                die( INCOMPATIBLE_TYPES(expr_typename, variable.type) );
+                statement.errors.panic( INCOMPATIBLE_TYPES(expr_typename, var_typename) );
+                return 1;
             }
 
             // Store the final value
@@ -449,13 +463,15 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             std::string struct_name;
 
             if(func.find_variable(data.path[0].name, &variable) != 0){
-                die( UNDECLARED_VARIABLE(data.path[0].name) );
+                statement.errors.panic( UNDECLARED_VARIABLE(data.path[0].name) );
+                return 1;
             }
             struct_name = variable.type;
             member_ptr = variable.variable;
 
             if(struct_name == ""){
-                die("Undeclared type ''");
+                statement.errors.panic("Undeclared type ''");
+                return 1;
             }
             else if(struct_name[0] == '*'){
                 member_ptr = context.builder.CreateLoad(member_ptr, "loadtmp");
@@ -463,10 +479,12 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             }
 
             if(program.find_struct(struct_name, &target) != 0){
-                die( UNDECLARED_STRUCT(struct_name) );
+                statement.errors.panic( UNDECLARED_STRUCT(struct_name) );
+                return 1;
             }
             if(target.find_index(data.path[1].name, &index) != 0){
-                die( UNDECLARED_MEMBER(data.path[1].name, target.name) );
+                statement.errors.panic( UNDECLARED_MEMBER(data.path[1].name, target.name) );
+                return 1;
             }
 
             llvm::Value* member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
@@ -475,7 +493,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             indices[1] = member_index;
 
             if(program.find_type(struct_name, &struct_type) != 0){
-                die( UNDECLARED_TYPE(struct_name) );
+                statement.errors.panic( UNDECLARED_TYPE(struct_name) );
+                return 1;
             }
             member_ptr = context.builder.CreateGEP(struct_type, member_ptr, indices, "memberptr");
 
@@ -487,7 +506,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 struct_name = target.members[index].type;
 
                 if(struct_name == ""){
-                    die("Undeclared struct_name ''");
+                    statement.errors.panic("Undeclared struct_name ''");
+                    return 1;
                 }
                 else if(struct_name[0] == '*'){
                     member_ptr = context.builder.CreateLoad(member_ptr, "loadtmp");
@@ -495,10 +515,11 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 }
 
                 if(program.find_struct(struct_name, &target) != 0){
-                    die( UNDECLARED_STRUCT(target.members[index].type) );
+                    statement.errors.panic( UNDECLARED_STRUCT(target.members[index].type) );
+                    return 1;
                 }
                 if(target.find_index(data.path[i].name, &index) != 0){
-                    die( UNDECLARED_MEMBER(data.path[i].name, target.name) );
+                    statement.errors.panic( UNDECLARED_MEMBER(data.path[i].name, target.name) );
                     return 1;
                 }
 
@@ -507,7 +528,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 indices[1] = member_index;
 
                 if(program.find_type(struct_name, &struct_type) != 0){
-                    die( UNDECLARED_STRUCT(struct_name) );
+                    statement.errors.panic( UNDECLARED_STRUCT(struct_name) );
                     return 1;
                 }
 
@@ -519,7 +540,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             if(expr_value == NULL) return 1;
 
             if(assemble_merge_types_oneway(context, expr_typename, target.members[index].type, &expr_value, struct_type, NULL) != 0){
-                die( INCOMPATIBLE_TYPES(expr_typename, target.members[index].type) );
+                statement.errors.panic( INCOMPATIBLE_TYPES(expr_typename, target.members[index].type) );
+                return 1;
             }
 
             context.builder.CreateStore(expr_value, member_ptr);
@@ -531,7 +553,10 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             llvm::Function* target = context.module->getFunction(data.name);
             External func_data;
 
-            if (!target) die( UNDECLARED_FUNC(data.name) );
+            if (!target){
+                statement.errors.panic( UNDECLARED_FUNC(data.name) );
+                return 1;
+            }
 
             if(program.find_func(data.name, &func_data) != 0) return 1;
             assert(func_data.arguments.size() == target->arg_size());
@@ -552,11 +577,14 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
                 if(expr_value == NULL) return 1;
 
                 if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
-                    die( UNDECLARED_TYPE(func_data.arguments[i]) );
+                    statement.errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
+                    return 1;
                 }
 
                 if(assemble_merge_types_oneway(context, expr_typename, func_data.arguments[i], &expr_value, expected_arg_type, NULL) != 0){
-                    die( INCOMPATIBLE_TYPES(expr_typename, func_data.arguments[i]) );
+                    statement.errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + data.name + "'\n    Definition: " + func_data.toString() +
+                         "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + expr_typename + "'");
+                    return 1;
                 }
 
                 argument_values.push_back(expr_value);
@@ -580,7 +608,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             assemble_merge_conditional_types(context, expr_typename, &expr_value);
 
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool' or another compatible primitive");
+                statement.errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+                return 1;
             }
 
             context.builder.CreateCondBr(expr_value, true_block, false_block);
@@ -620,7 +649,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             assemble_merge_conditional_types(context, expr_typename, &expr_value);
 
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool' or another compatible primitive");
+                statement.errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+                return 1;
             }
 
             context.builder.CreateCondBr(expr_value, true_block, false_block);
@@ -656,7 +686,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             assemble_merge_conditional_types(context, expr_typename, &expr_value);
 
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool' or another compatible primitive");
+                statement.errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+                return 1;
             }
 
             context.builder.CreateCondBr(expr_value, false_block, true_block);
@@ -696,7 +727,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             assemble_merge_conditional_types(context, expr_typename, &expr_value);
 
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool' or another compatible primitive");
+                statement.errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+                return 1;
             }
 
             context.builder.CreateCondBr(expr_value, false_block, true_block);
@@ -733,7 +765,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             assemble_merge_conditional_types(context, expr_typename, &expr_value);
 
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool' or another compatible primitive");
+                statement.errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+                return 1;
             }
 
             context.builder.CreateCondBr(expr_value, true_block, false_block);
@@ -784,7 +817,8 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
             assemble_merge_conditional_types(context, expr_typename, &expr_value);
 
             if(expr_typename != "bool"){
-                die("Expression type for conditional must be 'bool' or another compatible primitive");
+                statement.errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+                return 1;
             }
 
             context.builder.CreateCondBr(expr_value, false_block, true_block);

@@ -31,11 +31,21 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
+FILE* fstdout(){ return stdout; }
+FILE* fstderr(){ return stderr; }
+FILE* fstdin(){ return stdin; }
+int* ferrno(){ return _errno(); }
+
 Program* adept_current_program;
 Configuration* adept_current_config;
 BuildConfig adept_default_build_config;
 
 void build_add_symbols(){
+    llvm::sys::DynamicLibrary::AddSymbol("fstdout", (void*) fstdout);
+    llvm::sys::DynamicLibrary::AddSymbol("fstderr", (void*) fstderr);
+    llvm::sys::DynamicLibrary::AddSymbol("fstdin", (void*) fstdin);
+    llvm::sys::DynamicLibrary::AddSymbol("ferrno", (void*) ferrno);
+
     llvm::sys::DynamicLibrary::AddSymbol("adept\\config", (void*) adept_config);
     llvm::sys::DynamicLibrary::AddSymbol("adept\\compile", (void*) adept_compile);
     llvm::sys::DynamicLibrary::AddSymbol("adept\\loadLibrary", (void*) adept_loadLibrary);
@@ -49,6 +59,7 @@ void build_transfer_config(Configuration* config, BuildConfig* build_config){
     config->silent = build_config->silent;
     config->optimization = build_config->optimization;
     config->jit = build_config->jit;
+    config->load_dyn = build_config->jit;
 }
 
 extern "C" BuildConfig adept_config(){

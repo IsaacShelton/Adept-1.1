@@ -238,6 +238,21 @@ class LoadExp : public PlainExp {
     bool getType(Program&, Function&, std::string&);
 };
 
+class IndexLoadExp : public PlainExp {
+    public:
+    PlainExp* value;
+    PlainExp* index;
+
+    IndexLoadExp(ErrorHandler&);
+    IndexLoadExp(PlainExp*, PlainExp*, ErrorHandler&);
+    IndexLoadExp(const IndexLoadExp&);
+    ~IndexLoadExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+    bool getType(Program&, Function&, std::string&);
+};
+
 class CallExp : public PlainExp {
     public:
     std::string name;
@@ -289,6 +304,28 @@ class NotExp : public PlainExp {
     std::string toString();
     PlainExp* clone();
     bool getType(Program&, Function&, std::string&);
+};
+
+class CastExp : public PlainExp {
+    public:
+    PlainExp* value;
+    std::string target_typename;
+
+    CastExp(ErrorHandler&);
+    CastExp(PlainExp*, std::string, ErrorHandler&);
+    CastExp(const CastExp&);
+    ~CastExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+    bool getType(Program&, Function&, std::string&);
+
+    private:
+    llvm::Value* cast_to_bool(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_byte(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_short(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_int(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_long(Program&, Function&, AssembleContext&);
 };
 
 #endif // EXPRESSION_H_INCLUDED

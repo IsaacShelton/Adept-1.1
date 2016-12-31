@@ -85,12 +85,26 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             return context.builder.CreateMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
             return context.builder.CreateSDiv(left_value, right_value, "divtmp");
+        case TOKENID_MODULUS:
+            return context.builder.CreateSRem(left_value, right_value, "remtmp");
         case TOKENID_EQUALITY:
             *expr_type = "bool";
             return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
         case TOKENID_INEQUALITY:
             *expr_type = "bool";
             return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
+        case TOKENID_LESS:
+            *expr_type = "bool";
+            return context.builder.CreateICmpSLT(left_value, right_value, "cmptmp");
+        case TOKENID_GREATER:
+            *expr_type = "bool";
+            return context.builder.CreateICmpSGT(left_value, right_value, "cmptmp");
+        case TOKENID_LESSEQ:
+            *expr_type = "bool";
+            return context.builder.CreateICmpSLE(left_value, right_value, "cmptmp");
+        case TOKENID_GREATEREQ:
+            *expr_type = "bool";
+            return context.builder.CreateICmpSGE(left_value, right_value, "cmptmp");
         case TOKENID_AND:
             if(type_name != "bool"){
                 errors.panic("Operands to operator 'and' must have a type of 'bool'");
@@ -104,7 +118,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             }
             return context.builder.CreateOr(left_value, right_value, "ortmp");
         default:
-            std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
+            std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
             return NULL;
         }
     }
@@ -118,6 +132,8 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             return context.builder.CreateFMul(left_value, right_value, "multmp");
         case TOKENID_DIVIDE:
             return context.builder.CreateFDiv(left_value, right_value, "divtmp");
+        case TOKENID_MODULUS:
+            return context.builder.CreateFRem(left_value, right_value, "remtmp");
         case TOKENID_EQUALITY:
             *expr_type = "bool";
             return context.builder.CreateFCmpOEQ(left_value, right_value, "cmptmp");
@@ -125,7 +141,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             *expr_type = "bool";
             return context.builder.CreateFCmpONE(left_value, right_value, "cmptmp");
         default:
-            std::cerr << "Operation " << operation << " isn't implemented in OperatorExp::assemble" << std::endl;
+            std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
             return NULL;
         }
     }
@@ -500,6 +516,55 @@ PlainExp* LoadExp::clone(){
     return new LoadExp(*this);
 }
 
+IndexLoadExp::IndexLoadExp(ErrorHandler& err){
+    errors = err;
+}
+IndexLoadExp::IndexLoadExp(PlainExp* val, PlainExp* idx, ErrorHandler& err){
+    value = val;
+    index = idx;
+    errors = err;
+}
+IndexLoadExp::IndexLoadExp(const IndexLoadExp& other) : PlainExp(other) {
+    value = other.value->clone();
+    index = other.index->clone();
+}
+IndexLoadExp::~IndexLoadExp(){
+    delete value;
+}
+llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    std::string pointer_typename;
+    llvm::Value* pointer_value = value->assemble(program, func, context, &pointer_typename);
+    if(pointer_value == NULL) return NULL;
+
+    if(pointer_typename[0] != '*' or !pointer_value->getType()->isPointerTy()){
+        errors.panic("Can't dereference non-pointer type '" + pointer_typename + "'");
+        return NULL;
+    }
+
+    std::string index_typename;
+    llvm::Value* index_value = index->assemble(program, func, context, &index_typename);
+    if(index_value == NULL) return NULL;
+
+    if(index_typename != "int"){
+        errors.panic("Expected 'int' type when using []");
+        return NULL;
+    }
+
+    if(expr_type != NULL) *expr_type = pointer_typename.substr(1, pointer_typename.length()-1);
+
+    std::vector<llvm::Value*> indices(1);
+    indices[0] = index_value;
+
+    pointer_value = context.builder.CreateInBoundsGEP(pointer_value, indices, "memberptr");
+    return context.builder.CreateLoad(pointer_value, "loadtmp");
+}
+std::string IndexLoadExp::toString(){
+    return value->toString() + "[" + index->toString() + "]";
+}
+PlainExp* IndexLoadExp::clone(){
+    return new IndexLoadExp(*this);
+}
+
 CallExp::CallExp(ErrorHandler& err){
     errors = err;
 }
@@ -526,12 +591,16 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
         return NULL;
     }
 
-    if(program.find_func(name, &func_data) != 0) return NULL;
+    if(program.find_func(name, &func_data) != 0){
+        errors.panic( UNDECLARED_FUNC(name) );
+        return NULL;
+    }
+
     assert(func_data.arguments.size() == target->arg_size());
 
     // If argument mismatch error.
     if (target->arg_size() != args.size()){
-        std::cerr << "Incorrect function arguments size for for '" << name << "', returning NULL" << std::endl;
+        errors.panic("Incorrect arguments for function '" + name + "'\n    Definition: " + func_data.toString());
         return NULL;
     }
 
@@ -550,7 +619,8 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
         }
 
         if(assemble_merge_types_oneway(context, expr_typename, func_data.arguments[i], &expr_value, expected_arg_type, NULL) != 0){
-            errors.panic( INCOMPATIBLE_TYPES(expr_typename, func_data.arguments[i]) );
+            errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_data.toString() +
+                         "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + expr_typename + "'");
             return NULL;
         }
 
@@ -727,4 +797,184 @@ std::string NotExp::toString(){
 }
 PlainExp* NotExp::clone(){
     return new NotExp(value->clone(), errors);
+}
+
+CastExp::CastExp(ErrorHandler& err){
+    errors = err;
+}
+CastExp::CastExp(PlainExp* val, std::string tgt_type, ErrorHandler& err){
+    value = val;
+    target_typename = tgt_type;
+    errors = err;
+}
+CastExp::~CastExp(){
+    delete value;
+}
+llvm::Value* CastExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    *expr_type = target_typename;
+
+    if(target_typename == "bool"){
+        return this->cast_to_bool(program, func, context);
+    }
+    else if(target_typename == "byte" or target_typename == "ubyte"){
+        return this->cast_to_byte(program, func, context);
+    }
+    else if(target_typename == "short" or target_typename == "ushort"){
+        return this->cast_to_short(program, func, context);
+    }
+    else if(target_typename == "int" or target_typename == "uint"){
+        return this->cast_to_int(program, func, context);
+    }
+    else if(target_typename == "long" or target_typename == "ulong"){
+        return this->cast_to_long(program, func, context);
+    }
+
+    errors.panic("Can't cast value to type '" + target_typename + "'");
+    return NULL;
+}
+std::string CastExp::toString(){
+    return "cast " + target_typename + "(" + value->toString() + ")";
+}
+PlainExp* CastExp::clone(){
+    return new CastExp(value->clone(), target_typename, errors);
+}
+llvm::Value* CastExp::cast_to_bool(Program& program, Function& func, AssembleContext& context){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+
+    if(type_name == "bool"){
+        return llvm_value;
+    }
+    else if(type_name == "ubyte" or type_name == "byte"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "trunctmp");
+    }
+    else if(type_name == "ushort" or type_name == "short"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "trunctmp");
+    }
+    else if(type_name == "uint" or type_name == "int"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "trunctmp");
+    }
+    else if(type_name == "ulong" or type_name == "long"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "trunctmp");
+    }
+    else {
+        errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
+        return NULL;
+    }
+
+    errors.panic(SUICIDE);
+    return NULL;
+}
+llvm::Value* CastExp::cast_to_byte(Program& program, Function& func, AssembleContext& context){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+
+    if(type_name == "bool"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt8Ty(), "zexttmp");
+    }
+    else if(type_name == "ubyte" or type_name == "byte"){
+        return llvm_value;
+    }
+    else if(type_name == "ushort" or type_name == "short"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "trunctmp");
+    }
+    else if(type_name == "uint" or type_name == "int"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "trunctmp");
+    }
+    else if(type_name == "ulong" or type_name == "long"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "trunctmp");
+    }
+    else {
+        errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
+        return NULL;
+    }
+
+    errors.panic(SUICIDE);
+    return NULL;
+}
+llvm::Value* CastExp::cast_to_short(Program& program, Function& func, AssembleContext& context){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+
+    if(type_name == "bool"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty(), "zexttmp");
+    }
+    else if(type_name == "ubyte" or type_name == "byte"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty(), "zexttmp");
+    }
+    else if(type_name == "ushort" or type_name == "short"){
+        return llvm_value;
+    }
+    else if(type_name == "uint" or type_name == "int"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty(), "trunctmp");
+    }
+    else if(type_name == "ulong" or type_name == "long"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty(), "trunctmp");
+    }
+    else {
+        errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
+        return NULL;
+    }
+
+    errors.panic(SUICIDE);
+    return NULL;
+}
+llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssembleContext& context){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+
+    if(type_name == "bool"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "zexttmp");
+    }
+    else if(type_name == "ubyte" or type_name == "byte"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "zexttmp");
+    }
+    else if(type_name == "ushort" or type_name == "short"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "zexttmp");
+    }
+    else if(type_name == "uint" or type_name == "int"){
+        return llvm_value;
+    }
+    else if(type_name == "ulong" or type_name == "long"){
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt32Ty(), "trunctmp");
+    }
+    else {
+        errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
+        return NULL;
+    }
+
+    errors.panic(SUICIDE);
+    return NULL;
+}
+llvm::Value* CastExp::cast_to_long(Program& program, Function& func, AssembleContext& context){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+
+    if(type_name == "bool"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "zexttmp");
+    }
+    else if(type_name == "ubyte" or type_name == "byte"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "zexttmp");
+    }
+    else if(type_name == "ushort" or type_name == "short"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "zexttmp");
+    }
+    else if(type_name == "uint" or type_name == "int"){
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "zexttmp");
+    }
+    else if(type_name == "ulong" or type_name == "long"){
+        return llvm_value;
+    }
+    else {
+        errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
+        return NULL;
+    }
+
+    errors.panic(SUICIDE);
+    return NULL;
 }

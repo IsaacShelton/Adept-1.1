@@ -46,6 +46,8 @@ struct External {
     std::vector<std::string> arguments;
     std::string return_type;
     bool is_public;
+
+    std::string toString();
 };
 
 struct ModuleDependency {

@@ -298,7 +298,7 @@ void Program::print_structures(){
 int Function::find_variable(std::string var_name, Variable* var){
     for(size_t i = 0; i != variables.size(); i++){
         if(variables[i].name == var_name){
-            *var = variables[i];
+            if(var != NULL) *var = variables[i];
             return 0;
         }
     }
@@ -309,6 +309,18 @@ void Function::print_statements(){
     for(Statement statement : statements){
         std::cout << statement.toString() << std::endl;
     }
+}
+
+std::string External::toString(){
+    std::string prefix = (is_public) ? "public " : "private";
+    std::string arg_str;
+
+    for(size_t a = 0; a != arguments.size(); a++){
+        arg_str += arguments[a];
+        if(a + 1 != arguments.size()) arg_str += ", ";
+    }
+
+    return prefix + "def " + name + "(" + arg_str + ") " + return_type;
 }
 
 int Structure::find_index(std::string member_name, int* index){

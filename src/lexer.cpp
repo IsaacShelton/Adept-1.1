@@ -24,6 +24,7 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
         if(tokenize_line(line + "\n", *tokens, errors) != 0) return 1;
     }
 
+    errors.line = 1;
     adept.close();
 
     // Print Lexer Time
@@ -46,6 +47,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
         switch(prefix_char){
         case '\n':
             tokens.push_back(TOKEN_NEWLINE); i++;
+            errors.line++;
             break;
         case '(':
             tokens.push_back(TOKEN_OPEN); i++;
@@ -98,15 +100,31 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
             next_index(i, code.size());
             if(code[i] == '/'){
                 while(code[i] != '\n') i++;
+                tokens.push_back(TOKEN_NEWLINE);
+                errors.line++;
                 i++;
             }
             else { tokens.push_back(TOKEN_DIVIDE); }
+            break;
+        case '%':
+            tokens.push_back(TOKEN_MODULUS);
+            next_index(i, code.size());
             break;
         case ':':
             tokens.push_back(TOKEN_MEMBER); i++;
             break;
         case '&':
             tokens.push_back(TOKEN_ADDRESS); i++;
+            break;
+        case '<':
+            next_index(i, code.size());
+            if(code[i] == '=') { tokens.push_back(TOKEN_LESSEQ); i++; }
+            else { tokens.push_back(TOKEN_LESS); }
+            break;
+        case '>':
+            next_index(i, code.size());
+            if(code[i] == '=') { tokens.push_back(TOKEN_GREATEREQ); i++; }
+            else { tokens.push_back(TOKEN_GREATER); }
             break;
         case 65: case 66: case 67:
         case 68: case 69: case 70:
@@ -136,7 +154,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 and prefix_char != ']' and prefix_char != '{' and prefix_char != '}'
                 and prefix_char != '+' and prefix_char != '-' and prefix_char != '*'
                 and prefix_char != '/' and prefix_char != '=' and prefix_char != '!'
-                and prefix_char != ','){
+                and prefix_char != ',' and prefix_char != '%'){
                     word += prefix_char;
                     next_index(i, code_size);
                     prefix_char = code[i];
@@ -146,7 +164,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import"
                 or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
                 or word == "null" or word == "if" or word == "while"  or word == "unless" or word == "until"
-                or word == "else" or word == "constant"){
+                or word == "else" or word == "constant" or word == "dynamic" or word == "cast"){
                     tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
                 }
                 else if(word == "and"){
@@ -229,7 +247,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
             }
             break;
         default:
-            std::cerr << "ERROR: Lexer found unknown token '" + code.substr(i, 1) + "'" <<  std::endl;
+            errors.panic("ERROR: Lexer found unknown token '" + code.substr(i, 1) + "'");
             return 1;
         }
     }

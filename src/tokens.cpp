@@ -246,6 +246,30 @@ std::string Token::toString(){
     case TOKENID_INEQUALITY:
         str = "inequality";
         break;
+    case TOKENID_NOT:
+        str = "not";
+        break;
+    case TOKENID_AND:
+        str = "and";
+        break;
+    case TOKENID_OR:
+        str = "or";
+        break;
+    case TOKENID_MODULUS:
+        str = "modulus";
+        break;
+    case TOKENID_LESS:
+        str = "less than";
+        break;
+    case TOKENID_GREATER:
+        str = "greater than";
+        break;
+    case TOKENID_LESSEQ:
+        str = "less than or equal";
+        break;
+    case TOKENID_GREATEREQ:
+        str = "greater than or equal";
+        break;
     }
 
     return str;
@@ -259,12 +283,18 @@ int Token::getPrecedence(){
         return 1;
     case TOKENID_EQUALITY:
     case TOKENID_INEQUALITY:
+    case TOKENID_LESS:
+    case TOKENID_GREATER:
+    case TOKENID_LESSEQ:
+    case TOKENID_GREATEREQ:
         return 2;
     case TOKENID_ADD:
     case TOKENID_SUBTRACT:
+    case TOKENID_WORD:
         return 3;
     case TOKENID_MULTIPLY:
     case TOKENID_DIVIDE:
+    case TOKENID_MODULUS:
         return 4;
     // High Precedence
     case TOKENID_MEMBER:

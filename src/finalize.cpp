@@ -20,9 +20,11 @@ int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& err
         if(jit_run(assemble, "main", result) != 0) return 1;
 
         // Print Execution Time
-        config.clock.print_since("EXECUTION DONE", filename_name(config.filename));
-        printf("=> %s\n", result.c_str());
-        config.clock.remember();
+        if(config.time and !config.silent){
+            config.clock.print_since("EXECUTION DONE", filename_name(config.filename));
+            printf("=> %s\n", result.c_str());
+            config.clock.remember();
+        }
     }
 
     return 0;

@@ -14,6 +14,7 @@ int configure(Configuration& config, std::string filename, ErrorHandler& errors)
     config.silent = false;
     config.time = false;
     config.optimization = 0;
+    config.load_dyn = false;
 
     char* username = getenv("USERNAME");
     if(username == NULL) {
@@ -42,6 +43,7 @@ int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors
     config.silent = false;
     config.time = false;
     config.optimization = 0;
+    config.load_dyn = true;
 
     for(int i = 2; i != argc; i++){
         if(strcmp(argv[i], "--jit") == 0){

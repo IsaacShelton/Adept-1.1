@@ -9,6 +9,7 @@ Statement::Statement(){
 }
 Statement::Statement(const Statement& other){
     id = other.id;
+    errors = other.errors;
 
     switch(id){
     case STATEMENTID_DECLARE:
@@ -43,13 +44,15 @@ Statement::Statement(const Statement& other){
         data = NULL;
     }
 }
-Statement::Statement(uint16_t i){
+Statement::Statement(uint16_t i, ErrorHandler& err){
     id = i;
     data = NULL;
+    errors = err;
 }
-Statement::Statement(uint16_t i, void* d){
+Statement::Statement(uint16_t i, void* d, ErrorHandler& err){
     id = i;
     data = d;
+    errors = err;
 }
 Statement::~Statement(){
     free();
@@ -92,8 +95,12 @@ void Statement::reset(){
     free();
     id = 0;
 }
-std::string Statement::toString(unsigned int indent){
+std::string Statement::toString(unsigned int indent, bool skip_initial_indent){
     std::string str;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) str += "    ";
+    }
 
     switch(id){
     case STATEMENTID_NONE:
@@ -101,31 +108,24 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_DECLARE:
         {
             DeclareStatement* extra = static_cast<DeclareStatement*>(data);
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
-
             str += extra->name + " " + extra->type;
             break;
         }
     case STATEMENTID_DECLAREAS:
         {
             DeclareAsStatement* extra = static_cast<DeclareAsStatement*>(data);
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
-
             str += extra->name + " " + extra->type + " = " + extra->value->toString();
             break;
         }
     case STATEMENTID_RETURN:
         {
              ReturnStatement* extra = static_cast<ReturnStatement*>(data);
-             for(unsigned int i = 0; i != indent; i++) str += "    ";
-
              str += "return " + extra->value->toString();
              break;
         }
     case STATEMENTID_ASSIGN:
         {
             AssignStatement* extra = static_cast<AssignStatement*>(data);
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
 
             for(int i = 0; i != extra->loads; i++) str += "*";
             str += extra->name;
@@ -136,7 +136,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_ASSIGNMEMBER:
         {
             AssignMemberStatement* extra = static_cast<AssignMemberStatement*>(data);
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
 
             for(size_t i = 0; i != extra->path.size(); i++){
                 str += extra->path[i].name;
@@ -151,8 +150,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_CALL:
         {
             CallStatement* extra = static_cast<CallStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += extra->name + "(";
 
             for(size_t i = 0; i != extra->args.size(); i++){
@@ -166,8 +163,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_IF:
         {
             ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "if " + extra->condition->toString() + "{\n";
 
             for(size_t a = 0; a != extra->statements.size(); a++){
@@ -181,8 +176,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_WHILE:
         {
             ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "while " + extra->condition->toString() + "{\n";
 
             for(size_t a = 0; a != extra->statements.size(); a++){
@@ -196,8 +189,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_UNLESS:
         {
             ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "unless " + extra->condition->toString() + "{\n";
 
             for(size_t a = 0; a != extra->statements.size(); a++){
@@ -211,8 +202,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_UNTIL:
         {
             ConditionalStatement* extra = static_cast<ConditionalStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "until " + extra->condition->toString() + "{\n";
 
             for(size_t a = 0; a != extra->statements.size(); a++){
@@ -226,8 +215,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_IFELSE:
         {
             SplitConditionalStatement* extra = static_cast<SplitConditionalStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "if " + extra->condition->toString() + "{\n";
 
             for(size_t a = 0; a != extra->true_statements.size(); a++){
@@ -235,8 +222,22 @@ std::string Statement::toString(unsigned int indent){
             }
 
             for(unsigned int i = 0; i != indent; i++) str += "    ";
-            str += "} else {\n";
 
+            if(extra->false_statements.size() == 1){
+                uint16_t statement_id = extra->false_statements[0].id;
+
+                if(statement_id == STATEMENTID_IF or statement_id == STATEMENTID_IFELSE
+                   or statement_id == STATEMENTID_UNLESS or statement_id == STATEMENTID_UNLESSELSE){
+
+                    Statement* statement = &extra->false_statements[0];
+                    str += "} else " + statement->toString(indent, true);
+
+                    // Break early to avoid rest of "} else { ... }"
+                    break;
+                }
+            }
+
+            str += "} else {\n";
             for(size_t a = 0; a != extra->false_statements.size(); a++){
                 str += extra->false_statements[a].toString(indent+1) + "\n";
             }
@@ -247,8 +248,6 @@ std::string Statement::toString(unsigned int indent){
     case STATEMENTID_UNLESSELSE:
         {
             SplitConditionalStatement* extra = static_cast<SplitConditionalStatement*>(data);
-
-            for(unsigned int i = 0; i != indent; i++) str += "    ";
             str += "unless " + extra->condition->toString() + "{\n";
 
             for(size_t a = 0; a != extra->true_statements.size(); a++){
@@ -256,8 +255,22 @@ std::string Statement::toString(unsigned int indent){
             }
 
             for(unsigned int i = 0; i != indent; i++) str += "    ";
-            str += "} else {\n";
 
+            if(extra->false_statements.size() == 1){
+                uint16_t statement_id = extra->false_statements[0].id;
+
+                if(statement_id == STATEMENTID_IF or statement_id == STATEMENTID_IFELSE
+                   or statement_id == STATEMENTID_UNLESS or statement_id == STATEMENTID_UNLESSELSE){
+
+                    Statement* statement = &extra->false_statements[0];
+                    str += "} else " + statement->toString(indent, true);
+
+                    // Break early to avoid rest of "} else { ... }"
+                    break;
+                }
+            }
+
+            str += "} else {\n";
             for(size_t a = 0; a != extra->false_statements.size(); a++){
                 str += extra->false_statements[a].toString(indent+1) + "\n";
             }

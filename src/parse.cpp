@@ -1,6 +1,8 @@
 
 #include <unistd.h>
 #include <iostream>
+#include "llvm/Support/DynamicLibrary.h"
+
 #include "../include/die.h"
 #include "../include/type.h"
 #include "../include/parse.h"
@@ -84,6 +86,36 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     }
     else if(keyword == "link"){
         if(parse_lib(config, tokens, program, i, errors) != 0) return 1;
+    }
+    else if(keyword == "dynamic"){
+        if(tokens[i].id != TOKENID_STRING){
+            errors.panic("Expected name of dynamic library after 'dynamic' keyword");
+            return 1;
+        }
+
+        // Don't load dynamic libraries if we know this code won't run jit
+        if(!config.load_dyn) return 0;
+
+        std::string name = tokens[i].getString();
+        std::string local_file = filename_path(config.filename) + name;
+        std::string public_file = "C:/Users/" + config.username + "/.adept/lib/" + name;
+
+        if( access(local_file.c_str(), F_OK) != -1 ){
+            name = local_file;
+        }
+        else if( access(public_file.c_str(), F_OK) != -1 ){
+            name = public_file;
+        }
+        else if( access(name.c_str(), F_OK) == -1 ){
+            // File doesn't exist globally either
+            errors.panic( UNKNOWN_MODULE(name) );
+            return 1;
+        }
+
+        if( llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str()) ){
+            errors.panic("Failed to load dynamic library '" + name + "'");
+            return 1;
+        }
     }
     else if(keyword == "constant"){
         if(parse_constant(config, tokens, program, i, attr_info, errors) != 0) return 1;
@@ -425,7 +457,7 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
             if(parse_block_dereference(config, tokens, program, statements, i, errors) != 0) return -1;
             break;
         default:
-            errors.panic("Expected Statement");
+            errors.panic("Expected Statement, got token #" + to_str(tokens[i].id));
             return 1;
         }
     }
@@ -441,11 +473,11 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
         next_index(i, tokens.size());
 
         if(tokens[i].id == TOKENID_NEWLINE){
-            statements.push_back( STATEMENT_RETURN(NULL) );
+            statements.push_back( STATEMENT_RETURN(NULL, errors) );
         }
         else {
             if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-            statements.push_back(std::move( STATEMENT_RETURN(expression) ));
+            statements.push_back(std::move( STATEMENT_RETURN(expression, errors) ));
         }
     }
     else if(keyword == "if"){
@@ -523,10 +555,10 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
         next_index(i, tokens.size());
 
         if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-        statements.push_back( STATEMENT_DECLAREAS(name, type, expression) );
+        statements.push_back( STATEMENT_DECLAREAS(name, type, expression, errors) );
     }
     else {
-        statements.push_back( STATEMENT_DECLARE(name, type) );
+        statements.push_back( STATEMENT_DECLARE(name, type, errors) );
     }
     return 0;
 }
@@ -555,7 +587,7 @@ int parse_block_call(Configuration& config, TokenList& tokens, Program& program,
         }
     }
 
-    statements.push_back( STATEMENT_CALL(name, args) );
+    statements.push_back( STATEMENT_CALL(name, args, errors) );
     next_index(i, tokens.size());
     return 0;
 }
@@ -585,7 +617,7 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
 
     next_index(i, tokens.size());
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-    statements.push_back( STATEMENT_ASSIGN(name, expression, loads, gep_loads) );
+    statements.push_back( STATEMENT_ASSIGN(name, expression, loads, gep_loads, errors) );
     return 0;
 }
 int parse_block_member_assign(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
@@ -613,7 +645,7 @@ int parse_block_member_assign(Configuration& config, TokenList& tokens, Program&
     next_index(i, tokens.size());
 
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-    statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0) );
+    statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0, errors) );
     return 0;
 }
 int parse_block_dereference(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
@@ -669,21 +701,39 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
             StatementList else_statements;
             next_index(i, tokens.size());
 
-            if(tokens[i].id != TOKENID_BEGIN){
-                errors.panic("Expected '{' after 'else'");
+            if(tokens[i].id == TOKENID_BEGIN){
+                next_index(i, tokens.size());
+                if(parse_block(config, tokens, program, else_statements, i, errors) != 0) return 1;
+                next_index(i, tokens.size());
+            }
+            else if(tokens[i].id == TOKENID_KEYWORD){
+                uint16_t else_conditional_type;
+                std::string else_conditional = tokens[i].getString();
+
+                if(else_conditional == "if"){
+                    else_conditional_type = CONDITIONAL_IF;
+                }
+                else if(else_conditional == "unless"){
+                    else_conditional_type = CONDITIONAL_UNLESS;
+                }
+                else {
+                    errors.panic( UNEXPECTED_KEYWORD(else_conditional) );
+                    return 1;
+                }
+
+                parse_block_conditional(config, tokens, program, else_statements, i, else_conditional_type, errors);
+            }
+            else {
+                errors.panic("Expected '{' or 'if' after 'else'");
                 return 1;
             }
 
-            next_index(i, tokens.size());
-            if(parse_block(config, tokens, program, else_statements, i, errors) != 0) return 1;
-            next_index(i, tokens.size());
-
             switch(conditional_type){
             case CONDITIONAL_IF:
-                statements.push_back(std::move( STATEMENT_IFELSE(expression, conditional_statements, else_statements) ));
+                statements.push_back(std::move( STATEMENT_IFELSE(expression, conditional_statements, else_statements, errors) ));
                 break;
             case CONDITIONAL_UNLESS:
-                statements.push_back(std::move( STATEMENT_UNLESSELSE(expression, conditional_statements, else_statements) ));
+                statements.push_back(std::move( STATEMENT_UNLESSELSE(expression, conditional_statements, else_statements, errors) ));
                 break;
             default:
                 errors.panic("Conditional doesn't support 'else' keyword");
@@ -698,16 +748,16 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
 
     switch(conditional_type){
     case CONDITIONAL_IF:
-        statements.push_back(std::move( STATEMENT_IF(expression, conditional_statements) ));
+        statements.push_back(std::move( STATEMENT_IF(expression, conditional_statements, errors) ));
         break;
     case CONDITIONAL_WHILE:
-        statements.push_back(std::move( STATEMENT_WHILE(expression, conditional_statements) ));
+        statements.push_back(std::move( STATEMENT_WHILE(expression, conditional_statements, errors) ));
         break;
     case CONDITIONAL_UNLESS:
-        statements.push_back(std::move( STATEMENT_UNLESS(expression, conditional_statements) ));
+        statements.push_back(std::move( STATEMENT_UNLESS(expression, conditional_statements, errors) ));
         break;
     case CONDITIONAL_UNTIL:
-        statements.push_back(std::move( STATEMENT_UNTIL(expression, conditional_statements) ));
+        statements.push_back(std::move( STATEMENT_UNTIL(expression, conditional_statements, errors) ));
         break;
     default:
         errors.panic("Invalid conditional type");
@@ -747,6 +797,28 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 *expression = new BoolExp(false, errors);
             } else if(keyword == "null"){
                 *expression = new NullExp(errors);
+            } else if(keyword == "cast"){
+                std::string target_typename;
+                while(tokens[i].id == TOKENID_MULTIPLY){
+                    target_typename += "*";
+                    next_index(i, tokens.size());
+                }
+                if(tokens[i].id != TOKENID_WORD){
+                    errors.panic(EXPECTED_NAME_OF_TYPE);
+                    return 1;
+                }
+                target_typename += tokens[i].getString();
+                next_index(i, tokens.size());
+
+                if(tokens[i].id != TOKENID_OPEN){
+                    errors.panic("Expected '(' after target cast type");
+                    return 1;
+                }
+                PlainExp* cast_expr;
+                next_index(i, tokens.size());
+                if(parse_expression(config, tokens, program, i, &cast_expr, errors) != 0) return 1;
+                next_index(i, tokens.size());
+                *expression = new CastExp(cast_expr, target_typename, errors);
             } else {
                 errors.panic( UNEXPECTED_KEYWORD_INEXPR(keyword) );
                 return 1;
@@ -850,7 +922,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         }
         return 0;
     default:
-        errors.panic("Unknown token in expression " + tokens[i].toString());
+        errors.panic("Unknown token in expression: " + tokens[i].toString());
         return 1;
     }
 }
@@ -865,9 +937,8 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
         if(operation == TOKENID_CLOSE or operation == TOKENID_NEWLINE or operation == TOKENID_NEXT
            or operation == TOKENID_BRACKET_CLOSE or operation == TOKENID_BEGIN or operation == TOKENID_END) return 0;
 
-        next_index(i, tokens.size());
-
         if(operation == TOKENID_MEMBER){
+            next_index(i, tokens.size());
             if(tokens[i].id != TOKENID_WORD){
                 errors.panic("Expected word after ':' operator");
                 return 1;
@@ -876,8 +947,41 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
             *left = new MemberExp(*left, tokens[i].getString(), errors);
             next_index(i, tokens.size());
         }
+        else if(operation == TOKENID_WORD){
+            PlainExp* right;
+            std::string name = tokens[i].getString();
+
+            next_index(i, tokens.size());
+            if(parse_expression_primary(config, tokens, program, i, &right, errors) != 0) return 1;
+
+            int next_precedence = tokens[i].getPrecedence();
+            if (token_precedence < next_precedence) {
+                if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right, errors) != 0) return 1;
+            }
+
+            std::vector<PlainExp*> args(2);
+            args[0] = *left;
+            args[1] = right;
+            *left = new CallExp(name, args, errors);
+        }
+        else if(operation == TOKENID_BRACKET_OPEN){
+            PlainExp* int_expr;
+
+            next_index(i, tokens.size());
+            if(parse_expression(config, tokens, program, i, &int_expr, errors) != 0) return 1;
+
+            if(tokens[i].id != TOKENID_BRACKET_CLOSE){
+                errors.panic("Expected closing bracket ']'");
+                return 1;
+            }
+
+            ErrorHandler errors("idontexist.adept"); // TODO: Pass real ErrorHandler
+            *left = new IndexLoadExp(*left, int_expr, errors);
+            next_index(i, tokens.size());
+        }
         else {
             PlainExp* right;
+            next_index(i, tokens.size());
             if(parse_expression_primary(config, tokens, program, i, &right, errors) != 0) return 1;
 
             int next_precedence = tokens[i].getPrecedence();
