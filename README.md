@@ -107,3 +107,23 @@ public def main() int {
 ```
 Adept treats any program with a function named 'build' as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you just run the command ```adept build.adept```<br>
 
+### Using functions as operators
+```
+private import "system/system.adept"
+private import "adept/conversion.adept"
+
+public def main() int {
+    result int = 13 sum 8 sum 100
+    
+    message *ubyte = malloc(100)
+    inttostr(result, message, 10)
+    puts(message)
+    free(message)
+    return 0
+}
+
+private def sum(a int, b int) int {
+    return a + b
+}
+
+```
