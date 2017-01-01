@@ -26,6 +26,7 @@
 #include "../include/strings.h"
 #include "../include/program.h"
 #include "../include/assemble.h"
+#include "../include/mangling.h"
 #include "../include/expression.h"
 
 PlainExp::PlainExp(){}
@@ -583,52 +584,59 @@ CallExp::~CallExp(){
     }
 }
 llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
-    llvm::Function* target = context.module->getFunction(name);
     External func_data;
-
-    if (!target){
-        errors.panic( UNDECLARED_FUNC(name) );
-        return NULL;
-    }
-
-    if(program.find_func(name, &func_data) != 0){
-        errors.panic( UNDECLARED_FUNC(name) );
-        return NULL;
-    }
-
-    assert(func_data.arguments.size() == target->arg_size());
-
-    // If argument mismatch error.
-    if (target->arg_size() != args.size()){
-        errors.panic("Incorrect arguments for function '" + name + "'\n    Definition: " + func_data.toString());
-        return NULL;
-    }
 
     llvm::Value* expr_value;
     std::string expr_typename;
     llvm::Type* expected_arg_type;
-    std::vector<llvm::Value*> value_args;
+    std::vector<llvm::Value*> argument_values;
+    std::vector<std::string> argument_types;
+    std::vector<llvm::Type*> argument_llvm_types;
 
-    for(size_t i = 0, e = args.size(); i != e; ++i) {
+    for(size_t i = 0, e = args.size(); i != e; i++) {
         expr_value = args[i]->assemble(program, func, context, &expr_typename);
         if(expr_value == NULL) return NULL;
 
-        if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
-            errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
+        if(program.find_type(expr_typename, &expected_arg_type) != 0){
+            errors.panic( UNDECLARED_TYPE(expr_typename) );
             return NULL;
         }
 
-        if(assemble_merge_types_oneway(context, expr_typename, func_data.arguments[i], &expr_value, expected_arg_type, NULL) != 0){
-            errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_data.toString() +
-                         "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + expr_typename + "'");
-            return NULL;
-        }
-
-        value_args.push_back(expr_value);
+        argument_values.push_back(expr_value);
+        argument_types.push_back(expr_typename);
+        argument_llvm_types.push_back(expected_arg_type);
     }
 
-    if(expr_type != NULL) *expr_type = func_data.return_type;
-    return context.builder.CreateCall(target, value_args, "calltmp");
+    if(program.find_func(name, argument_types, &func_data) != 0){
+        errors.panic( UNDECLARED_FUNC(name) );
+        return NULL;
+    }
+
+    std::string final_name = (func_data.is_mangled) ? mangle(name, func_data.arguments) : name;
+    llvm::Function* target = context.module->getFunction(final_name);
+    if (!target){
+        errors.panic( UNDECLARED_FUNC(name) );
+        return NULL;
+    }
+    assert(func_data.arguments.size() == target->arg_size());
+
+    if (target->arg_size() != args.size()){
+        // NOTE: This error should never appear
+        errors.panic("Incorrect function argument count for function '" + name + "'");
+        return NULL;
+    }
+
+    for(size_t z = 0; z != argument_values.size(); z++){
+        if(assemble_merge_types_oneway(context, argument_types[z], func_data.arguments[z], &argument_values[z], argument_llvm_types[z], NULL) != 0){
+            // NOTE: This error should never occur
+            errors.panic("Incorrect type for argument " + to_str(z+1) + " of function '" + name + "'\n    Definition: " + func_data.toString() +
+                 "\n    Expected type '" + func_data.arguments[z] + "' but received type '" + argument_types[z] + "'");
+            return NULL;
+        }
+    }
+
+    *expr_type = func_data.return_type;
+    return context.builder.CreateCall(target, argument_values, "calltmp");
 }
 std::string CallExp::toString(){
     std::string args_str;

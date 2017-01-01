@@ -75,7 +75,7 @@ public def main() int {
 }
 ```
 
-### Custom Builds
+### Custom build scripts
 build.adept
 ```
 private import "adept/build.adept"
@@ -126,4 +126,21 @@ private def sum(a int, b int) int {
     return a + b
 }
 
+```
+
+### Multiple functions with the same name
+```
+public def main() int {
+    int_sum int = sum(8, 13)
+    long_sum long = sum(8sl, 13sl)
+    return 0
+}
+
+private def sum(a int, b int) int {
+    return a + b
+}
+
+private def sum(a long, b long) long {
+    return a + b
+}
 ```

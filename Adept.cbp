@@ -92,6 +92,7 @@
 		<Unit filename="include/finalize.h" />
 		<Unit filename="include/jit.h" />
 		<Unit filename="include/lexer.h" />
+		<Unit filename="include/mangling.h" />
 		<Unit filename="include/native.h" />
 		<Unit filename="include/parse.h" />
 		<Unit filename="include/program.h" />
@@ -111,6 +112,7 @@
 		<Unit filename="src/jit.cpp" />
 		<Unit filename="src/lexer.cpp" />
 		<Unit filename="src/main.cpp" />
+		<Unit filename="src/mangling.cpp" />
 		<Unit filename="src/native.cpp" />
 		<Unit filename="src/parse.cpp" />
 		<Unit filename="src/program.cpp" />

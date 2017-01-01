@@ -244,6 +244,11 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
         next_index(i, tokens.size());
     }
 
+    if(return_type == ""){
+        errors.panic("No return type specified for function '" + name + "'");
+        return 1;
+    }
+
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
@@ -301,7 +306,13 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
         next_index(i, tokens.size());
     }
 
-    program.externs.push_back( External{name, arguments, return_type, attr_info.is_public} );
+    if(return_type == ""){
+        errors.panic("No return type specified for function '" + name + "'");
+        return 1;
+    }
+
+    errors.line++;
+    program.externs.push_back( External{name, arguments, return_type, attr_info.is_public, false} );
     return 0;
 }
 int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -434,6 +445,7 @@ int parse_constant(Configuration& config, TokenList& tokens, Program& program, s
 
     if(parse_expression(config, tokens, program, i, &value, errors) != 0) return 1;
     program.constants.push_back( Constant(name, value, attr_info.is_public) );
+    i--;
     return 0;
 }
 

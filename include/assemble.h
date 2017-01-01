@@ -22,5 +22,6 @@ int assemble_statement(AssembleContext&, Configuration&, Program&, Function&, As
 void assemble_merge_conditional_types(AssembleContext&, std::string&, llvm::Value**);
 int assemble_merge_types(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Value**, std::string*);
 int assemble_merge_types_oneway(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Type*, std::string*);
+bool assemble_types_mergeable(const std::string&, const std::string&);
 
 #endif // ASSEMBLE_H_INCLUDED

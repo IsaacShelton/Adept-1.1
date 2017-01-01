@@ -32,6 +32,7 @@
 #include "../include/native.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
+#include "../include/mangling.h"
 
 int build(AssembleContext& context, Configuration& config, Program& program, ErrorHandler& errors){
     std::string target_name = filename_change_ext(config.filename, "exe");
@@ -167,7 +168,7 @@ int assemble_structure(AssembleContext& context, Configuration& config, Program&
     return 0;
 }
 int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func){
-    llvm::Function* llvm_function = context.module->getFunction(func.name);
+    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
     if(!llvm_function){
         llvm::Type* llvm_type;
@@ -191,9 +192,8 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
             die( UNDECLARED_TYPE(func.return_type) );
         }
 
-
-        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, func.name, context.module.get());
+        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
+        llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(func), context.module.get());
 
         // Create a new basic block to start insertion into.
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
@@ -244,9 +244,10 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
     return 0;
 }
 int assemble_function_body(AssembleContext& context, Configuration& config, Program& program, Function& func){
-    llvm::Function* llvm_function = context.module->getFunction(func.name);
+    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
     AssembleFunction& asm_func = func.asm_func;
 
+    assert(llvm_function != NULL);
     context.builder.SetInsertPoint(asm_func.body);
     bool terminated = false;
 
@@ -269,7 +270,8 @@ int assemble_function_body(AssembleContext& context, Configuration& config, Prog
     return 0;
 }
 int assemble_external(AssembleContext& context, Configuration& config, Program& program, External& external){
-    llvm::Function* llvm_function = context.module->getFunction(external.name);
+    std::string final_name = (external.is_mangled) ? mangle(external.name, external.arguments) : external.name;
+    llvm::Function* llvm_function = context.module->getFunction(final_name);
 
     if(!llvm_function){
         llvm::Type* llvm_type;
@@ -287,7 +289,7 @@ int assemble_external(AssembleContext& context, Configuration& config, Program& 
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, external.name, context.module.get());
+        llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context.module.get());
     }
     else {
         die( DUPLICATE_FUNC(external.name) );
@@ -550,44 +552,55 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_CALL:
         {
             CallStatement data = *( static_cast<CallStatement*>(statement.data) );
-            llvm::Function* target = context.module->getFunction(data.name);
             External func_data;
-
-            if (!target){
-                statement.errors.panic( UNDECLARED_FUNC(data.name) );
-                return 1;
-            }
-
-            if(program.find_func(data.name, &func_data) != 0) return 1;
-            assert(func_data.arguments.size() == target->arg_size());
-
-            // If argument mismatch error.
-            if (target->arg_size() != data.args.size()){
-                std::cerr << "Incorrect function arguments size for for '" << data.name << "'" << std::endl;
-                return 1;
-            }
 
             llvm::Value* expr_value;
             std::string expr_typename;
             llvm::Type* expected_arg_type;
             std::vector<llvm::Value*> argument_values;
+            std::vector<std::string> argument_types;
+            std::vector<llvm::Type*> argument_llvm_types;
 
             for(size_t i = 0, e = data.args.size(); i != e; i++) {
                 expr_value = data.args[i]->assemble(program, func, context, &expr_typename);
                 if(expr_value == NULL) return 1;
 
-                if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
-                    statement.errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
-                    return 1;
-                }
-
-                if(assemble_merge_types_oneway(context, expr_typename, func_data.arguments[i], &expr_value, expected_arg_type, NULL) != 0){
-                    statement.errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + data.name + "'\n    Definition: " + func_data.toString() +
-                         "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + expr_typename + "'");
+                if(program.find_type(expr_typename, &expected_arg_type) != 0){
+                    statement.errors.panic( UNDECLARED_TYPE(expr_typename) );
                     return 1;
                 }
 
                 argument_values.push_back(expr_value);
+                argument_types.push_back(expr_typename);
+                argument_llvm_types.push_back(expected_arg_type);
+            }
+
+            if(program.find_func(data.name, argument_types, &func_data) != 0){
+                statement.errors.panic( UNDECLARED_FUNC(data.name) );
+                return 1;
+            }
+
+            std::string final_name = (func_data.is_mangled) ? mangle(data.name, func_data.arguments) : data.name;
+            llvm::Function* target = context.module->getFunction(final_name);
+            if (!target){
+                statement.errors.panic( UNDECLARED_FUNC(data.name+"a") );
+                return 1;
+            }
+            assert(func_data.arguments.size() == target->arg_size());
+
+            if (target->arg_size() != data.args.size()){
+                // NOTE: This error should never appear
+                statement.errors.panic("Incorrect function argument count for function '" + data.name + "'");
+                return 1;
+            }
+
+            for(size_t z = 0; z != argument_values.size(); z++){
+                if(assemble_merge_types_oneway(context, argument_types[z], func_data.arguments[z], &argument_values[z], argument_llvm_types[z], NULL) != 0){
+                    // NOTE: This error should never occur
+                    statement.errors.panic("Incorrect type for argument " + to_str(z+1) + " of function '" + data.name + "'\n    Definition: " + func_data.toString() +
+                         "\n    Expected type '" + func_data.arguments[z] + "' but received type '" + argument_types[z] + "'");
+                    return 1;
+                }
             }
 
             context.builder.CreateCall(target, argument_values, "calltmp");
@@ -596,7 +609,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_IF:
         {
             ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
-            llvm::Function* llvm_function = context.module->getFunction(func.name);
+            llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
             llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
             llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -633,7 +646,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_WHILE:
         {
             ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
-            llvm::Function* llvm_function = context.module->getFunction(func.name);
+            llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
             llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
             llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -674,7 +687,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_UNLESS:
         {
             ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
-            llvm::Function* llvm_function = context.module->getFunction(func.name);
+            llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
             llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
             llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -711,7 +724,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_UNTIL:
         {
             ConditionalStatement data = *( static_cast<ConditionalStatement*>(statement.data) );
-            llvm::Function* llvm_function = context.module->getFunction(func.name);
+            llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
             llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
             llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -752,7 +765,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_IFELSE:
         {
             SplitConditionalStatement data = *( static_cast<SplitConditionalStatement*>(statement.data) );
-            llvm::Function* llvm_function = context.module->getFunction(func.name);
+            llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
             llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
             llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -804,7 +817,7 @@ int assemble_statement(AssembleContext& context, Configuration& config, Program&
     case STATEMENTID_UNLESSELSE:
         {
             SplitConditionalStatement data = *( static_cast<SplitConditionalStatement*>(statement.data) );
-            llvm::Function* llvm_function = context.module->getFunction(func.name);
+            llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
 
             llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
             llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -960,4 +973,16 @@ int assemble_merge_types_oneway(AssembleContext& context, const std::string& typ
     }
 
     return 1;
+}
+bool assemble_types_mergeable(const std::string& a, const std::string& b){
+    // Checks if types can merge, (oneway conversion, merging 'a' into a 'b')
+
+    if(a == "" or b == "") return false;
+    if(a == "void" or b == "void") return false;
+
+    if(a == b) return true;
+    if(b[0] == '*' and a == "ptr") return true;
+    if(a[0] == '*' and b == "ptr") return true;
+
+    return false;
 }

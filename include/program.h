@@ -46,6 +46,7 @@ struct External {
     std::vector<std::string> arguments;
     std::string return_type;
     bool is_public;
+    bool is_mangled;
 
     std::string toString();
 };
@@ -83,10 +84,11 @@ struct Program {
     ~Program();
     int import_merge(const Program&, bool);
     int generate_types(AssembleContext&);
-    int find_type(std::string, llvm::Type**);
-    int find_func(std::string, External*);
-    int find_struct(std::string, Structure*);
-    int find_const(std::string, Constant*);
+    int find_type(const std::string&, llvm::Type**);
+    int find_func(const std::string&, External*);
+    int find_func(const std::string&, const std::vector<std::string>&, External*);
+    int find_struct(const std::string&, Structure*);
+    int find_const(const std::string&, Constant*);
 
     void print();
     void print_types();

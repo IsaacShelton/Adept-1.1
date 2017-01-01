@@ -2,6 +2,7 @@
 #include <iostream>
 #include "../include/errors.h"
 #include "../include/program.h"
+#include "../include/assemble.h"
 
 ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std::string mod_obj, Program* mod_program, Configuration* mod_config){
     name = mod_name;
@@ -64,7 +65,7 @@ int Program::import_merge(const Program& other, bool public_import){
                 arg_typenames[i] = new_func.arguments[i].type;
             }
 
-            externs.push_back( External{new_func.name, arg_typenames, new_func.return_type, public_import} );
+            externs.push_back( External{new_func.name, arg_typenames, new_func.return_type, public_import, true} );
         }
     }
 
@@ -108,6 +109,7 @@ int Program::import_merge(const Program& other, bool public_import){
         if(!already_exists){
             External target = new_external;
             target.is_public = public_import;
+            target.is_mangled = new_external.is_mangled;
             externs.push_back(target);
         }
     }
@@ -188,7 +190,7 @@ int Program::generate_types(AssembleContext& context){
 
     return 0;
 }
-int Program::find_type(std::string name, llvm::Type** type){
+int Program::find_type(const std::string& name, llvm::Type** type){
     size_t pointers;
     std::string type_name;
 
@@ -207,12 +209,14 @@ int Program::find_type(std::string name, llvm::Type** type){
 
     return 1;
 }
-int Program::find_func(std::string name, External* func){
+int Program::find_func(const std::string& name, External* func){
     for(size_t i = 0; i != functions.size(); i++){
         if(functions[i].name == name){
             External external;
             external.name = functions[i].name;
             external.return_type = functions[i].return_type;
+            external.is_public = functions[i].is_public;
+            external.is_mangled = true;
             for(Field& field : functions[i].arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -229,7 +233,51 @@ int Program::find_func(std::string name, External* func){
 
     return 1;
 }
-int Program::find_struct(std::string name, Structure* structure){
+int Program::find_func(const std::string& name, const std::vector<std::string>& args, External* func){
+    for(size_t i = 0; i != functions.size(); i++){
+        if(functions[i].name == name){
+            bool args_match = true;
+            if(args.size() != functions[i].arguments.size()) continue;
+            for(size_t a = 0; a != args.size(); a++){
+                if( !assemble_types_mergeable(args[a], functions[i].arguments[a].type) ){
+                    args_match = false;
+                    break;
+                }
+            }
+            if(!args_match) continue;
+
+            External external;
+            external.name = functions[i].name;
+            external.return_type = functions[i].return_type;
+            external.is_public = functions[i].is_public;
+            external.is_mangled = true;
+            for(Field& field : functions[i].arguments) external.arguments.push_back(field.type);
+
+            *func = external;
+            return 0;
+        }
+    }
+
+    for(size_t i = 0; i != externs.size(); i++){
+        if(externs[i].name == name){
+            bool args_match = true;
+            if(args.size() != externs[i].arguments.size()) continue;
+            for(size_t a = 0; a != args.size(); a++){
+                if( !assemble_types_mergeable(args[a], externs[i].arguments[a]) ){
+                    args_match = false;
+                    break;
+                }
+            }
+            if(!args_match) continue;
+
+            *func = externs[i];
+            return 0;
+        }
+    }
+
+    return 1;
+}
+int Program::find_struct(const std::string& name, Structure* structure){
     for(size_t i = 0; i != structures.size(); i++){
         if(structures[i].name == name){
             *structure = structures[i];
@@ -239,7 +287,7 @@ int Program::find_struct(std::string name, Structure* structure){
 
     return 1;
 }
-int Program::find_const(std::string name, Constant* constant){
+int Program::find_const(const std::string& name, Constant* constant){
     for(size_t i = 0; i != constants.size(); i++){
         if(constants[i].name == name){
             *constant = constants[i];
@@ -312,7 +360,7 @@ void Function::print_statements(){
 }
 
 std::string External::toString(){
-    std::string prefix = (is_public) ? "public " : "private";
+    std::string prefix = (is_public) ? "public " : "private ";
     std::string arg_str;
 
     for(size_t a = 0; a != arguments.size(); a++){

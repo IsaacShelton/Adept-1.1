@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1483200547 source:c:\users\isaac\google drive\adept\src\main.cpp
+1483298279 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -58,7 +58,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1483202709 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1483295968 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"llvm/Support/DynamicLibrary.h"
@@ -96,7 +96,7 @@
 	"../include/strings.h"
 	"../include/statement.h"
 
-1482874422 c:\users\isaac\google drive\adept\include\assemble.h
+1483301158 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -104,7 +104,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1483202465 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1483302454 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -137,6 +137,7 @@
 	"../include/native.h"
 	"../include/strings.h"
 	"../include/assemble.h"
+	"../include/mangling.h"
 
 1467138445 c:\llvm\include\llvm\ir\irbuilder.h
 	"llvm/ADT/ArrayRef.h"
@@ -1148,7 +1149,7 @@
 	"errors.h"
 	"asmcontext.h"
 
-1483200025 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1483300862 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1175,6 +1176,7 @@
 	"../include/strings.h"
 	"../include/program.h"
 	"../include/assemble.h"
+	"../include/mangling.h"
 	"../include/expression.h"
 
 1481321193 c:\users\isaac\google drive\adept\include\asmcontext.h
@@ -1203,16 +1205,17 @@
 	"parse.h"
 	"statement.h"
 
-1483203156 c:\users\isaac\google drive\adept\include\program.h
+1483299846 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
 	"asmcontext.h"
 
-1483203373 source:c:\users\isaac\google drive\adept\src\program.cpp
+1483301864 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	"../include/errors.h"
 	"../include/program.h"
+	"../include/assemble.h"
 
 1482702106 c:\users\isaac\google drive\adept\include\clock.h
 	<chrono>
@@ -1918,4 +1921,12 @@
 1482878052 source:c:\users\isaac\google drive\adept\src\errors.cpp
 	"../include/errors.h"
 	"../include/strings.h"
+
+1483295831 c:\users\isaac\google drive\adept\include\mangling.h
+	<string>
+	<vector>
+	"program.h"
+
+1483296127 source:c:\users\isaac\google drive\adept\src\mangling.cpp
+	"../include/mangling.h"
 
