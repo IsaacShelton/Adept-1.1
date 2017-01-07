@@ -16,15 +16,18 @@ int main(int argc, char** argv) {
     Configuration config;
     AssembleContext context;
     ErrorHandler errors( filename_name(argv[1]) );
-    TokenList* tokens;
+    TokenList* tokens = new TokenList;
 
-    tokens = new TokenList;
+    // Compiler Frontend
     if( configure(config, argc, argv, errors)      != 0 ) return 1;
     if( tokenize(config, argv[1], tokens, errors)  != 0 ) return 1;
     if( parse(config, tokens, program, errors)     != 0 ) return 1;
+    delete tokens;
+
+    // Compiler Backend
     if( assemble(context, config, program, errors) != 0 ) return 1;
     if( finalize(config, context, errors)          != 0 ) return 1;
+    if( shutdown() != 0) return 1;
 
-    llvm::llvm_shutdown();
     return 0;
 }

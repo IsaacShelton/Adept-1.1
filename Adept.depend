@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1483298279 source:c:\users\isaac\google drive\adept\src\main.cpp
+1483364944 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -18,7 +18,7 @@
 	"tokens.h"
 	"errors.h"
 
-1483051201 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1483747695 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -48,7 +48,7 @@
 	<fstream>
 	<stdlib.h>
 
-1483201716 c:\users\isaac\google drive\adept\include\parse.h
+1483809660 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -58,16 +58,17 @@
 	"statement.h"
 	"asmcontext.h"
 
-1483295968 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1483810238 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
-	"llvm/Support/DynamicLibrary.h"
 	"../include/die.h"
 	"../include/type.h"
 	"../include/parse.h"
 	"../include/lexer.h"
 	"../include/errors.h"
 	"../include/strings.h"
+	"../include/mangling.h"
+	"llvm/Support/DynamicLibrary.h"
 
 1482947364 source:c:\users\isaac\google drive\adept\src\config.cpp
 	<cstring>
@@ -83,7 +84,7 @@
 	<iostream>
 	"errors.h"
 
-1483202621 c:\users\isaac\google drive\adept\include\statement.h
+1483808820 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
@@ -1149,7 +1150,7 @@
 	"errors.h"
 	"asmcontext.h"
 
-1483300862 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1483302478 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1179,7 +1180,7 @@
 	"../include/mangling.h"
 	"../include/expression.h"
 
-1481321193 c:\users\isaac\google drive\adept\include\asmcontext.h
+1483366485 c:\users\isaac\google drive\adept\include\asmcontext.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -1284,7 +1285,7 @@
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1483193811 source:c:\users\isaac\google drive\adept\src\finalize.cpp
+1483366497 source:c:\users\isaac\google drive\adept\src\finalize.cpp
 	"../include/jit.h"
 	"../include/lexer.h"
 	"../include/parse.h"
@@ -1293,7 +1294,7 @@
 	"../include/assemble.h"
 	"../include/finalize.h"
 
-1482874392 c:\users\isaac\google drive\adept\include\finalize.h
+1483364915 c:\users\isaac\google drive\adept\include\finalize.h
 	"../include/parse.h"
 	"../include/errors.h"
 	"../include/config.h"
@@ -1358,7 +1359,7 @@
 	"config.h"
 	"program.h"
 
-1483193677 source:c:\users\isaac\google drive\adept\src\build.cpp
+1483365026 source:c:\users\isaac\google drive\adept\src\build.cpp
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
@@ -1922,11 +1923,11 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1483295831 c:\users\isaac\google drive\adept\include\mangling.h
+1483365290 c:\users\isaac\google drive\adept\include\mangling.h
 	<string>
 	<vector>
 	"program.h"
 
-1483296127 source:c:\users\isaac\google drive\adept\src\mangling.cpp
+1483366133 source:c:\users\isaac\google drive\adept\src\mangling.cpp
 	"../include/mangling.h"
 

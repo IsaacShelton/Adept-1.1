@@ -1,14 +1,14 @@
 
 #include <unistd.h>
 #include <iostream>
-#include "llvm/Support/DynamicLibrary.h"
-
 #include "../include/die.h"
 #include "../include/type.h"
 #include "../include/parse.h"
 #include "../include/lexer.h"
 #include "../include/errors.h"
 #include "../include/strings.h"
+#include "../include/mangling.h"
+#include "llvm/Support/DynamicLibrary.h"
 
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
     // NOTE: This function deletes 'tokens' after it is done parsing
@@ -16,8 +16,6 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
     for(size_t i = 0; i != tokens->size(); i++){
         if(parse_token(config, *tokens, program, i, errors) != 0) return 1;
     }
-
-    delete tokens; // Free Tokens
 
     // Print Parser Time
     if(config.time and !config.silent){
@@ -383,24 +381,17 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
 
     ErrorHandler error_handler(errors_name);
     import_config->filename = name;
+
     if( tokenize(*import_config, name, import_tokens, error_handler) != 0 )         return 1;
-    if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ) return 1; // Deletes imported_tokens
+    if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ) return 1;
+    delete import_tokens;
 
-    // Resolve imports
-    std::string mangled_name = name;
-
-    // TODO: Clean up name mangling code
-    mangled_name = string_replace_all(mangled_name, ":",  "$1");
-    mangled_name = string_replace_all(mangled_name, "/",  "$2");
-    mangled_name = string_replace_all(mangled_name, "\\", "$3");
-    mangled_name = string_replace_all(mangled_name, ".",  "$4");
-
+    std::string mangled_name = mangle_filename(name);
     target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
     target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
     program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
     if(program.import_merge(*import_program, attr_info.is_public) != 0) return 1;
-
     return 0;
 }
 int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -535,7 +526,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         break;
     case TOKENID_MEMBER:
         // Variable Assign
-        if(parse_block_member_assign(config, tokens, program, statements, i, name, errors) != 0) return 1;
+        if(parse_block_member(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
     default:
         errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
@@ -632,17 +623,17 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
     statements.push_back( STATEMENT_ASSIGN(name, expression, loads, gep_loads, errors) );
     return 0;
 }
-int parse_block_member_assign(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
+int parse_block_member(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
     // name:member:member = 10 * 3 / 4
     //     ^
 
-    std::vector<AssignMemberPathNode> path = { AssignMemberPathNode{name, std::vector<PlainExp*>()} };
+    AssignMemberPath path = { AssignMemberPathNode{name, std::vector<PlainExp*>()} };
     PlainExp* expression;
 
     while(tokens[i].id == TOKENID_MEMBER){
         next_index(i, tokens.size());
         if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected word after ':' operator");
+            errors.panic("Expected word after '.' operator");
             return 1;
         }
 
@@ -650,12 +641,33 @@ int parse_block_member_assign(Configuration& config, TokenList& tokens, Program&
         next_index(i, tokens.size());
     }
 
-    if(tokens[i].id != TOKENID_ASSIGN){
-        errors.panic("Expected '=' operator after member of variable");
+    if(tokens[i].id != TOKENID_ASSIGN and tokens[i].id != TOKENID_OPEN){
+        errors.panic("Expected '=' or '(' after member operator");
         return 1;
     }
-    next_index(i, tokens.size());
 
+    // Do something else if '(' was found
+    if(tokens[i].id == TOKENID_OPEN){
+        if(path.size() < 2){
+            errors.panic(SUICIDE);
+            return 1;
+        }
+
+        if(path[path.size()-1].gep_loads.size() != 0){
+            errors.panic(SUICIDE);
+            return 1;
+        }
+
+        std::string func_name = path[path.size()-1].name;
+        PlainExp* val = new WordExp(path[0].name, errors);
+
+        // TODO: Improve supported operators with 'variable.call()' syntax
+
+        if(parse_block_member_call(config, tokens, program, statements, i, val, func_name, errors) != 0) return 1;
+        return 0;
+    }
+
+    next_index(i, tokens.size());
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
     statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0, errors) );
     return 0;
@@ -776,6 +788,34 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
         return 1;
     }
 
+    return 0;
+}
+int parse_block_member_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, PlainExp* value, std::string func_name, ErrorHandler& errors){
+    // a_variable.a_member.a_method ( ... )
+    //                              ^
+
+    std::vector<PlainExp*> args = { value };
+    next_index(i, tokens.size());
+
+    if(tokens[i].id != TOKENID_CLOSE) {
+        while(true) {
+            PlainExp* expression;
+
+            if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
+            args.push_back(expression);
+
+            if(tokens[i].id == TOKENID_CLOSE) break;
+            if(tokens[i].id != TOKENID_NEXT){
+                errors.panic("Expected ')' or ',' in argument list");
+                return 1;
+            }
+
+            next_index(i, tokens.size());
+        }
+    }
+
+    statements.push_back( STATEMENT_CALL(func_name, args, errors) );
+    next_index(i, tokens.size());
     return 0;
 }
 
@@ -952,7 +992,7 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
         if(operation == TOKENID_MEMBER){
             next_index(i, tokens.size());
             if(tokens[i].id != TOKENID_WORD){
-                errors.panic("Expected word after ':' operator");
+                errors.panic("Expected word after '.' operator");
                 return 1;
             }
 

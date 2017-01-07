@@ -37,9 +37,6 @@
 #include "errors.h"
 #include "expression.h"
 
-// Helper Structures
-struct AssignMemberPathNode { std::string name; std::vector<PlainExp*> gep_loads; };
-
 // Main Statement Structure
 struct Statement {
     uint16_t id;
@@ -56,6 +53,9 @@ struct Statement {
     std::string toString(unsigned int indent = 0, bool skip_initial_indent = false);
 };
 
+// Helper Structures
+struct AssignMemberPathNode { std::string name; std::vector<PlainExp*> gep_loads; };
+typedef std::vector<AssignMemberPathNode> AssignMemberPath;
 typedef std::vector<Statement> StatementList;
 
 // Possible structures pointed to by 'void* Statement::data'...

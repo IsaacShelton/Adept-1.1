@@ -110,7 +110,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
             tokens.push_back(TOKEN_MODULUS);
             next_index(i, code.size());
             break;
-        case ':':
+        case '.':
             tokens.push_back(TOKEN_MEMBER); i++;
             break;
         case '&':
@@ -149,7 +149,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 std::string word;
 
                 // Not perfect, but whatever
-                while( prefix_char != '(' and prefix_char != ')' and prefix_char != ':'
+                while( prefix_char != '(' and prefix_char != ')' and prefix_char != '.'
                 and prefix_char != ' ' and prefix_char != '\n' and prefix_char != '['
                 and prefix_char != ']' and prefix_char != '{' and prefix_char != '}'
                 and prefix_char != '+' and prefix_char != '-' and prefix_char != '*'
@@ -223,7 +223,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 next_index(i, code_size);
                 prefix_char = code[i];
 
-                while( prefix_char != '(' and prefix_char != ')' and prefix_char != ':'
+                while( prefix_char != '(' and prefix_char != ')' and prefix_char != '.'
                 and prefix_char != ' ' and prefix_char != '\n' and prefix_char != '['
                 and prefix_char != ']' and prefix_char != '{' and prefix_char != '}'
                 and prefix_char != '+' and prefix_char != '-' and prefix_char != '*'

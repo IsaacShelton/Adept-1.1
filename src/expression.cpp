@@ -42,17 +42,20 @@ OperatorExp::OperatorExp(ErrorHandler& err){
     operation = 0;
     left = NULL;
     right = NULL;
+    is_mutable = false;
     errors = err;
 }
 OperatorExp::OperatorExp(const OperatorExp& other) : PlainExp(other) {
     operation = other.operation;
     left = other.left->clone();
     right = other.right->clone();
+    is_mutable = false;
 }
 OperatorExp::OperatorExp(uint16_t o, PlainExp* l, PlainExp* r, ErrorHandler& err){
     operation = o;
     left = l;
     right = r;
+    is_mutable = false;
     errors = err;
 }
 OperatorExp::~OperatorExp(){
@@ -190,10 +193,12 @@ PlainExp* OperatorExp::clone(){
 }
 
 BoolExp::BoolExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 BoolExp::BoolExp(bool val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 BoolExp::~BoolExp(){}
@@ -209,10 +214,12 @@ PlainExp* BoolExp::clone(){
 }
 
 ByteExp::ByteExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 ByteExp::ByteExp(int8_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 ByteExp::~ByteExp(){}
@@ -228,9 +235,11 @@ PlainExp* ByteExp::clone(){
 }
 
 ShortExp::ShortExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 ShortExp::ShortExp(int16_t val, ErrorHandler& err){
+    is_mutable = false;
     value = val;
     errors = err;
 }
@@ -247,10 +256,12 @@ PlainExp* ShortExp::clone(){
 }
 
 IntegerExp::IntegerExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 IntegerExp::IntegerExp(int32_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 IntegerExp::~IntegerExp(){}
@@ -266,10 +277,12 @@ PlainExp* IntegerExp::clone(){
 }
 
 LongExp::LongExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 LongExp::LongExp(int64_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 LongExp::~LongExp(){}
@@ -285,10 +298,12 @@ PlainExp* LongExp::clone(){
 }
 
 UnsignedByteExp::UnsignedByteExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 UnsignedByteExp::UnsignedByteExp(uint8_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 UnsignedByteExp::~UnsignedByteExp(){}
@@ -304,10 +319,12 @@ PlainExp* UnsignedByteExp::clone(){
 }
 
 UnsignedShortExp::UnsignedShortExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 UnsignedShortExp::UnsignedShortExp(uint16_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 UnsignedShortExp::~UnsignedShortExp(){}
@@ -323,10 +340,12 @@ PlainExp* UnsignedShortExp::clone(){
 }
 
 UnsignedIntegerExp::UnsignedIntegerExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 UnsignedIntegerExp::~UnsignedIntegerExp(){}
@@ -342,10 +361,12 @@ PlainExp* UnsignedIntegerExp::clone(){
 }
 
 UnsignedLongExp::UnsignedLongExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 UnsignedLongExp::UnsignedLongExp(uint64_t val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 UnsignedLongExp::~UnsignedLongExp(){}
@@ -362,10 +383,12 @@ PlainExp* UnsignedLongExp::clone(){
 
 
 FloatExp::FloatExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 FloatExp::FloatExp(float val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 FloatExp::~FloatExp(){}
@@ -381,10 +404,12 @@ PlainExp* FloatExp::clone(){
 }
 
 DoubleExp::DoubleExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 DoubleExp::DoubleExp(double val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 DoubleExp::~DoubleExp(){}
@@ -400,10 +425,12 @@ PlainExp* DoubleExp::clone(){
 }
 
 StringExp::StringExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 StringExp::StringExp(const std::string& val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 StringExp::~StringExp(){}
@@ -433,10 +460,12 @@ PlainExp* StringExp::clone(){
 }
 
 WordExp::WordExp(ErrorHandler& err){
+    is_mutable = true;
     errors = err;
 }
 WordExp::WordExp(const std::string& val, ErrorHandler& err){
     value = val;
+    is_mutable = true;
     errors = err;
 }
 WordExp::~WordExp(){}
@@ -459,10 +488,12 @@ PlainExp* WordExp::clone(){
 }
 
 AddrWordExp::AddrWordExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 AddrWordExp::AddrWordExp(const std::string& val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 AddrWordExp::~AddrWordExp(){}
@@ -485,14 +516,17 @@ PlainExp* AddrWordExp::clone(){
 }
 
 LoadExp::LoadExp(ErrorHandler& err){
+    is_mutable = true;
     errors = err;
 }
 LoadExp::LoadExp(PlainExp* val, ErrorHandler& err){
     value = val;
+    is_mutable = true;
     errors = err;
 }
 LoadExp::LoadExp(const LoadExp& other) : PlainExp(other) {
     value = other.value->clone();
+    is_mutable = true;
 }
 LoadExp::~LoadExp(){
     delete value;
@@ -518,16 +552,19 @@ PlainExp* LoadExp::clone(){
 }
 
 IndexLoadExp::IndexLoadExp(ErrorHandler& err){
+    is_mutable = true;
     errors = err;
 }
 IndexLoadExp::IndexLoadExp(PlainExp* val, PlainExp* idx, ErrorHandler& err){
     value = val;
     index = idx;
+    is_mutable = true;
     errors = err;
 }
 IndexLoadExp::IndexLoadExp(const IndexLoadExp& other) : PlainExp(other) {
     value = other.value->clone();
     index = other.index->clone();
+    is_mutable = true;
 }
 IndexLoadExp::~IndexLoadExp(){
     delete value;
@@ -567,15 +604,18 @@ PlainExp* IndexLoadExp::clone(){
 }
 
 CallExp::CallExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 CallExp::CallExp(const CallExp& other) : PlainExp(other) {
     name = other.name;
     for(PlainExp* e : other.args) args.push_back( e->clone() );
+    is_mutable = false;
 }
 CallExp::CallExp(std::string n, const std::vector<PlainExp*>& a, ErrorHandler& err){
     name = n;
     args = a;
+    is_mutable = false;
     errors = err;
 }
 CallExp::~CallExp(){
@@ -654,10 +694,12 @@ PlainExp* CallExp::clone(){
 
 MemberExp::MemberExp(ErrorHandler& err){
     errors = err;
+    is_mutable = true;
 }
 MemberExp::MemberExp(PlainExp* v, const std::string& m, ErrorHandler& err){
     value = v;
     member = m;
+    is_mutable = true;
     errors = err;
 }
 MemberExp::~MemberExp(){
@@ -719,6 +761,7 @@ PlainExp* MemberExp::clone(){
 }
 
 NullExp::NullExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 NullExp::~NullExp(){}
@@ -734,10 +777,12 @@ PlainExp* NullExp::clone(){
 }
 
 NotExp::NotExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 NotExp::NotExp(PlainExp* val, ErrorHandler& err){
     value = val;
+    is_mutable = false;
     errors = err;
 }
 NotExp::~NotExp(){
@@ -808,11 +853,13 @@ PlainExp* NotExp::clone(){
 }
 
 CastExp::CastExp(ErrorHandler& err){
+    is_mutable = false;
     errors = err;
 }
 CastExp::CastExp(PlainExp* val, std::string tgt_type, ErrorHandler& err){
     value = val;
     target_typename = tgt_type;
+    is_mutable = false;
     errors = err;
 }
 CastExp::~CastExp(){

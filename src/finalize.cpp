@@ -29,3 +29,9 @@ int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& err
 
     return 0;
 }
+
+int shutdown(){
+
+    llvm::llvm_shutdown();
+    return 0;
+}

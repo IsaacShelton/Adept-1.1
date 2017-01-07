@@ -20,3 +20,34 @@ std::string mangle(const std::string& name, const std::vector<std::string>& args
     }
     return mangled_name;
 }
+
+std::string mangle_filename(const std::string& filename){
+    std::string mangled_name;
+    char byte;
+
+    for(size_t i = 0; i != filename.size(); i++){
+        byte = filename[i];
+
+        switch(byte){
+        case ':':
+            mangled_name += "$!";
+            break;
+        case '/':
+            mangled_name += "$@";
+            break;
+        case '\\':
+            mangled_name += "$#";
+            break;
+        case '$':
+            mangled_name += "$$";
+            break;
+        case '.':
+            mangled_name += "$%";
+            break;
+        default:
+            mangled_name += byte;
+        }
+    }
+
+    return mangled_name;
+}

@@ -9,5 +9,6 @@
 #include "../include/asmcontext.h"
 
 int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& errors);
+int shutdown();
 
 #endif // ADEPT_H_INCLUDED

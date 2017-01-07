@@ -14,6 +14,9 @@ struct Function;
 
 class PlainExp {
     public:
+    // Indicates whether or not this value can be modified
+    bool is_mutable;
+
     // Filename & line in case of error
     ErrorHandler errors;
 

@@ -70,17 +70,19 @@ extern "C" int adept_compile(const char* file, BuildConfig* build_config) {
     Program program;
     Configuration config;
     AssembleContext context;
-    TokenList* tokens;
+    TokenList* tokens = new TokenList;
     ErrorHandler errors(filename_name(file));
 
     // Setup a configuration for the file
     if(configure(config, file, errors) != 0) return 1;
     if(build_config != NULL) build_transfer_config(&config, build_config);
 
-    // Build the file
-    tokens = new TokenList;
+    // Compiler Frontend
     if( tokenize(config, file, tokens, errors)     != 0 ) return 1;
     if( parse(config, tokens, program, errors)     != 0 ) return 1;
+    delete tokens;
+
+    // Compiler Backend
     if( assemble(context, config, program, errors) != 0 ) return 1;
     if( finalize(config, context, errors)          != 0 ) return 1;
 
