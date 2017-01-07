@@ -84,8 +84,8 @@ private import "system/system.adept"
 private def build() int {
 	config adept\BuildConfig = adept\config()
 	
-	config:time = true
-	config:optimization = $ADEPT\OPTIMIZATION_HIGH
+	config.time = true
+	config.optimization = $ADEPT\OPTIMIZATION_HIGH
 
 	unless adept\compile("main.adept", &config) == 0 {
 		return 1
