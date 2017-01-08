@@ -179,7 +179,7 @@ int Program::generate_types(AssembleContext& context){
         for(size_t j = 0; j != struct_data.members.size(); j++){
             llvm::Type* member_type;
             if(this->find_type(struct_data.members[j].type, &member_type) != 0) {
-                std::cout << "The type '" << struct_data.members[j].type << "' does not exist" << std::endl;
+                std::cerr << "The type '" << struct_data.members[j].type << "' does not exist" << std::endl;
                 return 1;
             }
             members.push_back(member_type);
@@ -314,7 +314,7 @@ void Program::print_functions(){
         }
         std::cout << ") " << f.return_type << " {" << std::endl;
         for(size_t a = 0; a != f.statements.size(); a++){
-            std::cout << f.statements[a].toString(1) << std::endl;
+            std::cout << f.statements[a]->toString(1, false) << std::endl;
         }
         std::cout << "}" << std::endl;
     }
@@ -343,6 +343,29 @@ void Program::print_structures(){
     }
 }
 
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public){
+    this->name = name;
+    this->arguments = arguments;
+    this->return_type = return_type;
+    this->statements = statements;
+    this->is_public = is_public;
+}
+Function::Function(const Function& other){
+    name = other.name;
+    arguments = other.arguments;
+    return_type = other.return_type;
+    statements.resize(other.statements.size());
+    is_public = other.is_public;
+    variables = other.variables;
+    asm_func = other.asm_func;
+
+    for(size_t i = 0; i != other.statements.size(); i++){
+        statements[i] = other.statements[i]->clone();
+    }
+}
+Function::~Function(){
+    for(Statement* s : statements) delete s;
+}
 int Function::find_variable(std::string var_name, Variable* var){
     for(size_t i = 0; i != variables.size(); i++){
         if(variables[i].name == var_name){
@@ -354,8 +377,8 @@ int Function::find_variable(std::string var_name, Variable* var){
     return 1;
 }
 void Function::print_statements(){
-    for(Statement statement : statements){
-        std::cout << statement.toString() << std::endl;
+    for(Statement* statement : statements){
+        std::cout << statement->toString(0, false) << std::endl;
     }
 }
 

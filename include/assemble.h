@@ -17,7 +17,6 @@ int assemble_structure(AssembleContext&, Configuration&, Program&, Structure&);
 int assemble_function(AssembleContext&, Configuration&, Program&, Function&);
 int assemble_function_body(AssembleContext&, Configuration&, Program&, Function&);
 int assemble_external(AssembleContext&, Configuration&, Program&, External&);
-int assemble_statement(AssembleContext&, Configuration&, Program&, Function&, AssembleFunction&, Statement&);
 
 void assemble_merge_conditional_types(AssembleContext&, std::string&, llvm::Value**);
 int assemble_merge_types(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Value**, std::string*);

@@ -18,7 +18,8 @@ struct Field {
     std::string type;
 };
 
-struct Structure {
+class Structure {
+    public:
     std::string name;
     std::vector<Field> members;
     bool is_public;
@@ -26,22 +27,26 @@ struct Structure {
     int find_index(std::string name, int* index);
 };
 
-struct Function {
+class Function {
+    public:
     std::string name;
     std::vector<Field> arguments;
     std::string return_type;
-    std::vector<Statement> statements;
+    StatementList statements;
     bool is_public;
 
     std::vector<Variable> variables;
     AssembleFunction asm_func;
 
+    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool);
+    Function(const Function&);
+    ~Function();
     int find_variable(std::string, Variable*);
-
     void print_statements();
 };
 
-struct External {
+class External {
+    public:
     std::string name;
     std::vector<std::string> arguments;
     std::string return_type;
@@ -51,7 +56,8 @@ struct External {
     std::string toString();
 };
 
-struct ModuleDependency {
+class ModuleDependency {
+    public:
     std::string name;
     std::string target_bc;
     std::string target_obj;
@@ -62,7 +68,8 @@ struct ModuleDependency {
     ModuleDependency(std::string, std::string, std::string, Program*, Configuration*);
 };
 
-struct Constant {
+class Constant {
+    public:
     std::string name;
     PlainExp* value;
     bool is_public;
@@ -71,7 +78,8 @@ struct Constant {
     Constant(const std::string&, PlainExp*, bool);
 };
 
-struct Program {
+class Program {
+    public:
     std::vector<ModuleDependency> imports;
     std::vector<std::string> extra_libs;
 

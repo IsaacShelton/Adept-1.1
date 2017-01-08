@@ -476,24 +476,24 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
         next_index(i, tokens.size());
 
         if(tokens[i].id == TOKENID_NEWLINE){
-            statements.push_back( STATEMENT_RETURN(NULL, errors) );
+            statements.push_back( new ReturnStatement(NULL, errors) );
         }
         else {
             if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-            statements.push_back(std::move( STATEMENT_RETURN(expression, errors) ));
+            statements.push_back( new ReturnStatement(expression, errors) );
         }
     }
     else if(keyword == "if"){
-        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_IF, errors) != 0) return 1;
+        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_IF, errors) != 0) return 1;
     }
     else if(keyword == "while"){
-        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_WHILE, errors) != 0) return 1;
+        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_WHILE, errors) != 0) return 1;
     }
     else if(keyword == "unless"){
-        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_UNLESS, errors) != 0) return 1;
+        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNLESS, errors) != 0) return 1;
     }
     else if(keyword == "until"){
-        if(parse_block_conditional(config, tokens, program, statements, i, CONDITIONAL_UNTIL, errors) != 0) return 1;
+        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
     }
     else {
         errors.panic( UNEXPECTED_KEYWORD(keyword) );
@@ -558,10 +558,10 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
         next_index(i, tokens.size());
 
         if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-        statements.push_back( STATEMENT_DECLAREAS(name, type, expression, errors) );
+        statements.push_back( new DeclareAssignStatement(name, type, expression, errors) );
     }
     else {
-        statements.push_back( STATEMENT_DECLARE(name, type, errors) );
+        statements.push_back( new DeclareStatement(name, type, errors) );
     }
     return 0;
 }
@@ -590,7 +590,7 @@ int parse_block_call(Configuration& config, TokenList& tokens, Program& program,
         }
     }
 
-    statements.push_back( STATEMENT_CALL(name, args, errors) );
+    statements.push_back( new CallStatement(name, args, errors) );
     next_index(i, tokens.size());
     return 0;
 }
@@ -599,7 +599,11 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
     //      ^                      ^
 
     PlainExp* expression;
-    std::vector<PlainExp*> gep_loads;
+    PlainExp* location = new WordExp(name, errors);
+
+    for(int l = 0; l != loads; l++){
+        location = new LoadExp(location, errors);
+    }
 
     if(tokens[i].id == TOKENID_BRACKET_OPEN){
         PlainExp* int_expr;
@@ -613,20 +617,22 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
                 return 1;
             }
 
-            gep_loads.push_back(int_expr);
+            location = new IndexLoadExp(location, int_expr, errors);
             next_index(i, tokens.size());
         }
     }
 
     next_index(i, tokens.size());
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-    statements.push_back( STATEMENT_ASSIGN(name, expression, loads, gep_loads, errors) );
+
+    statements.push_back( new AssignStatement(location, expression, errors) );
     return 0;
 }
 int parse_block_member(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
     // name:member:member = 10 * 3 / 4
     //     ^
 
+    /*
     AssignMemberPath path = { AssignMemberPathNode{name, std::vector<PlainExp*>()} };
     PlainExp* expression;
 
@@ -669,7 +675,11 @@ int parse_block_member(Configuration& config, TokenList& tokens, Program& progra
 
     next_index(i, tokens.size());
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-    statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0, errors) );
+    */
+    //statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0, errors) );
+    errors.panic("UNIMPLEMENTED STATEMENT USED");
+    return 1;
+
     return 0;
 }
 int parse_block_dereference(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
@@ -735,10 +745,10 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
                 std::string else_conditional = tokens[i].getString();
 
                 if(else_conditional == "if"){
-                    else_conditional_type = CONDITIONAL_IF;
+                    else_conditional_type = STATEMENTID_IF;
                 }
                 else if(else_conditional == "unless"){
-                    else_conditional_type = CONDITIONAL_UNLESS;
+                    else_conditional_type = STATEMENTID_UNLESS;
                 }
                 else {
                     errors.panic( UNEXPECTED_KEYWORD(else_conditional) );
@@ -753,11 +763,11 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
             }
 
             switch(conditional_type){
-            case CONDITIONAL_IF:
-                statements.push_back(std::move( STATEMENT_IFELSE(expression, conditional_statements, else_statements, errors) ));
+            case STATEMENTID_IF:
+                statements.push_back( new IfElseStatement(expression, conditional_statements, else_statements, errors) );
                 break;
-            case CONDITIONAL_UNLESS:
-                statements.push_back(std::move( STATEMENT_UNLESSELSE(expression, conditional_statements, else_statements, errors) ));
+            case STATEMENTID_UNLESS:
+                statements.push_back( new UnlessElseStatement(expression, conditional_statements, else_statements, errors) );
                 break;
             default:
                 errors.panic("Conditional doesn't support 'else' keyword");
@@ -771,17 +781,17 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
     // At this point, we have verified that there is no 'else'
 
     switch(conditional_type){
-    case CONDITIONAL_IF:
-        statements.push_back(std::move( STATEMENT_IF(expression, conditional_statements, errors) ));
+    case STATEMENTID_IF:
+        statements.push_back( new IfStatement(expression, conditional_statements, errors) );
         break;
-    case CONDITIONAL_WHILE:
-        statements.push_back(std::move( STATEMENT_WHILE(expression, conditional_statements, errors) ));
+    case STATEMENTID_WHILE:
+        statements.push_back( new WhileStatement(expression, conditional_statements, errors) );
         break;
-    case CONDITIONAL_UNLESS:
-        statements.push_back(std::move( STATEMENT_UNLESS(expression, conditional_statements, errors) ));
+    case STATEMENTID_UNLESS:
+        statements.push_back( new UnlessStatement(expression, conditional_statements, errors) );
         break;
-    case CONDITIONAL_UNTIL:
-        statements.push_back(std::move( STATEMENT_UNTIL(expression, conditional_statements, errors) ));
+    case STATEMENTID_UNTIL:
+        statements.push_back( new UntilStatement(expression, conditional_statements, errors) );
         break;
     default:
         errors.panic("Invalid conditional type");
@@ -814,7 +824,7 @@ int parse_block_member_call(Configuration& config, TokenList& tokens, Program& p
         }
     }
 
-    statements.push_back( STATEMENT_CALL(func_name, args, errors) );
+    statements.push_back( new CallStatement(func_name, args, errors) );
     next_index(i, tokens.size());
     return 0;
 }

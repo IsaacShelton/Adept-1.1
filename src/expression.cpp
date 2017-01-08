@@ -37,6 +37,19 @@ PlainExp::PlainExp(ErrorHandler& err){
     errors = err;
 }
 PlainExp::~PlainExp(){}
+llvm::Value* PlainExp::assemble_immutable(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    // Call this method instead of 'PlainExp::assemble' to get an immutable value
+    // because 'PlainExp::assemble' is not guarenteed to return an immutable result
+
+    llvm::Value* val = this->assemble(program, func, context, expr_type);
+    if(val == NULL) return NULL;
+
+    if(this->is_mutable){
+        val = context.builder.CreateLoad(val, "loadtmp");
+    }
+
+    return val;
+}
 
 OperatorExp::OperatorExp(ErrorHandler& err){
     operation = 0;
@@ -66,8 +79,8 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
     std::string type_name;
     std::string left_typename;
     std::string right_typename;
-    llvm::Value* left_value = left->assemble(program, func, context, &left_typename);
-    llvm::Value* right_value = right->assemble(program, func, context, &right_typename);
+    llvm::Value* left_value = left->assemble_immutable(program, func, context, &left_typename);
+    llvm::Value* right_value = right->assemble_immutable(program, func, context, &right_typename);
 
     if(left_value == NULL or right_value == NULL) return NULL;
     if(assemble_merge_types(context, left_typename, right_typename, &left_value, &right_value, &type_name) != 0){
@@ -201,6 +214,10 @@ BoolExp::BoolExp(bool val, ErrorHandler& err){
     is_mutable = false;
     errors = err;
 }
+BoolExp::BoolExp(const BoolExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+}
 BoolExp::~BoolExp(){}
 llvm::Value* BoolExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "bool";
@@ -221,6 +238,10 @@ ByteExp::ByteExp(int8_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+ByteExp::ByteExp(const ByteExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 ByteExp::~ByteExp(){}
 llvm::Value* ByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -243,6 +264,10 @@ ShortExp::ShortExp(int16_t val, ErrorHandler& err){
     value = val;
     errors = err;
 }
+ShortExp::ShortExp(const ShortExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+}
 ShortExp::~ShortExp(){}
 llvm::Value* ShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "short";
@@ -263,6 +288,10 @@ IntegerExp::IntegerExp(int32_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+IntegerExp::IntegerExp(const IntegerExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 IntegerExp::~IntegerExp(){}
 llvm::Value* IntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -285,6 +314,10 @@ LongExp::LongExp(int64_t val, ErrorHandler& err){
     is_mutable = false;
     errors = err;
 }
+LongExp::LongExp(const LongExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+}
 LongExp::~LongExp(){}
 llvm::Value* LongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "long";
@@ -305,6 +338,10 @@ UnsignedByteExp::UnsignedByteExp(uint8_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+UnsignedByteExp::UnsignedByteExp(const UnsignedByteExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 UnsignedByteExp::~UnsignedByteExp(){}
 llvm::Value* UnsignedByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -327,6 +364,10 @@ UnsignedShortExp::UnsignedShortExp(uint16_t val, ErrorHandler& err){
     is_mutable = false;
     errors = err;
 }
+UnsignedShortExp::UnsignedShortExp(const UnsignedShortExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+}
 UnsignedShortExp::~UnsignedShortExp(){}
 llvm::Value* UnsignedShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "ushort";
@@ -347,6 +388,10 @@ UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+UnsignedIntegerExp::UnsignedIntegerExp(const UnsignedIntegerExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 UnsignedIntegerExp::~UnsignedIntegerExp(){}
 llvm::Value* UnsignedIntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -369,6 +414,10 @@ UnsignedLongExp::UnsignedLongExp(uint64_t val, ErrorHandler& err){
     is_mutable = false;
     errors = err;
 }
+UnsignedLongExp::UnsignedLongExp(const UnsignedLongExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+}
 UnsignedLongExp::~UnsignedLongExp(){}
 llvm::Value* UnsignedLongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "ulong";
@@ -381,7 +430,6 @@ PlainExp* UnsignedLongExp::clone(){
     return new UnsignedLongExp(*this);
 }
 
-
 FloatExp::FloatExp(ErrorHandler& err){
     is_mutable = false;
     errors = err;
@@ -390,6 +438,10 @@ FloatExp::FloatExp(float val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+FloatExp::FloatExp(const FloatExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 FloatExp::~FloatExp(){}
 llvm::Value* FloatExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -412,6 +464,10 @@ DoubleExp::DoubleExp(double val, ErrorHandler& err){
     is_mutable = false;
     errors = err;
 }
+DoubleExp::DoubleExp(const DoubleExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+}
 DoubleExp::~DoubleExp(){}
 llvm::Value* DoubleExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "double";
@@ -432,6 +488,10 @@ StringExp::StringExp(const std::string& val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+StringExp::StringExp(const StringExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 StringExp::~StringExp(){}
 llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -468,6 +528,10 @@ WordExp::WordExp(const std::string& val, ErrorHandler& err){
     is_mutable = true;
     errors = err;
 }
+WordExp::WordExp(const WordExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = true;
+}
 WordExp::~WordExp(){}
 llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
@@ -478,7 +542,7 @@ llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext
     }
 
     if(expr_type != NULL) *expr_type = var.type;
-    return context.builder.CreateLoad(var.variable, value.c_str());
+    return var.variable;
 }
 std::string WordExp::toString(){
     return value;
@@ -495,6 +559,10 @@ AddrWordExp::AddrWordExp(const std::string& val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+AddrWordExp::AddrWordExp(const AddrWordExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
 }
 AddrWordExp::~AddrWordExp(){}
 llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -574,13 +642,18 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleCo
     llvm::Value* pointer_value = value->assemble(program, func, context, &pointer_typename);
     if(pointer_value == NULL) return NULL;
 
+    if(!value->is_mutable){
+        errors.panic("Can't use [] operator on immutable expression");
+        return NULL;
+    }
+
     if(pointer_typename[0] != '*' or !pointer_value->getType()->isPointerTy()){
         errors.panic("Can't dereference non-pointer type '" + pointer_typename + "'");
         return NULL;
     }
 
     std::string index_typename;
-    llvm::Value* index_value = index->assemble(program, func, context, &index_typename);
+    llvm::Value* index_value = index->assemble_immutable(program, func, context, &index_typename);
     if(index_value == NULL) return NULL;
 
     if(index_typename != "int"){
@@ -702,8 +775,13 @@ MemberExp::MemberExp(PlainExp* v, const std::string& m, ErrorHandler& err){
     is_mutable = true;
     errors = err;
 }
+MemberExp::MemberExp(const MemberExp& other) : PlainExp(other) {
+    value = other.value;
+    member = other.member;
+    is_mutable = true;
+}
 MemberExp::~MemberExp(){
-    //delete value;
+    delete value;
 }
 llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     int index;
@@ -712,6 +790,11 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
     llvm::Value* member_index;
     llvm::Value* data = value->assemble(program, func, context, &type_name);
     if(data == NULL) return NULL;
+
+    if(!value->is_mutable){
+        errors.panic("Can't use [] operator on immutable expression");
+        return NULL;
+    }
 
     if(type_name == ""){
         errors.panic("Undeclared type ''");
@@ -738,20 +821,14 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
         return NULL;
     }
 
-    // TODO: Only allocate for non-variables
-    llvm::AllocaInst* alloc = context.builder.CreateAlloca(alloc_type, 0, "alloctmp");
-    context.builder.CreateStore(data, alloc);
-
     std::vector<llvm::Value*> indices(2);
     member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
     indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
     indices[1] = member_index;
 
-    llvm::Value* member_ptr = context.builder.CreateGEP(alloc_type, alloc, indices, "memberptr");
-    llvm::Value* loaded_member = context.builder.CreateLoad(member_ptr, "loadtmp");
-
+    llvm::Value* member_ptr = context.builder.CreateGEP(alloc_type, data, indices, "memberptr");
     if(expr_type != NULL) *expr_type = target.members[index].type;
-    return loaded_member;
+    return member_ptr;
 }
 std::string MemberExp::toString(){
     return value->toString() + ":" + member;
@@ -763,6 +840,9 @@ PlainExp* MemberExp::clone(){
 NullExp::NullExp(ErrorHandler& err){
     is_mutable = false;
     errors = err;
+}
+NullExp::NullExp(const NullExp& other) : PlainExp(other) {
+    is_mutable = false;
 }
 NullExp::~NullExp(){}
 llvm::Value* NullExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -784,6 +864,10 @@ NotExp::NotExp(PlainExp* val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     errors = err;
+}
+NotExp::NotExp(const NotExp& other) : PlainExp(other) {
+    value = other.value->clone();
+    is_mutable = false;
 }
 NotExp::~NotExp(){
     delete value;

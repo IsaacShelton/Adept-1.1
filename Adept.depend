@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1483364944 source:c:\users\isaac\google drive\adept\src\main.cpp
+1483883215 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -48,7 +48,7 @@
 	<fstream>
 	<stdlib.h>
 
-1483809660 c:\users\isaac\google drive\adept\include\parse.h
+1483812973 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -58,7 +58,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1483810238 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1483882675 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -84,7 +84,7 @@
 	<iostream>
 	"errors.h"
 
-1483808820 c:\users\isaac\google drive\adept\include\statement.h
+1483883161 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
@@ -92,12 +92,34 @@
 	"errors.h"
 	"expression.h"
 
-1483202651 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1483883262 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ExecutionEngine/ExecutionEngine.h"
+	"llvm/ExecutionEngine/GenericValue.h"
+	"llvm/ExecutionEngine/MCJIT.h"
+	"llvm/Support/DynamicLibrary.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/Constants.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Type.h"
+	"llvm/IR/Verifier.h"
+	"llvm/IR/Constants.h"
+	"llvm/Bitcode/ReaderWriter.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/FileSystem.h"
 	"../include/strings.h"
+	"../include/assemble.h"
+	"../include/mangling.h"
 	"../include/statement.h"
 
-1483301158 c:\users\isaac\google drive\adept\include\assemble.h
+1483817885 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -105,7 +127,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1483302454 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1483820193 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -1143,14 +1165,14 @@
 	"llvm/Config/AsmParsers.def"
 	"llvm/Config/Disassemblers.def"
 
-1483052717 c:\users\isaac\google drive\adept\include\expression.h
+1483822432 c:\users\isaac\google drive\adept\include\expression.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 	"errors.h"
 	"asmcontext.h"
 
-1483302478 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1483883052 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1206,13 +1228,13 @@
 	"parse.h"
 	"statement.h"
 
-1483299846 c:\users\isaac\google drive\adept\include\program.h
+1483883571 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
 	"asmcontext.h"
 
-1483301864 source:c:\users\isaac\google drive\adept\src\program.cpp
+1483820164 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	"../include/errors.h"
 	"../include/program.h"
@@ -1919,7 +1941,7 @@
 1467619289 c:\llvm\include\llvm\bitcode\llvmbitcodes.h
 	"llvm/Bitcode/BitCodes.h"
 
-1482878052 source:c:\users\isaac\google drive\adept\src\errors.cpp
+1483820415 source:c:\users\isaac\google drive\adept\src\errors.cpp
 	"../include/errors.h"
 	"../include/strings.h"
 

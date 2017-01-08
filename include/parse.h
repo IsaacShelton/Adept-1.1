@@ -11,11 +11,10 @@
 #include "statement.h"
 #include "asmcontext.h"
 
-#define CONDITIONAL_IF     0
-#define CONDITIONAL_UNLESS 1
-#define CONDITIONAL_WHILE  2
-#define CONDITIONAL_UNTIL  3
-#define CONDITIONAL_FOR    4
+#define CONDITIONAL_IF     STATEMENTID_IF
+#define CONDITIONAL_UNLESS STATEMENTID_UNLESS
+#define CONDITIONAL_WHILE  STATEMENTID_WHILE
+#define CONDITIONAL_UNTIL  STATEMENTID_UNTIL
 
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors);
 

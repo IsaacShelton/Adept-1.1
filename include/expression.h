@@ -27,6 +27,8 @@ class PlainExp {
     virtual llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*) = 0;
     virtual std::string toString() = 0;
     virtual PlainExp* clone() = 0;
+
+    llvm::Value* assemble_immutable(Program&, Function&, AssembleContext&, std::string*);
 };
 
 class OperatorExp : public PlainExp {
@@ -42,7 +44,6 @@ class OperatorExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class BoolExp : public PlainExp {
@@ -51,11 +52,11 @@ class BoolExp : public PlainExp {
 
     BoolExp(ErrorHandler&);
     BoolExp(bool, ErrorHandler&);
+    BoolExp(const BoolExp&);
     ~BoolExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class ByteExp : public PlainExp {
@@ -64,11 +65,11 @@ class ByteExp : public PlainExp {
 
     ByteExp(ErrorHandler&);
     ByteExp(int8_t, ErrorHandler&);
+    ByteExp(const ByteExp&);
     ~ByteExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class ShortExp : public PlainExp {
@@ -77,11 +78,11 @@ class ShortExp : public PlainExp {
 
     ShortExp(ErrorHandler&);
     ShortExp(int16_t, ErrorHandler&);
+    ShortExp(const ShortExp&);
     ~ShortExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class IntegerExp : public PlainExp {
@@ -90,11 +91,11 @@ class IntegerExp : public PlainExp {
 
     IntegerExp(ErrorHandler&);
     IntegerExp(int32_t, ErrorHandler&);
+    IntegerExp(const IntegerExp&);
     ~IntegerExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class LongExp : public PlainExp {
@@ -103,11 +104,11 @@ class LongExp : public PlainExp {
 
     LongExp(ErrorHandler&);
     LongExp(int64_t, ErrorHandler&);
+    LongExp(const LongExp&);
     ~LongExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class UnsignedByteExp : public PlainExp {
@@ -116,11 +117,11 @@ class UnsignedByteExp : public PlainExp {
 
     UnsignedByteExp(ErrorHandler&);
     UnsignedByteExp(uint8_t, ErrorHandler&);
+    UnsignedByteExp(const UnsignedByteExp&);
     ~UnsignedByteExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class UnsignedShortExp : public PlainExp {
@@ -129,11 +130,11 @@ class UnsignedShortExp : public PlainExp {
 
     UnsignedShortExp(ErrorHandler&);
     UnsignedShortExp(uint16_t, ErrorHandler&);
+    UnsignedShortExp(const UnsignedShortExp&);
     ~UnsignedShortExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class UnsignedIntegerExp : public PlainExp {
@@ -142,11 +143,11 @@ class UnsignedIntegerExp : public PlainExp {
 
     UnsignedIntegerExp(ErrorHandler&);
     UnsignedIntegerExp(uint32_t, ErrorHandler&);
+    UnsignedIntegerExp(const UnsignedIntegerExp&);
     ~UnsignedIntegerExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class UnsignedLongExp : public PlainExp {
@@ -155,11 +156,11 @@ class UnsignedLongExp : public PlainExp {
 
     UnsignedLongExp(ErrorHandler&);
     UnsignedLongExp(uint64_t, ErrorHandler&);
+    UnsignedLongExp(const UnsignedLongExp&);
     ~UnsignedLongExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class FloatExp : public PlainExp {
@@ -168,11 +169,11 @@ class FloatExp : public PlainExp {
 
     FloatExp(ErrorHandler&);
     FloatExp(float, ErrorHandler&);
+    FloatExp(const FloatExp&);
     ~FloatExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class DoubleExp : public PlainExp {
@@ -181,11 +182,11 @@ class DoubleExp : public PlainExp {
 
     DoubleExp(ErrorHandler&);
     DoubleExp(double, ErrorHandler&);
+    DoubleExp(const DoubleExp&);
     ~DoubleExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class StringExp : public PlainExp {
@@ -194,11 +195,11 @@ class StringExp : public PlainExp {
 
     StringExp(ErrorHandler&);
     StringExp(const std::string&, ErrorHandler&);
+    StringExp(const StringExp&);
     ~StringExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class WordExp : public PlainExp {
@@ -207,11 +208,11 @@ class WordExp : public PlainExp {
 
     WordExp(ErrorHandler&);
     WordExp(const std::string&, ErrorHandler&);
+    WordExp(const WordExp&);
     ~WordExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class AddrWordExp : public PlainExp {
@@ -220,11 +221,11 @@ class AddrWordExp : public PlainExp {
 
     AddrWordExp(ErrorHandler&);
     AddrWordExp(const std::string&, ErrorHandler&);
+    AddrWordExp(const AddrWordExp&);
     ~AddrWordExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class LoadExp : public PlainExp {
@@ -238,7 +239,6 @@ class LoadExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class IndexLoadExp : public PlainExp {
@@ -253,7 +253,6 @@ class IndexLoadExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class CallExp : public PlainExp {
@@ -268,7 +267,6 @@ class CallExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class MemberExp : public PlainExp {
@@ -278,21 +276,21 @@ class MemberExp : public PlainExp {
 
     MemberExp(ErrorHandler&);
     MemberExp(PlainExp*, const std::string&, ErrorHandler&);
+    MemberExp(const MemberExp&);
     ~MemberExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class NullExp : public PlainExp {
     public:
     NullExp(ErrorHandler&);
+    NullExp(const NullExp&);
     ~NullExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class NotExp : public PlainExp {
@@ -306,7 +304,6 @@ class NotExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 };
 
 class CastExp : public PlainExp {
@@ -321,7 +318,6 @@ class CastExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
-    bool getType(Program&, Function&, std::string&);
 
     private:
     llvm::Value* cast_to_bool(Program&, Function&, AssembleContext&);

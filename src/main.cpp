@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     // Compiler Backend
     if( assemble(context, config, program, errors) != 0 ) return 1;
     if( finalize(config, context, errors)          != 0 ) return 1;
-    if( shutdown() != 0) return 1;
+    if( shutdown() != 0 ) return 1;
 
     return 0;
 }

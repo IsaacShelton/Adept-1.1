@@ -13,7 +13,7 @@ ErrorHandler::ErrorHandler(std::string file) {
 }
 
 void ErrorHandler::warn(std::string message){
-    fail("(warning)" + filename + "(" + to_str(line) + "): " + message);
+    fail("(warning)  " + filename + "(" + to_str(line) + "): " + message);
 }
 
 void ErrorHandler::panic(std::string message){
