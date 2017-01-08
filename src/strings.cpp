@@ -290,17 +290,6 @@ void string_iter_kill_whitespace(const std::string& code, size_t& i){
     }
 }
 
-//Gets a boomslang resource name
-std::string resource(std::string a){
-    return "boomslang_" + string_replace_all(string_replace_all(string_replace_all(a,"^","*"),".",".boomslang_"),"<","<boomslang_");
-}
-
-//Gets a boomslang resource name of a type
-std::string resource_type(std::string a){
-    if(a == "any^") return "void*";
-    return "boomslang_" + string_replace_all(string_replace_all(string_replace_all(a,"^","*"),".",".boomslang_"),"<","<boomslang_");
-}
-
 //Deletes Backslash if there is one
 std::string delete_slash(std::string a){
     if (a.substr(0,1)=="\\" or a.substr(0,1)=="/"){

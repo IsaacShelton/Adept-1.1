@@ -53,11 +53,6 @@ void string_iter_kill_whitespace(const std::string& code, size_t& i);
 std::string delete_slash(std::string);
 std::string string_upper(std::string);
 
-std::string resource(std::string);
-std::string resource_type(std::string);
-bool is_identifier(std::string);
-bool is_indent(std::string, size_t i = 0);
-
 std::string filename_name(std::string);
 std::string filename_path(std::string);
 std::string filename_change_ext(std::string, std::string);
