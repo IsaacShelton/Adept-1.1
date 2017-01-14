@@ -652,6 +652,8 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleCo
         return NULL;
     }
 
+    pointer_value = context.builder.CreateLoad(pointer_value);
+
     std::string index_typename;
     llvm::Value* index_value = index->assemble_immutable(program, func, context, &index_typename);
     if(index_value == NULL) return NULL;
@@ -666,8 +668,8 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleCo
     std::vector<llvm::Value*> indices(1);
     indices[0] = index_value;
 
-    pointer_value = context.builder.CreateInBoundsGEP(pointer_value, indices, "memberptr");
-    return context.builder.CreateLoad(pointer_value, "loadtmp");
+    pointer_value = context.builder.CreateGEP(pointer_value, indices, "memberptr");
+    return pointer_value;
 }
 std::string IndexLoadExp::toString(){
     return value->toString() + "[" + index->toString() + "]";
@@ -707,7 +709,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
     std::vector<llvm::Type*> argument_llvm_types;
 
     for(size_t i = 0, e = args.size(); i != e; i++) {
-        expr_value = args[i]->assemble(program, func, context, &expr_typename);
+        expr_value = args[i]->assemble_immutable(program, func, context, &expr_typename);
         if(expr_value == NULL) return NULL;
 
         if(program.find_type(expr_typename, &expected_arg_type) != 0){
@@ -776,7 +778,7 @@ MemberExp::MemberExp(PlainExp* v, const std::string& m, ErrorHandler& err){
     errors = err;
 }
 MemberExp::MemberExp(const MemberExp& other) : PlainExp(other) {
-    value = other.value;
+    value = other.value->clone();
     member = other.member;
     is_mutable = true;
 }
@@ -831,7 +833,7 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
     return member_ptr;
 }
 std::string MemberExp::toString(){
-    return value->toString() + ":" + member;
+    return value->toString() + "." + member;
 }
 PlainExp* MemberExp::clone(){
     return new MemberExp(*this);
@@ -979,7 +981,7 @@ PlainExp* CastExp::clone(){
 }
 llvm::Value* CastExp::cast_to_bool(Program& program, Function& func, AssembleContext& context){
     std::string type_name;
-    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
     if(type_name == "bool"){
@@ -1007,7 +1009,7 @@ llvm::Value* CastExp::cast_to_bool(Program& program, Function& func, AssembleCon
 }
 llvm::Value* CastExp::cast_to_byte(Program& program, Function& func, AssembleContext& context){
     std::string type_name;
-    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
     if(type_name == "bool"){
@@ -1035,7 +1037,7 @@ llvm::Value* CastExp::cast_to_byte(Program& program, Function& func, AssembleCon
 }
 llvm::Value* CastExp::cast_to_short(Program& program, Function& func, AssembleContext& context){
     std::string type_name;
-    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
     if(type_name == "bool"){
@@ -1063,7 +1065,7 @@ llvm::Value* CastExp::cast_to_short(Program& program, Function& func, AssembleCo
 }
 llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssembleContext& context){
     std::string type_name;
-    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
     if(type_name == "bool"){
@@ -1091,7 +1093,7 @@ llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssembleCont
 }
 llvm::Value* CastExp::cast_to_long(Program& program, Function& func, AssembleContext& context){
     std::string type_name;
-    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
     if(type_name == "bool"){

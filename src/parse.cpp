@@ -521,12 +521,9 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         break;
     case TOKENID_ASSIGN:
     case TOKENID_BRACKET_OPEN:
-        // Variable Assign
-        if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
-        break;
     case TOKENID_MEMBER:
         // Variable Assign
-        if(parse_block_member(config, tokens, program, statements, i, name, errors) != 0) return 1;
+        if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
         break;
     default:
         errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
@@ -595,30 +592,49 @@ int parse_block_call(Configuration& config, TokenList& tokens, Program& program,
     return 0;
 }
 int parse_block_assign(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, int loads, ErrorHandler& errors){
-    // name = 10 * 3 / 4   |   name[i] = 10 * 3 / 4
-    //      ^                      ^
+    // name = 10 * 3 / 4   |   name[i] = 10 * 3 / 4   |   name.member = 10 * 3 / 4
+    //      ^                      ^                          ^
 
     PlainExp* expression;
     PlainExp* location = new WordExp(name, errors);
+    PlainExp* index_expression;
 
     for(int l = 0; l != loads; l++){
         location = new LoadExp(location, errors);
     }
 
-    if(tokens[i].id == TOKENID_BRACKET_OPEN){
-        PlainExp* int_expr;
+    while(tokens[i].id == TOKENID_BRACKET_OPEN or tokens[i].id == TOKENID_MEMBER){
+        switch(tokens[i].id){
+        case TOKENID_BRACKET_OPEN:
+            {
+                next_index(i, tokens.size());
+                if(parse_expression(config, tokens, program, i, &index_expression, errors) != 0) return 1;
 
-        while(tokens[i].id == TOKENID_BRACKET_OPEN){
-            next_index(i, tokens.size());
-            if(parse_expression(config, tokens, program, i, &int_expr, errors) != 0) return 1;
+                if(tokens[i].id != TOKENID_BRACKET_CLOSE){
+                    errors.panic("Expected closing bracket ']'");
+                    return 1;
+                }
 
-            if(tokens[i].id != TOKENID_BRACKET_CLOSE){
-                errors.panic("Expected closing bracket ']'");
-                return 1;
+                location = new IndexLoadExp(location, index_expression, errors);
+                next_index(i, tokens.size());
+                break;
             }
+        case TOKENID_MEMBER:
+            {
+                next_index(i, tokens.size());
 
-            location = new IndexLoadExp(location, int_expr, errors);
-            next_index(i, tokens.size());
+                if(tokens[i].id != TOKENID_WORD){
+                    errors.panic("Expected word after '.' operator");
+                    return 1;
+                }
+
+                location = new MemberExp(location, tokens[i].getString(), errors);
+                next_index(i, tokens.size());
+                break;
+            }
+        default:
+            errors.panic(SUICIDE);
+            return 1;
         }
     }
 
@@ -626,60 +642,6 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
 
     statements.push_back( new AssignStatement(location, expression, errors) );
-    return 0;
-}
-int parse_block_member(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
-    // name:member:member = 10 * 3 / 4
-    //     ^
-
-    /*
-    AssignMemberPath path = { AssignMemberPathNode{name, std::vector<PlainExp*>()} };
-    PlainExp* expression;
-
-    while(tokens[i].id == TOKENID_MEMBER){
-        next_index(i, tokens.size());
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected word after '.' operator");
-            return 1;
-        }
-
-        path.push_back( AssignMemberPathNode{tokens[i].getString(), std::vector<PlainExp*>()} );
-        next_index(i, tokens.size());
-    }
-
-    if(tokens[i].id != TOKENID_ASSIGN and tokens[i].id != TOKENID_OPEN){
-        errors.panic("Expected '=' or '(' after member operator");
-        return 1;
-    }
-
-    // Do something else if '(' was found
-    if(tokens[i].id == TOKENID_OPEN){
-        if(path.size() < 2){
-            errors.panic(SUICIDE);
-            return 1;
-        }
-
-        if(path[path.size()-1].gep_loads.size() != 0){
-            errors.panic(SUICIDE);
-            return 1;
-        }
-
-        std::string func_name = path[path.size()-1].name;
-        PlainExp* val = new WordExp(path[0].name, errors);
-
-        // TODO: Improve supported operators with 'variable.call()' syntax
-
-        if(parse_block_member_call(config, tokens, program, statements, i, val, func_name, errors) != 0) return 1;
-        return 0;
-    }
-
-    next_index(i, tokens.size());
-    if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-    */
-    //statements.push_back( STATEMENT_ASSIGNMEMBER(path, expression, 0, errors) );
-    errors.panic("UNIMPLEMENTED STATEMENT USED");
-    return 1;
-
     return 0;
 }
 int parse_block_dereference(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
@@ -1037,7 +999,6 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
                 return 1;
             }
 
-            ErrorHandler errors("idontexist.adept"); // TODO: Pass real ErrorHandler
             *left = new IndexLoadExp(*left, int_expr, errors);
             next_index(i, tokens.size());
         }
