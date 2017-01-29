@@ -30,7 +30,7 @@ int Program::import_merge(const Program& other, bool public_import){
         bool already_exists = false;
 
         for(const ModuleDependency& dependency : imports){
-            if(new_dependency.name == dependency.name){
+            if(new_dependency.target_obj == dependency.target_obj){
                 already_exists = true;
                 break;
             }

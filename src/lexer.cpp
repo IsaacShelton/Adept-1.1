@@ -203,6 +203,9 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                         case 'a':
                             escaped_content += "\a";
                             break;
+                        case '\\':
+                            escaped_content += "\\";
+                            break;
                         default:
                             fail("Unknown escape sequence '\\" << content[j] << "'");
                             return 1;
@@ -257,7 +260,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
 int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code_size, const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
     std::string content = (is_negative) ? "-" : "" ;
 
-    while(prefix_char >= 48 and prefix_char <= 57){
+    while( (prefix_char >= 48 and prefix_char <= 57) or prefix_char == '_' ){
         content += prefix_char;
         next_index(i, code_size);
         prefix_char = code[i];
@@ -267,7 +270,7 @@ int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code
         prefix_char = code[i];
 
         content += ".";
-        while(prefix_char >= 48 and prefix_char <= 57){
+        while( (prefix_char >= 48 and prefix_char <= 57) or prefix_char == '_' ){
             content += prefix_char;
             next_index(i, code_size);
             prefix_char = code[i];

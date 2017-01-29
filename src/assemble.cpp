@@ -292,6 +292,11 @@ int assemble_external(AssembleContext& context, Configuration& config, Program& 
         llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context.module.get());
     }
     else {
+        for(ModuleDependency& m : program.imports){
+            std::cout << m.name << std::endl;
+        }
+
+        std::cout << "hi" << std::endl;
         die( DUPLICATE_FUNC(external.name) );
     }
 

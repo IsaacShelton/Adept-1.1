@@ -54,6 +54,11 @@ DeclareStatement::~DeclareStatement(){}
 int DeclareStatement::assemble(Program& program, Function& func, AssembleContext& context){
     llvm::Type* variable_llvmtype;
 
+    if(func.find_variable(this->variable_name, NULL) == 0){
+        errors.panic(DUPLICATE_VARIBLE(this->variable_name));
+        return 1;
+    }
+
     if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
@@ -108,6 +113,11 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleC
     std::string expression_type;
     llvm::Type* llvm_type;
 
+    if(func.find_variable(this->variable_name, NULL) == 0){
+        errors.panic(DUPLICATE_VARIBLE(this->variable_name));
+        return 1;
+    }
+
     if(program.find_type(this->variable_type, &llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
@@ -159,7 +169,11 @@ ReturnStatement::ReturnStatement(PlainExp* return_value, ErrorHandler& errors) {
     this->errors = errors;
 }
 ReturnStatement::ReturnStatement(const ReturnStatement& other) : Statement(other) {
-    this->return_value = other.return_value->clone();
+    if(other.return_value != NULL){
+        this->return_value = other.return_value->clone();
+    } else {
+        this->return_value = NULL;
+    }
 }
 ReturnStatement::~ReturnStatement(){
     delete this->return_value;
@@ -298,6 +312,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
     llvm::Value* expression_value;
     std::string expression_typename;
     llvm::Type* expression_llvm_type;
+    llvm::Type* expected_argument_type;
     External function_data;
 
     std::vector<llvm::Value*> argument_values;
@@ -319,7 +334,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
     }
 
     if(program.find_func(this->name, argument_types, &function_data) != 0){
-        errors.panic( UNDECLARED_FUNC(this->name) );
+        errors.panic_undeclared_func(this->name, argument_types);
         return 1;
     }
 
@@ -327,7 +342,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
     llvm::Function* target = context.module->getFunction(final_name);
 
     if (!target){
-        errors.panic( UNDECLARED_FUNC(this->name) );
+        errors.panic_undeclared_func(this->name, argument_types);
         return 1;
     }
     assert(function_data.arguments.size() == target->arg_size());
@@ -339,11 +354,16 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
         return 1;
     }
 
-    for(size_t z = 0; z != argument_values.size(); z++){
-        if(assemble_merge_types_oneway(context, argument_types[z], function_data.arguments[z], &argument_values[z], argument_llvm_types[z], NULL) != 0){
+    for(size_t i = 0; i != argument_values.size(); i++){
+        if(program.find_type(function_data.arguments[i], &expected_argument_type) != 0){
+            errors.panic( UNDECLARED_TYPE(function_data.arguments[i]) );
+            return 1;
+        }
+
+        if(assemble_merge_types_oneway(context, argument_types[i], function_data.arguments[i], &argument_values[i], expected_argument_type, NULL) != 0){
             // NOTE: This error should never occur
-            errors.panic("Incorrect type for argument " + to_str(z+1) + " of function '" + this->name + "'\n    Definition: " + function_data.toString() +
-                 "\n    Expected type '" + function_data.arguments[z] + "' but received type '" + argument_types[z] + "'");
+            errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + this->name + "'\n    Definition: " + function_data.toString() +
+                 "\n    Expected type '" + function_data.arguments[i] + "' but received type '" + argument_types[i] + "'");
             errors.panic(SUICIDE);
             return 1;
         }

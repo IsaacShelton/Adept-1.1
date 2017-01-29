@@ -11,8 +11,6 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
-    // NOTE: This function deletes 'tokens' after it is done parsing
-
     for(size_t i = 0; i != tokens->size(); i++){
         if(parse_token(config, *tokens, program, i, errors) != 0) return 1;
     }
@@ -21,6 +19,10 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
     if(config.time and !config.silent){
         config.clock.print_since("PARSER DONE", filename_name(config.filename));
         config.clock.remember();
+    }
+
+    if(config.filename == "model.adept"){
+        program.print();
     }
     return 0;
 }
@@ -390,8 +392,15 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
     target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
-    program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
+    // Import the declarations
     if(program.import_merge(*import_program, attr_info.is_public) != 0) return 1;
+
+    // Exit if native dependency already exists
+    for(size_t i = 0; i != program.imports.size(); i++){
+        if(program.imports[i].target_obj == target_obj) return 0;
+    }
+
+    program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
     return 0;
 }
 int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -863,13 +872,17 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         }
         return 0;
     case TOKENID_ADDRESS:
-        next_index(i, tokens.size());
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected word after address operator");
-            return 1;
+        {
+            PlainExp* mutable_expression;
+
+            next_index(i, tokens.size());
+            if(parse_expression_primary(config, tokens, program, i, &mutable_expression, errors) != 0){
+                errors.panic("Expected expression after '&' operator");
+                return 1;
+            }
+
+            *expression = new AddrWordExp( mutable_expression, errors );
         }
-        *expression = new AddrWordExp( tokens[i].getString(), errors );
-        next_index(i, tokens.size());
         return 0;
     case TOKENID_MULTIPLY: // Dereference
         {

@@ -2,6 +2,8 @@
 #ifndef ERRORS_H_INCLUDED
 #define ERRORS_H_INCLUDED
 
+#include <string>
+#include <vector>
 #include "die.h"
 
 // General
@@ -58,6 +60,9 @@ class ErrorHandler {
     // Errors without filename & line
     void warn_plain(std::string);
     void panic_plain(std::string);
+
+    // Error message templates
+    void panic_undeclared_func(const std::string&, const std::vector<std::string>&);
 };
 
 #endif // ERRORS_H_INCLUDED

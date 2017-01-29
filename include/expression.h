@@ -217,10 +217,10 @@ class WordExp : public PlainExp {
 
 class AddrWordExp : public PlainExp {
     public:
-    std::string value;
+    PlainExp* value;
 
     AddrWordExp(ErrorHandler&);
-    AddrWordExp(const std::string&, ErrorHandler&);
+    AddrWordExp(PlainExp*, ErrorHandler&);
     AddrWordExp(const AddrWordExp&);
     ~AddrWordExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
@@ -325,6 +325,9 @@ class CastExp : public PlainExp {
     llvm::Value* cast_to_short(Program&, Function&, AssembleContext&);
     llvm::Value* cast_to_int(Program&, Function&, AssembleContext&);
     llvm::Value* cast_to_long(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_float(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_double(Program&, Function&, AssembleContext&);
+    llvm::Value* cast_to_ptr(Program&, Function&, AssembleContext&);
 };
 
 #endif // EXPRESSION_H_INCLUDED
