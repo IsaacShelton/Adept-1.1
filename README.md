@@ -159,14 +159,14 @@ private class Vector3f {
     
     public def set(x float, y float, z float) void {
         this.x = x
-	this.y = y
-	this.z = z
+        this.y = y
+        this.z = z
     }
     
     public def println() void {
         println(this.x)
-	println(this.y)
-	println(this.z)
+        println(this.y)
+        println(this.z)
     }
 }
 
