@@ -110,15 +110,12 @@ Adept treats any program with a function named 'build' as a just-in-time build s
 ### Using functions as operators
 ```
 private import "system/system.adept"
+private import "adept/terminal.adept"
 private import "adept/conversion.adept"
 
 public def main() int {
     result int = 13 sum 8 sum 100
-    
-    message *ubyte = malloc(100)
-    inttostr(result, message, 10)
-    puts(message)
-    free(message)
+    println(result)
     return 0
 }
 
@@ -133,6 +130,9 @@ private def sum(a int, b int) int {
 public def main() int {
     int_sum int = sum(8, 13)
     long_sum long = sum(8sl, 13sl)
+    
+    println(int_sum)
+    println(long_sum)
     return 0
 }
 
@@ -142,5 +142,38 @@ private def sum(a int, b int) int {
 
 private def sum(a long, b long) long {
     return a + b
+}
+```
+
+### Classes and Object Oriented Programming
+```
+private import "system/string.adept"
+private import "system/system.adept"
+private import "adept/terminal.adept"
+private import "adept/conversion.adept"
+
+private class Vector3f {
+    public x float
+    public y float
+    public z float
+    
+    public def set(x float, y float, z float) void {
+        this.x = x
+	this.y = y
+	this.z = z
+    }
+    
+    public def println() void {
+        println(this.x)
+	println(this.y)
+	println(this.z)
+    }
+}
+
+public def main() int {
+    vector Vector3f
+    vector.set(10.0f, 9.0f, 8.0f)
+    vector.println()
+    return 0
 }
 ```
