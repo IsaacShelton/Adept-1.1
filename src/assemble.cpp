@@ -138,16 +138,29 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
     build_add_symbols();
     jit_init();
 
+    // Assemble each external dependency
     for(size_t i = 0; i != program.externs.size(); i++){
         if(assemble_external(assemble, config, program, program.externs[i]) != 0) return 1;
     }
 
+    // Assemble the skeleton of each function
     for(size_t i = 0; i != program.functions.size(); i++){
         if(assemble_function(assemble, config, program, program.functions[i]) != 0) return 1;
     }
 
+    // Assemble the skeleton of each class
+    for(size_t i = 0; i != program.classes.size(); i++){
+        if(assemble_class(assemble, config, program, program.classes[i]) != 0) return 1;
+    }
+
+    // Assemble the bodies of each function
     for(size_t i = 0; i != program.functions.size(); i++){
         if(assemble_function_body(assemble, config, program, program.functions[i]) != 0) return 1;
+    }
+
+    // Assemble the bodies of each class
+    for(size_t i = 0; i != program.classes.size(); i++){
+        if(assemble_class_body(assemble, config, program, program.classes[i]) != 0) return 1;
     }
 
     // Print Assembler Time
@@ -165,6 +178,32 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
 
 int assemble_structure(AssembleContext& context, Configuration& config, Program& program, Structure& structure){
     // Currently structures don't require any special assembly
+    return 0;
+}
+int assemble_class(AssembleContext& context, Configuration& config, Program& program, Class& klass){
+    for(size_t i = 0; i != klass.methods.size(); i++){
+        if(assemble_method(context, config, program, klass, klass.methods[i]) != 0) return 1;
+    }
+    return 0;
+}
+int assemble_class_body(AssembleContext& context, Configuration& config, Program& program, Class& klass){
+    // No not the class body you're thinking of
+    // ==========        x        ==========
+    // =====================================
+    //
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+    // Get it? Since the name of this function is 'assemble_class_body'
+    // Anyways....
+
+    for(size_t i = 0; i != klass.methods.size(); i++){
+        if(assemble_method_body(context, config, program, klass, klass.methods[i]) != 0) return 1;
+    }
+
     return 0;
 }
 int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func){
@@ -269,6 +308,119 @@ int assemble_function_body(AssembleContext& context, Configuration& config, Prog
     llvm::verifyFunction(*llvm_function);
     return 0;
 }
+int assemble_method(AssembleContext& context, Configuration& config, Program& program, Class& klass, Function& method){
+    std::string final_name = mangle(klass, method);
+    llvm::Function* llvm_function = context.module->getFunction(final_name);
+
+    if(!llvm_function){
+        llvm::Type* llvm_type;
+        std::vector<llvm::Type*> args(method.arguments.size()+1);
+
+        // Get llvm type of pointer to structure of 'Class* klass'
+        if(program.find_type(klass.name, &llvm_type) != 0){
+            die( UNDECLARED_TYPE(klass.name) );
+        }
+        args[0] = llvm_type->getPointerTo(); // First argument is always a pointer to the class data
+
+        // Convert argument typenames to llvm types
+        for(size_t i = 0; i != method.arguments.size(); i++){
+            if(program.find_type(method.arguments[i].type, &llvm_type) != 0){
+                die( UNDECLARED_TYPE(method.arguments[i].type) );
+            }
+            args[i+1] = llvm_type;
+        }
+
+        // Convert return type typename to an llvm type
+        if(program.find_type(method.return_type, &llvm_type) != 0){
+            die( UNDECLARED_TYPE(method.return_type) );
+        }
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
+        llvm_function = llvm::Function::Create(function_type, (method.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_name, context.module.get());
+
+        // Create a new basic block to start insertion into.
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
+        llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
+        llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
+
+        context.builder.SetInsertPoint(entry);
+
+        llvm::AllocaInst* exitval;
+        if(!llvm_type->isVoidTy()){
+            exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
+        }
+
+        size_t i = 0;
+        method.variables.reserve(args.size());
+
+        for(auto& arg : llvm_function->args()){
+            if(i == 0){
+                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, "this");
+                context.builder.CreateStore(&arg, alloca);
+                method.variables.push_back( Variable{"this", "*" + klass.name, alloca} );
+                i++;
+                continue;
+            }
+
+            Field& method_argument = method.arguments[i-1];
+            llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, method_argument.name);
+            context.builder.CreateStore(&arg, alloca);
+            method.variables.push_back( Variable{method_argument.name, method_argument.type, alloca} );
+            i++;
+        }
+
+        context.builder.SetInsertPoint(quit);
+
+        if(!llvm_type->isVoidTy()){
+            llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
+            method.asm_func.exitval = exitval;
+            context.builder.CreateRet(retval);
+        }
+        else {
+            context.builder.CreateRet(NULL);
+        }
+
+        method.asm_func.return_type = llvm_type;
+        method.asm_func.entry = entry;
+        method.asm_func.body = body;
+        method.asm_func.quit = quit;
+    }
+    else {
+        die( DUPLICATE_METHOD(klass.name + "." + method.name) );
+    }
+
+    // USE IF ERROR
+    // Error reading body, remove function.
+    // llvm_function->eraseFromParent();
+
+    return 0;
+}
+int assemble_method_body(AssembleContext& context, Configuration& config, Program& program, Class& klass, Function& method){
+    llvm::Function* llvm_function = context.module->getFunction( mangle(klass, method) );
+    AssembleFunction& asm_func = method.asm_func;
+
+    assert(llvm_function != NULL);
+    context.builder.SetInsertPoint(asm_func.body);
+    bool terminated = false;
+
+    for(size_t i = 0; i != method.statements.size(); i++){
+        if(method.statements[i]->isTerminator()) terminated = true;
+
+        if(method.statements[i]->assemble(program, method, context) != 0){
+            return 1;
+        }
+
+        if(terminated) break;
+    }
+
+    if(!terminated) context.builder.CreateBr(asm_func.quit);
+
+    context.builder.SetInsertPoint(asm_func.entry);
+    context.builder.CreateBr(asm_func.body);
+
+    llvm::verifyFunction(*llvm_function);
+    return 0;
+}
 int assemble_external(AssembleContext& context, Configuration& config, Program& program, External& external){
     std::string final_name = (external.is_mangled) ? mangle(external.name, external.arguments) : external.name;
     llvm::Function* llvm_function = context.module->getFunction(final_name);
@@ -292,11 +444,6 @@ int assemble_external(AssembleContext& context, Configuration& config, Program& 
         llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context.module.get());
     }
     else {
-        for(ModuleDependency& m : program.imports){
-            std::cout << m.name << std::endl;
-        }
-
-        std::cout << "hi" << std::endl;
         die( DUPLICATE_FUNC(external.name) );
     }
 

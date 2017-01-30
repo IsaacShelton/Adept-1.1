@@ -116,6 +116,22 @@ class CallStatement : public Statement {
     bool isTerminator();
 };
 
+class MemberCallStatement : public Statement {
+    public:
+    PlainExp* object;
+    std::string name;
+    std::vector<PlainExp*> args;
+
+    MemberCallStatement(ErrorHandler&);
+    MemberCallStatement(PlainExp*, const std::string&, const std::vector<PlainExp*>&, ErrorHandler&);
+    MemberCallStatement(const MemberCallStatement&);
+    ~MemberCallStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
 class IfStatement : public Statement {
     public:
     PlainExp* condition;

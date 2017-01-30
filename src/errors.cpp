@@ -38,3 +38,14 @@ void ErrorHandler::panic_undeclared_func(const std::string& name, const std::vec
 
     fail(filename + "(" + to_str(line) + "): " + message);
 }
+
+void ErrorHandler::panic_undeclared_method(const std::string& class_name, const std::string& name, const std::vector<std::string>& args){
+    std::string message = "Undefined method '" + class_name + "." + name + "(";
+    for(size_t i = 0; i != args.size(); i++){
+        message += args[i];
+        if(i + 1 != args.size()) message += ", ";
+    }
+    message += ")'";
+
+    fail(filename + "(" + to_str(line) + "): " + message);
+}

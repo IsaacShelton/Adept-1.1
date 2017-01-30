@@ -81,6 +81,9 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     else if(keyword == "type"){
         if(parse_structure(config, tokens, program, i, attr_info, errors) != 0) return 1;
     }
+    else if(keyword == "class"){
+        if(parse_class(config, tokens, program, i, attr_info, errors) != 0) return 1;
+    }
     else if(keyword == "import"){
         if(parse_import(config, tokens, program, i, attr_info, errors) != 0) return 1;
     }
@@ -179,6 +182,118 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
     program.structures.push_back( Structure{name, members, attr_info.is_public} );
     return 0;
 }
+int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // class class_name { ... }
+    //           ^
+
+    // Allocate a new class in 'program.classes'
+    std::vector<Class>* classes = &program.classes;
+    classes->resize(classes->size()+1);
+
+    // Store a reference to the created class
+    Class& klass = (*classes)[classes->size()-1];
+
+    // Fill in the class data
+    klass.name = tokens[i].getString();
+    klass.is_public = attr_info.is_public;
+
+    // Skip over class name and '{'
+    next_index(i, tokens.size());
+    next_index(i, tokens.size());
+
+    // Parse leading newlines
+    while(tokens[i].id == TOKENID_NEWLINE){
+        errors.line++;
+        next_index(i, tokens.size());
+    }
+
+    // Parse contents of the class
+    while(tokens[i].id != TOKENID_END){
+        AttributeInfo member_attr(false, false);
+
+        // Encountered a keyword inside class definition
+        if(tokens[i].id == TOKENID_KEYWORD){
+            std::string keyword = tokens[i].getString();
+            bool continue_loop = false;
+
+            while(tokens[i].id == TOKENID_KEYWORD){
+                keyword = tokens[i].getString();
+
+                if(keyword == "def"){
+                    // Parse the method
+                    next_index(i, tokens.size());
+                    if(parse_method(config, tokens, program, i, &klass, member_attr, errors) != 0) return 1;
+                    next_index(i, tokens.size());
+
+                    // Skip normal member stuff
+                    continue_loop = true;
+                    break;
+                }
+                else if(keyword == "public"){
+                    member_attr.is_public = true;
+                }
+                else if(keyword == "private"){
+                    member_attr.is_public = false;
+                }
+                else if(keyword == "static"){
+                    member_attr.is_static = true;
+                }
+                else {
+                    errors.panic( UNEXPECTED_KEYWORD(keyword) );
+                    return 1;
+                }
+
+                next_index(i, tokens.size());
+            }
+
+            // Go to start of member loop
+            if(continue_loop){
+                while(tokens[i].id == TOKENID_NEWLINE){
+                    errors.line++;
+                    next_index(i, tokens.size());
+                }
+                continue;
+            }
+        }
+
+        // Expect name of member after attributes
+        if(tokens[i].id != TOKENID_WORD){
+            errors.panic("Expected member of structure");
+            return 1;
+        }
+
+        std::string name = tokens[i].getString();
+        std::string type;
+        next_index(i, tokens.size());
+
+        // Expect name of type after name of member
+        if(tokens[i].id != TOKENID_WORD and tokens[i].id != TOKENID_MULTIPLY){
+            errors.panic(EXPECTED_NAME_OF_TYPE);
+            return 1;
+        }
+
+        while(tokens[i].id == TOKENID_MULTIPLY){
+            type += "*";
+            next_index(i, tokens.size());
+        }
+
+        if(tokens[i].id != TOKENID_WORD){
+            errors.panic(EXPECTED_NAME_OF_TYPE);
+            return 1;
+        }
+
+        type += tokens[i].getString();
+        next_index(i, tokens.size());
+        klass.members.push_back( ClassField{name, type, member_attr.is_public, member_attr.is_static} );
+
+        while(tokens[i].id == TOKENID_NEWLINE){
+            errors.line++;
+            next_index(i, tokens.size());
+        }
+    }
+
+    return 0;
+}
 int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // def func_name() ret_type { <some code> }
     //         ^
@@ -253,6 +368,90 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
     program.functions.push_back( Function{name, arguments, return_type, statements, attr_info.is_public} );
+    return 0;
+}
+int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // def method_name() ret_type { <some code> }
+    //           ^
+
+    // NOTE: 'Class* klass' should be a valid pointer when calling this function (if not a crash will occur)
+
+    // NOTE: 'Class* klass' should only used for adding the created method to the class,
+    //           if it is used for accessing things like members, not all of them may be present,
+    //           or none of them at all
+
+    std::string name = tokens[i].getString();
+    next_index(i, tokens.size());
+
+    if(tokens[i].id != TOKENID_OPEN){
+        errors.panic("Expected open after method name");
+        return 1;
+    }
+    next_index(i, tokens.size());
+
+    std::vector<Field> arguments;
+    std::string return_type;
+    StatementList statements;
+
+    while(tokens[i].id != TOKENID_CLOSE){
+        if(tokens[i].id != TOKENID_WORD){
+            errors.panic("Expected argument name");
+            return 1;
+        }
+
+        std::string name = tokens[i].getString();
+        std::string type;
+        next_index(i, tokens.size());
+
+        while(tokens[i].id == TOKENID_MULTIPLY){
+            type += "*";
+            next_index(i, tokens.size());
+        }
+
+        if(tokens[i].id != TOKENID_WORD){
+            errors.panic("Expected argument type");
+            return 1;
+        }
+
+        type += tokens[i].getString();
+        next_index(i, tokens.size());
+
+        if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
+        arguments.push_back( Field{name, type} );
+    }
+
+    if(tokens[i].id == TOKENID_BEGIN){
+        errors.panic("Expected method return type after method name");
+        return 1;
+    }
+    next_index(i, tokens.size());
+
+    while(tokens[i].id != TOKENID_BEGIN){
+        switch(tokens[i].id){
+        case TOKENID_MULTIPLY:
+            return_type += "*";
+            break;
+        case TOKENID_WORD:
+            return_type += tokens[i].getString();
+            break;
+        default:
+            errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
+            return 1;
+        }
+        next_index(i, tokens.size());
+    }
+
+    if(return_type == ""){
+        errors.panic("No return type specified for method '" + klass->name + "." + name + "'");
+        return 1;
+    }
+
+    next_index(i, tokens.size());
+    if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
+
+    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static);
+    created_method.parent_class = klass;
+    klass->methods.push_back( std::move(created_method) );
     return 0;
 }
 int parse_external(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -331,6 +530,10 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
         }
         else if(keyword == "private"){
             attr_info.is_public = false;
+            next_index(i, tokens.size());
+        }
+        else if(keyword == "static"){
+            attr_info.is_static = true;
             next_index(i, tokens.size());
         }
         else {
@@ -530,9 +733,11 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         break;
     case TOKENID_ASSIGN:
     case TOKENID_BRACKET_OPEN:
-    case TOKENID_MEMBER:
         // Variable Assign
         if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
+        break;
+    case TOKENID_MEMBER:
+        if(parse_block_word_member(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
     default:
         errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
@@ -771,11 +976,36 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
 
     return 0;
 }
+int parse_block_word_member(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
+    // word.<unknown syntax follows>
+    //     ^
+
+    next_index(i, tokens.size());
+
+    if(tokens[i].id != TOKENID_WORD){
+        errors.panic("Expected word after '.' operator");
+        return 1;
+    }
+
+    std::string second_word = tokens[i].getString();
+    next_index(i, tokens.size());
+
+    switch(tokens[i].id){
+    case TOKENID_OPEN:
+        if(parse_block_member_call(config, tokens, program, statements, i, new WordExp(name, errors), second_word, errors) != 0) return 1;
+        break;
+    default:
+        i -= 2;
+        if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
+    }
+
+    return 0;
+}
 int parse_block_member_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, PlainExp* value, std::string func_name, ErrorHandler& errors){
     // a_variable.a_member.a_method ( ... )
     //                              ^
 
-    std::vector<PlainExp*> args = { value };
+    std::vector<PlainExp*> args;
     next_index(i, tokens.size());
 
     if(tokens[i].id != TOKENID_CLOSE) {
@@ -795,7 +1025,7 @@ int parse_block_member_call(Configuration& config, TokenList& tokens, Program& p
         }
     }
 
-    statements.push_back( new CallStatement(func_name, args, errors) );
+    statements.push_back( new MemberCallStatement(value, func_name, args, errors) );
     next_index(i, tokens.size());
     return 0;
 }
@@ -981,8 +1211,38 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
                 return 1;
             }
 
-            *left = new MemberExp(*left, tokens[i].getString(), errors);
+            std::string name = tokens[i].getString();
             next_index(i, tokens.size());
+
+            if(tokens[i].id == TOKENID_OPEN){
+                // Member Call Expression - 'expression.method()'
+
+                std::vector<PlainExp*> args;
+                next_index(i, tokens.size());
+
+                if(tokens[i].id != TOKENID_CLOSE) {
+                    while(true) {
+                        PlainExp* expression;
+                        if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
+                        args.push_back(expression);
+
+                        if(tokens[i].id == TOKENID_CLOSE) break;
+                        if(tokens[i].id != TOKENID_NEXT){
+                            errors.panic("Expected ')' or ',' in argument list");
+                            return 1;
+                        }
+
+                        next_index(i, tokens.size());
+                    }
+                }
+
+                *left = new MemberCallExp(*left, name, args, errors);
+                next_index(i, tokens.size());
+            }
+            else {
+                // Member Expression - 'expression.member'
+                *left = new MemberExp(*left, name, errors);
+            }
         }
         else if(operation == TOKENID_WORD){
             PlainExp* right;

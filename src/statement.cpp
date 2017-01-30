@@ -395,6 +395,150 @@ bool CallStatement::isTerminator(){
     return false;
 }
 
+MemberCallStatement::MemberCallStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+MemberCallStatement::MemberCallStatement(PlainExp* object, const std::string& name, const std::vector<PlainExp*>& args, ErrorHandler& errors){
+    this->object = object;
+    this->name = name;
+    this->args = args;
+    this->errors = errors;
+}
+MemberCallStatement::MemberCallStatement(const MemberCallStatement& other) : Statement(other) {
+    this->object = other.object->clone();
+    this->name = other.name;
+    this->args.resize(other.args.size());
+
+    for(size_t i = 0; i != args.size(); i++){
+        args[i] = other.args[i]->clone();
+    }
+}
+MemberCallStatement::~MemberCallStatement(){
+    delete object;
+}
+int MemberCallStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    External func_data;
+    llvm::Value* expr_value;
+    std::string expr_typename;
+    llvm::Type* expected_arg_type;
+    std::vector<llvm::Value*> argument_values;
+    std::vector<std::string> argument_types;
+    std::vector<llvm::Type*> argument_llvm_types;
+
+    std::string object_typename;
+    llvm::Value* object_value = object->assemble(program, func, context, &object_typename);
+    llvm::Type* object_llvm_type;
+
+    if(object_typename == ""){
+        // The type name is blank so yeah (This should never occur)
+        errors.panic("Undeclared type ''");
+        errors.panic(SUICIDE);
+        return 1;
+    }
+    else if(object_typename[0] == '*'){
+        // The type is actually a pointer to a structure or class, so we'll dereference it automatically
+        // ( Unlike the nightmare that is '->' in C++ )
+        object_value = context.builder.CreateLoad(object_value, "loadtmp");
+        object_typename = object_typename.substr(1, object_typename.length()-1);
+    }
+
+    // Ensure the object is mutable
+    if(!object->is_mutable){
+        errors.panic("Can't call method of object because it is immutable");
+        return 1;
+    }
+
+    // Get the llvm type for the object
+    if(program.find_type(object_typename, &object_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(object_typename) );
+        return 1;
+    }
+
+    for(size_t i = 0, e = args.size(); i != e; i++) {
+        expr_value = args[i]->assemble_immutable(program, func, context, &expr_typename);
+        if(expr_value == NULL) return 1;
+
+        if(program.find_type(expr_typename, &expected_arg_type) != 0){
+            errors.panic( UNDECLARED_TYPE(expr_typename) );
+            return 1;
+        }
+
+        argument_values.push_back(expr_value);
+        argument_types.push_back(expr_typename);
+        argument_llvm_types.push_back(expected_arg_type);
+    }
+
+    if(program.find_method(object_typename, name, argument_types, &func_data) != 0){
+        errors.panic_undeclared_method(object_typename, name, argument_types);
+        return 1;
+    }
+
+    std::string parent_class_name = (func.parent_class != NULL) ? func.parent_class->name : "";
+
+    // Ensure the function is public
+    if(!func_data.is_public and parent_class_name != object_typename){
+        errors.panic("The method '" + object_typename + "." + name + "' is private");
+        return 1;
+    }
+
+    argument_values.insert(argument_values.begin(), object_value);
+    argument_types.insert(argument_types.begin(), "*" + object_typename);
+    argument_llvm_types.insert(argument_llvm_types.begin(), object_llvm_type->getPointerTo());
+
+    std::string final_name = mangle(object_typename, name, func_data.arguments);
+    llvm::Function* target = context.module->getFunction(final_name);
+    if (!target){
+        errors.panic_undeclared_method(object_typename, name, argument_types);
+        return 1;
+    }
+    assert(func_data.arguments.size() == target->arg_size());
+
+    if (target->arg_size() != args.size()+1){
+        // NOTE: This error should never appear
+        errors.panic("Incorrect method argument count for method '" + object_typename + "." + name + "'");
+        return 1;
+    }
+
+    for(size_t i = 1; i != argument_values.size(); i++){
+        if(program.find_type(func_data.arguments[i-1], &expected_arg_type) != 0){
+            errors.panic( UNDECLARED_TYPE(func_data.arguments[i-1]) );
+            return 1;
+        }
+
+        if(assemble_merge_types_oneway(context, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
+            // NOTE: This error should never occur
+            errors.panic("Incorrect type for argument " + to_str(i+1) + " of method '" + object_typename + "." + name + "'\n    Definition: " + func_data.toString() +
+                 "\n    Expected type '" + func_data.arguments[i-1] + "' but received type '" + argument_types[i] + "'");
+            return 1;
+        }
+    }
+
+    context.builder.CreateCall(target, argument_values, "calltmp");
+    return 0;
+}
+std::string MemberCallStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += this->object->toString() + "." + this->name + "(";
+    for(size_t i = 0; i != this->args.size(); i++){
+        result += this->args[i]->toString();
+        if(i+1 != this->args.size()) result += ", ";
+    }
+    result += ")";
+
+    return result;
+}
+Statement* MemberCallStatement::clone(){
+    return new MemberCallStatement(*this);
+}
+bool MemberCallStatement::isTerminator(){
+    return false;
+}
+
 IfStatement::IfStatement(ErrorHandler& errors){
     this->errors = errors;
 }

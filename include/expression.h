@@ -11,6 +11,8 @@
 
 struct Program;
 struct Function;
+struct Structure;
+struct Class;
 
 class PlainExp {
     public:
@@ -278,6 +280,25 @@ class MemberExp : public PlainExp {
     MemberExp(PlainExp*, const std::string&, ErrorHandler&);
     MemberExp(const MemberExp&);
     ~MemberExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+
+    private:
+    llvm::Value* assemble_struct(Program&, Function&, AssembleContext&, std::string*, Structure&, llvm::Value*);
+    llvm::Value* assemble_class(Program&, Function&, AssembleContext&, std::string*, Class&, llvm::Value*, std::string&);
+};
+
+class MemberCallExp : public PlainExp {
+    public:
+    PlainExp* object;
+    std::string name;
+    std::vector<PlainExp*> args;
+
+    MemberCallExp(ErrorHandler&);
+    MemberCallExp(PlainExp*, const std::string&, const std::vector<PlainExp*>&, ErrorHandler&);
+    MemberCallExp(const MemberCallExp&);
+    ~MemberCallExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();

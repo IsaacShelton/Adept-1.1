@@ -21,6 +21,7 @@
 #define UNDECLARED_TYPE(a)      ("Undeclared type '" + std::string(a) + "'")
 #define UNDECLARED_FUNC(a)      ("Undeclared function '" + std::string(a) + "'")
 #define UNDECLARED_STRUCT(a)    ("Undeclared struct '" + std::string(a) + "'")
+#define UNDECLARED_CLASS(a)     ("Undeclared class '" + std::string(a) + "'")
 #define UNDECLARED_MEMBER(a, b) ("Undeclared member '" + std::string(a) + "' in structure '" + std::string(b) + "'")
 #define UNDECLARED_CONST(a)     ("Undeclared constant '$" + std::string(a) + "'")
 
@@ -35,6 +36,7 @@
 
 // Duplicate
 #define DUPLICATE_FUNC(a)    ("Duplicate function definition '" + std::string(a) + "'")
+#define DUPLICATE_METHOD(a)  ("Duplicate method definition '" + std::string(a) + "'")
 #define DUPLICATE_STRUCT(a)  ("Duplicate type definition '" + std::string(a) + "'")
 #define DUPLICATE_MEMBER(a)  ("Duplicate member definition '" + std::string(a) + "'")
 #define DUPLICATE_VARIBLE(a) ("Duplicate variable definition '" + std::string(a) + "'")
@@ -63,6 +65,7 @@ class ErrorHandler {
 
     // Error message templates
     void panic_undeclared_func(const std::string&, const std::vector<std::string>&);
+    void panic_undeclared_method(const std::string&, const std::string&, const std::vector<std::string>&);
 };
 
 #endif // ERRORS_H_INCLUDED

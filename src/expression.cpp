@@ -690,7 +690,7 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleCo
     if(pointer_value == NULL) return NULL;
 
     if(!value->is_mutable){
-        errors.panic("Can't use '.' operator on immutable expression");
+        errors.panic("Can't use [] operator on immutable expression");
         return NULL;
     }
 
@@ -839,57 +839,261 @@ MemberExp::~MemberExp(){
     delete value;
 }
 llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
-    int index;
-    Structure target;
     std::string type_name;
-    llvm::Value* member_index;
     llvm::Value* data = value->assemble(program, func, context, &type_name);
     if(data == NULL) return NULL;
 
     if(!value->is_mutable){
-        errors.panic("Can't use [] operator on immutable expression");
+        // Value isn't mutable so we can't get the value of a member from it
+        errors.panic("Can't use '.' operator on immutable expression");
         return NULL;
     }
 
     if(type_name == ""){
+        // The type name is blank so yeah (This should never occur)
         errors.panic("Undeclared type ''");
+        errors.panic(SUICIDE);
         return NULL;
     }
     else if(type_name[0] == '*'){
+        // The type is actually a pointer to a structure or class, so we'll dereference it automatically
+        // ( Unlike the nightmare that is '->' in C++ )
         data = context.builder.CreateLoad(data, "loadtmp");
         type_name = type_name.substr(1, type_name.length()-1);
     }
 
-    if(program.find_struct(type_name, &target) != 0){
-        errors.panic( UNDECLARED_STRUCT(type_name) );
-        return NULL;
+    Structure target_struct;
+    if(program.find_struct(type_name, &target_struct) == 0){
+        // A structure named that was found
+        return this->assemble_struct(program, func, context, expr_type, target_struct, data);
     }
 
-    if(target.find_index(member, &index) != 0){
-        errors.panic( UNDECLARED_MEMBER(member, target.name) );
-        return NULL;
+    Class target_class;
+    if(program.find_class(type_name, &target_class) == 0){
+        // A class named that was found
+        return this->assemble_class(program, func, context, expr_type, target_class, data, type_name);
     }
 
-    llvm::Type* alloc_type;
-    if(program.find_type(type_name, &alloc_type) != 0){
-        errors.panic( UNDECLARED_TYPE(type_name) );
-        return NULL;
-    }
-
-    std::vector<llvm::Value*> indices(2);
-    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
-    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
-    indices[1] = member_index;
-
-    llvm::Value* member_ptr = context.builder.CreateGEP(alloc_type, data, indices, "memberptr");
-    if(expr_type != NULL) *expr_type = target.members[index].type;
-    return member_ptr;
+    // No structure or class named that was found
+    errors.panic( UNDECLARED_STRUCT(type_name) );
+    return NULL;
 }
 std::string MemberExp::toString(){
     return value->toString() + "." + member;
 }
 PlainExp* MemberExp::clone(){
     return new MemberExp(*this);
+}
+llvm::Value* MemberExp::assemble_struct(Program& program, Function& func, AssembleContext& context, std::string* expr_type, Structure& target, llvm::Value* data){
+    int index;
+    llvm::Value* member_index;
+
+    // Find the index of the member inside of the structure
+    if(target.find_index(member, &index) != 0){
+        // That member doesn't exist
+        errors.panic( UNDECLARED_MEMBER(member, target.name) );
+        return NULL;
+    }
+
+    // Get the llvm type for the struct
+    llvm::Type* struct_llvm_type;
+    if(program.find_type(target.name, &struct_llvm_type) != 0){
+        // That type doesn't exist so something bad probally went wrong
+        errors.panic( UNDECLARED_TYPE(target.name) );
+        return NULL;
+    }
+
+    // Prepare GEP Indices
+    std::vector<llvm::Value*> indices(2);
+    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
+    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+    indices[1] = member_index;
+
+    // Create GEP and set expr_type if it isn't null
+    llvm::Value* member_ptr = context.builder.CreateGEP(struct_llvm_type, data, indices, "memberptr");
+    if(expr_type != NULL) *expr_type = target.members[index].type;
+
+    return member_ptr;
+}
+llvm::Value* MemberExp::assemble_class(Program& program, Function& func, AssembleContext& context, std::string* expr_type, Class& target, llvm::Value* data, std::string& data_typename){
+    int index;
+    llvm::Value* member_index;
+
+    // Find the index of the member inside of the class
+    if(target.find_index(member, &index) != 0){
+        // That member doesn't exist
+        errors.panic( UNDECLARED_MEMBER(member, target.name) );
+        return NULL;
+    }
+
+    // Make sure that the member is not static and public
+    ClassField* field = &target.members[index];
+    std::string parent_class_name = (func.parent_class != NULL) ? func.parent_class->name : "";
+
+    if(!field->is_public and parent_class_name != data_typename){
+        errors.panic("The member '" + member + "' of class '" + target.name + "' is private");
+        return NULL;
+    }
+    if(field->is_static){
+        errors.panic("The member '" + member + "' of class '" + target.name + "' is static");
+        return NULL;
+    }
+
+    // Get the llvm type for the class
+    llvm::Type* class_llvm_type;
+    if(program.find_type(target.name, &class_llvm_type) != 0){
+        // That type doesn't exist so something bad probally went wrong
+        errors.panic( UNDECLARED_TYPE(target.name) );
+        return NULL;
+    }
+
+    // Prepare GEP Indices
+    std::vector<llvm::Value*> indices(2);
+    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
+    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+    indices[1] = member_index;
+
+    // Create GEP and set expr_type if it isn't null
+    llvm::Value* member_ptr = context.builder.CreateGEP(class_llvm_type, data, indices, "memberptr");
+    if(expr_type != NULL) *expr_type = field->type;
+
+    return member_ptr;
+}
+
+MemberCallExp::MemberCallExp(ErrorHandler& err){
+    is_mutable = false;
+    errors = err;
+}
+MemberCallExp::MemberCallExp(PlainExp* obj, const std::string& n, const std::vector<PlainExp*>& a, ErrorHandler& err){
+    object = obj;
+    name = n;
+    args = a;
+    is_mutable = false;
+    errors = err;
+}
+MemberCallExp::MemberCallExp(const MemberCallExp& other) : PlainExp(other) {
+    object = other.object->clone();
+    name = other.name;
+    args = other.args;
+    is_mutable = false;
+}
+MemberCallExp::~MemberCallExp(){
+    delete object;
+}
+llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    External func_data;
+    llvm::Value* expr_value;
+    std::string expr_typename;
+    llvm::Type* expected_arg_type;
+    std::vector<llvm::Value*> argument_values;
+    std::vector<std::string> argument_types;
+    std::vector<llvm::Type*> argument_llvm_types;
+
+    std::string object_typename;
+    llvm::Value* object_value = object->assemble(program, func, context, &object_typename);
+    llvm::Type* object_llvm_type;
+
+    if(object_typename == ""){
+        // The type name is blank so yeah (This should never occur)
+        errors.panic("Undeclared type ''");
+        errors.panic(SUICIDE);
+        return NULL;
+    }
+    else if(object_typename[0] == '*'){
+        // The type is actually a pointer to a structure or class, so we'll dereference it automatically
+        // ( Unlike the nightmare that is '->' in C++ )
+        object_value = context.builder.CreateLoad(object_value, "loadtmp");
+        object_typename = object_typename.substr(1, object_typename.length()-1);
+    }
+
+
+    // Ensure the object is mutable
+    if(!object->is_mutable){
+        errors.panic("Can't call method of object because it is immutable");
+        return NULL;
+    }
+
+    // Get the llvm type for the object
+    if(program.find_type(object_typename, &object_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(object_typename) );
+        return NULL;
+    }
+
+    for(size_t i = 0, e = args.size(); i != e; i++) {
+        expr_value = args[i]->assemble_immutable(program, func, context, &expr_typename);
+        if(expr_value == NULL) return NULL;
+
+        if(program.find_type(expr_typename, &expected_arg_type) != 0){
+            errors.panic( UNDECLARED_TYPE(expr_typename) );
+            return NULL;
+        }
+
+        argument_values.push_back(expr_value);
+        argument_types.push_back(expr_typename);
+        argument_llvm_types.push_back(expected_arg_type);
+    }
+
+    if(program.find_method(object_typename, name, argument_types, &func_data) != 0){
+        errors.panic_undeclared_method(object_typename, name, argument_types);
+        return NULL;
+    }
+
+    std::string parent_class_name = (func.parent_class != NULL) ? func.parent_class->name : "";
+
+    // Ensure the function is public
+    if(!func_data.is_public and parent_class_name != object_typename){
+        errors.panic("The method '" + object_typename + "." + name + "' is private");
+        return NULL;
+    }
+
+    argument_values.insert(argument_values.begin(), object_value);
+    argument_types.insert(argument_types.begin(), "*" + object_typename);
+    argument_llvm_types.insert(argument_llvm_types.begin(), object_llvm_type->getPointerTo());
+
+    std::string final_name = mangle(object_typename, name, func_data.arguments);
+    llvm::Function* target = context.module->getFunction(final_name);
+    if (!target){
+        errors.panic_undeclared_method(object_typename, name, argument_types);
+        return NULL;
+    }
+    assert(func_data.arguments.size() == target->arg_size());
+
+    if (target->arg_size() != args.size()+1){
+        // NOTE: This error should never appear
+        errors.panic("Incorrect method argument count for method '" + object_typename + "." + name + "'");
+        return NULL;
+    }
+
+    for(size_t i = 1; i != argument_values.size(); i++){
+        if(program.find_type(func_data.arguments[i-1], &expected_arg_type) != 0){
+            errors.panic( UNDECLARED_TYPE(func_data.arguments[i-1]) );
+            return NULL;
+        }
+
+        if(assemble_merge_types_oneway(context, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
+            // NOTE: This error should never occur
+            errors.panic("Incorrect type for argument " + to_str(i+1) + " of method '" + object_typename + "." + name + "'\n    Definition: " + func_data.toString() +
+                 "\n    Expected type '" + func_data.arguments[i-1] + "' but received type '" + argument_types[i] + "'");
+            return NULL;
+        }
+    }
+
+    *expr_type = func_data.return_type;
+    llvm::Value* call = context.builder.CreateCall(target, argument_values, "calltmp");
+    return call;
+}
+std::string MemberCallExp::toString(){
+    std::string args_str;
+
+    for(size_t i = 0; i != args.size(); i++){
+        args_str += args[i]->toString();
+        if(i + 1 != args.size()) args_str += ", ";
+    }
+
+    return object->toString() + "." + name + "(" + args_str + ")";
+}
+PlainExp* MemberCallExp::clone(){
+    return new MemberCallExp(*this);
 }
 
 NullExp::NullExp(ErrorHandler& err){

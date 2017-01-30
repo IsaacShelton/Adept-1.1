@@ -4,9 +4,11 @@
 
 struct AttributeInfo {
     bool is_public;
+    bool is_static;
 
     AttributeInfo();
     AttributeInfo(bool);
+    AttributeInfo(bool, bool);
 };
 
 #endif // ATTRIBUTE_H_INCLUDED

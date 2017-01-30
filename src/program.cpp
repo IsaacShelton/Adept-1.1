@@ -4,6 +4,82 @@
 #include "../include/program.h"
 #include "../include/assemble.h"
 
+
+int Structure::find_index(std::string member_name, int* index){
+    for(size_t i = 0; i != members.size(); i++){
+        if(members[i].name == member_name){
+            *index = i;
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public){
+    this->name = name;
+    this->arguments = arguments;
+    this->return_type = return_type;
+    this->statements = statements;
+    this->is_public = is_public;
+    this->is_static = false;
+    this->parent_class = NULL;
+}
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public, bool is_static){
+    this->name = name;
+    this->arguments = arguments;
+    this->return_type = return_type;
+    this->statements = statements;
+    this->is_public = is_public;
+    this->is_static = is_static;
+    this->parent_class = NULL;
+}
+Function::Function(const Function& other){
+    name = other.name;
+    arguments = other.arguments;
+    return_type = other.return_type;
+    statements.resize(other.statements.size());
+    is_public = other.is_public;
+    is_static = other.is_static;
+    parent_class = other.parent_class;
+    variables = other.variables;
+    asm_func = other.asm_func;
+
+    for(size_t i = 0; i != other.statements.size(); i++){
+        statements[i] = other.statements[i]->clone();
+    }
+}
+Function::~Function(){
+    for(Statement* s : statements) delete s;
+}
+int Function::find_variable(std::string var_name, Variable* var){
+    for(size_t i = 0; i != variables.size(); i++){
+        if(variables[i].name == var_name){
+            if(var != NULL) *var = variables[i];
+            return 0;
+        }
+    }
+
+    return 1;
+}
+void Function::print_statements(){
+    for(Statement* statement : statements){
+        std::cout << statement->toString(0, false) << std::endl;
+    }
+}
+
+std::string External::toString(){
+    std::string prefix = (is_public) ? "public " : "private ";
+    std::string arg_str;
+
+    for(size_t a = 0; a != arguments.size(); a++){
+        arg_str += arguments[a];
+        if(a + 1 != arguments.size()) arg_str += ", ";
+    }
+
+    return prefix + "def " + name + "(" + arg_str + ") " + return_type;
+}
+
 ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std::string mod_obj, Program* mod_program, Configuration* mod_config){
     name = mod_name;
     target_bc = mod_bc;
@@ -17,6 +93,23 @@ Constant::Constant(const std::string& n, PlainExp* v, bool p){
     name = n;
     value = v;
     is_public = p;
+}
+
+Class::Class(){}
+Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public){
+    this->name = name;
+    this->members = members;
+    this->is_public = is_public;
+}
+int Class::find_index(std::string member_name, int* index){
+    for(size_t i = 0; i != members.size(); i++){
+        if(members[i].name == member_name){
+            *index = i;
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 Program::~Program(){
@@ -152,11 +245,22 @@ int Program::import_merge(const Program& other, bool public_import){
 int Program::generate_types(AssembleContext& context){
     // Requires types vector to be empty
 
+    // Create from structures
     for(size_t i = 0; i != structures.size(); i++){
         llvm::StructType* llvm_struct = llvm::StructType::create(context.context, structures[i].name);
         types.push_back( Type(structures[i].name, llvm_struct) );
     }
 
+    // Mark starting point for classes
+    size_t classes_start_index = structures.size();
+
+    // Create from classes
+    for(size_t i = 0; i != classes.size(); i++){
+        llvm::StructType* llvm_struct = llvm::StructType::create(context.context, classes[i].name);
+        types.push_back( Type(classes[i].name, llvm_struct) );
+    }
+
+    // Standard language types
     types.push_back( Type("void", llvm::Type::getInt8Ty(context.context)) );
     types.push_back( Type("bool", llvm::Type::getInt1Ty(context.context)) );
     types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(context.context)) );
@@ -171,6 +275,7 @@ int Program::generate_types(AssembleContext& context){
     types.push_back( Type("long", llvm::Type::getInt64Ty(context.context)) );
     types.push_back( Type("ulong", llvm::Type::getInt64Ty(context.context)) );
 
+    // Fill in llvm structures from structure data
     for(size_t i = 0; i != structures.size(); i++){
         Structure& struct_data = structures[i];
         std::vector<llvm::Type*> members;
@@ -186,6 +291,24 @@ int Program::generate_types(AssembleContext& context){
         }
 
         static_cast<llvm::StructType*>(types[i].type)->setBody(members);
+    }
+
+    // Fill in llvm structures from class data
+    for(size_t i = 0; i != classes.size(); i++){
+        Class& class_data = classes[i];
+        std::vector<llvm::Type*> members;
+        members.reserve(100);
+
+        for(size_t j = 0; j != class_data.members.size(); j++){
+            llvm::Type* member_type;
+            if(this->find_type(class_data.members[j].type, &member_type) != 0) {
+                std::cerr << "The type '" << class_data.members[j].type << "' does not exist" << std::endl;
+                return 1;
+            }
+            members.push_back(member_type);
+        }
+
+        static_cast<llvm::StructType*>(types[classes_start_index+i].type)->setBody(members);
     }
 
     return 0;
@@ -277,10 +400,53 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
     return 1;
 }
+int Program::find_method(const std::string& class_name, const std::string& name, const std::vector<std::string>& args, External* func){
+    Class klass;
+    if(this->find_class(class_name, &klass) != 0){
+        fail( UNDECLARED_CLASS(class_name) );
+        return 1;
+    }
+
+    for(size_t i = 0; i != klass.methods.size(); i++){
+        if(klass.methods[i].name == name){
+            bool args_match = true;
+            if(args.size() != klass.methods[i].arguments.size()) continue;
+            for(size_t a = 0; a != args.size(); a++){
+                if( !assemble_types_mergeable(args[a], klass.methods[i].arguments[a].type) ){
+                    args_match = false;
+                    break;
+                }
+            }
+            if(!args_match) continue;
+
+            External external;
+            external.name = klass.methods[i].name;
+            external.return_type = klass.methods[i].return_type;
+            external.is_public = klass.methods[i].is_public;
+            external.is_mangled = true;
+            for(Field& field : klass.methods[i].arguments) external.arguments.push_back(field.type);
+
+            *func = external;
+            return 0;
+        }
+    }
+
+    return 1;
+}
 int Program::find_struct(const std::string& name, Structure* structure){
     for(size_t i = 0; i != structures.size(); i++){
         if(structures[i].name == name){
             *structure = structures[i];
+            return 0;
+        }
+    }
+
+    return 1;
+}
+int Program::find_class(const std::string& name, Class* klass){
+    for(size_t i = 0; i != classes.size(); i++){
+        if(classes[i].name == name){
+            *klass = classes[i];
             return 0;
         }
     }
@@ -301,6 +467,7 @@ void Program::print(){
     std::cout << std::endl;
     print_externals();
     print_structures();
+    print_classes();
     print_functions();
     std::cout << std::endl;
 }
@@ -342,65 +509,34 @@ void Program::print_structures(){
         std::cout << "}" << std::endl;
     }
 }
+void Program::print_classes(){
+    for(Class& klass : classes){
+        std::cout << (klass.is_public ? "public " : "private ");
+        std::cout << "class " << klass.name << " {" << std::endl;
 
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public){
-    this->name = name;
-    this->arguments = arguments;
-    this->return_type = return_type;
-    this->statements = statements;
-    this->is_public = is_public;
-}
-Function::Function(const Function& other){
-    name = other.name;
-    arguments = other.arguments;
-    return_type = other.return_type;
-    statements.resize(other.statements.size());
-    is_public = other.is_public;
-    variables = other.variables;
-    asm_func = other.asm_func;
-
-    for(size_t i = 0; i != other.statements.size(); i++){
-        statements[i] = other.statements[i]->clone();
-    }
-}
-Function::~Function(){
-    for(Statement* s : statements) delete s;
-}
-int Function::find_variable(std::string var_name, Variable* var){
-    for(size_t i = 0; i != variables.size(); i++){
-        if(variables[i].name == var_name){
-            if(var != NULL) *var = variables[i];
-            return 0;
+        for(ClassField& f : klass.members){
+            std::cout << "    ";
+            std::cout << (f.is_public ? "public " : "private ");
+            if(f.is_static) std::cout << "static ";
+            std::cout << f.name << " " << f.type << std::endl;
         }
-    }
 
-    return 1;
-}
-void Function::print_statements(){
-    for(Statement* statement : statements){
-        std::cout << statement->toString(0, false) << std::endl;
-    }
-}
-
-std::string External::toString(){
-    std::string prefix = (is_public) ? "public " : "private ";
-    std::string arg_str;
-
-    for(size_t a = 0; a != arguments.size(); a++){
-        arg_str += arguments[a];
-        if(a + 1 != arguments.size()) arg_str += ", ";
-    }
-
-    return prefix + "def " + name + "(" + arg_str + ") " + return_type;
-}
-
-int Structure::find_index(std::string member_name, int* index){
-    for(size_t i = 0; i != members.size(); i++){
-        if(members[i].name == member_name){
-            *index = i;
-            return 0;
+        for(Function& m : klass.methods){
+            std::cout << "    ";
+            std::cout << (m.is_public ? "public " : "private ");
+            if(m.is_static) std::cout << "static ";
+            std::cout << "def " << m.name << "(";
+            for(size_t a = 0; a != m.arguments.size(); a++){
+                std::cout << m.arguments[a].name << " " << m.arguments[a].type;
+                if(a + 1 != m.arguments.size()) std::cout << ", ";
+            }
+            std::cout << ") " << m.return_type << " {" << std::endl;
+            for(size_t a = 0; a != m.statements.size(); a++){
+                std::cout << m.statements[a]->toString(2, false) << std::endl;
+            }
+            std::cout << "    }" << std::endl;
         }
-    }
 
-    return 1;
+        std::cout << "}" << std::endl;
+    }
 }

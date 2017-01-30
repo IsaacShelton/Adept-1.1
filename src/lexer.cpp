@@ -164,7 +164,8 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import"
                 or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
                 or word == "null" or word == "if" or word == "while"  or word == "unless" or word == "until"
-                or word == "else" or word == "constant" or word == "dynamic" or word == "cast"){
+                or word == "else" or word == "constant" or word == "dynamic" or word == "cast" or word == "class"
+                or word == "static"){
                     tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
                 }
                 else if(word == "and"){

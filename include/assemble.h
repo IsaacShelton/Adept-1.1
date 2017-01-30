@@ -14,8 +14,12 @@ int assemble(AssembleContext&, Configuration&, Program&, ErrorHandler& errors);
 int build(AssembleContext&, Configuration&, Program&);
 
 int assemble_structure(AssembleContext&, Configuration&, Program&, Structure&);
+int assemble_class(AssembleContext&, Configuration&, Program&, Class&);
+int assemble_class_body(AssembleContext&, Configuration&, Program&, Class&);
 int assemble_function(AssembleContext&, Configuration&, Program&, Function&);
 int assemble_function_body(AssembleContext&, Configuration&, Program&, Function&);
+int assemble_method(AssembleContext&, Configuration&, Program&, Class&, Function&);
+int assemble_method_body(AssembleContext&, Configuration&, Program&, Class&, Function&);
 int assemble_external(AssembleContext&, Configuration&, Program&, External&);
 
 void assemble_merge_conditional_types(AssembleContext&, std::string&, llvm::Value**);
