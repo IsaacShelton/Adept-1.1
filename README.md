@@ -109,9 +109,7 @@ Adept treats any program with a function named 'build' as a just-in-time build s
 
 ### Using functions as operators
 ```
-private import "system/system.adept"
 private import "adept/terminal.adept"
-private import "adept/conversion.adept"
 
 public def main() int {
     result int = 13 sum 8 sum 100
@@ -147,10 +145,7 @@ private def sum(a long, b long) long {
 
 ### Classes and Object Oriented Programming
 ```
-private import "system/string.adept"
-private import "system/system.adept"
 private import "adept/terminal.adept"
-private import "adept/conversion.adept"
 
 private class Vector3f {
     public x float
