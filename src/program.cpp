@@ -100,6 +100,7 @@ Class::Class(const std::string& name, const std::vector<ClassField>& members, bo
     this->name = name;
     this->members = members;
     this->is_public = is_public;
+    this->is_imported = false;
 }
 int Class::find_index(std::string member_name, int* index){
     for(size_t i = 0; i != members.size(); i++){
@@ -182,7 +183,39 @@ int Program::import_merge(const Program& other, bool public_import){
         if(!already_exists){
             Structure target = new_structure;
             target.is_public = public_import;
-            structures.push_back(target);
+            structures.push_back( std::move(target) );
+        }
+    }
+
+    // Merge Classes
+    for(const Class& new_class : other.classes){
+        // If the class is private, skip over it
+        if(!new_class.is_public) continue;
+        bool already_exists = false;
+
+        for(const Class& klass : classes){
+            if(new_class.name == klass.name){
+                if(klass.is_public){
+                    die( DUPLICATE_CLASS(new_class.name) );
+                }
+
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            classes.resize(classes.size() + 1);
+            Class* target = &classes[classes.size()-1];
+
+            *target = new_class;
+            target->is_public = public_import;
+            target->is_imported = true;
+
+            // Update parent class info for each method
+            for(Function& method : target->methods){
+                method.parent_class = target;
+            }
         }
     }
 

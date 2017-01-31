@@ -106,6 +106,7 @@ class Class {
     std::vector<ClassField> members;
     std::vector<Function> methods;
     bool is_public;
+    bool is_imported;
 
     Class();
     Class(const std::string&, const std::vector<ClassField>&, bool);

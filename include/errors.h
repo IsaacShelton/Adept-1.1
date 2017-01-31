@@ -38,6 +38,7 @@
 #define DUPLICATE_FUNC(a)    ("Duplicate function definition '" + std::string(a) + "'")
 #define DUPLICATE_METHOD(a)  ("Duplicate method definition '" + std::string(a) + "'")
 #define DUPLICATE_STRUCT(a)  ("Duplicate type definition '" + std::string(a) + "'")
+#define DUPLICATE_CLASS(a)  ("Duplicate class definition '" + std::string(a) + "'")
 #define DUPLICATE_MEMBER(a)  ("Duplicate member definition '" + std::string(a) + "'")
 #define DUPLICATE_VARIBLE(a) ("Duplicate variable definition '" + std::string(a) + "'")
 

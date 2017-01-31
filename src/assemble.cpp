@@ -181,6 +181,11 @@ int assemble_structure(AssembleContext& context, Configuration& config, Program&
     return 0;
 }
 int assemble_class(AssembleContext& context, Configuration& config, Program& program, Class& klass){
+    if(klass.is_imported){
+        // Don't assemble the class if it was imported
+        return 0;
+    }
+
     for(size_t i = 0; i != klass.methods.size(); i++){
         if(assemble_method(context, config, program, klass, klass.methods[i]) != 0) return 1;
     }
@@ -199,6 +204,11 @@ int assemble_class_body(AssembleContext& context, Configuration& config, Program
 
     // Get it? Since the name of this function is 'assemble_class_body'
     // Anyways....
+
+    if(klass.is_imported){
+        // Don't assemble the class if it was imported
+        return 0;
+    }
 
     for(size_t i = 0; i != klass.methods.size(); i++){
         if(assemble_method_body(context, config, program, klass, klass.methods[i]) != 0) return 1;
