@@ -4,7 +4,6 @@
 
 #include <string>
 #include <vector>
-#include "die.h"
 
 // General
 #define SUICIDE                 ("An unintended part of this compiler was reached :\\\n    (line #" + to_str(__LINE__) + " in " + std::string(__FILE__) + ")")

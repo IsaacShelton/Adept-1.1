@@ -100,6 +100,18 @@ class Constant {
     Constant(const std::string&, PlainExp*, bool);
 };
 
+class Global {
+    public:
+    std::string name;
+    std::string type;
+    bool is_public;
+    llvm::Value* variable;
+    ErrorHandler errors;
+
+    Global();
+    Global(const std::string&, const std::string&, bool, ErrorHandler&);
+};
+
 class Class {
     public:
     std::string name;
@@ -124,9 +136,10 @@ class Program {
     std::vector<Constant> constants;
     std::vector<External> externs;
     std::vector<Type> types;
+    std::vector<Global> globals;
 
     ~Program();
-    int import_merge(const Program&, bool);
+    int import_merge(Program&, bool);
     int generate_types(AssembleContext&);
     int find_type(const std::string&, llvm::Type**);
     int find_func(const std::string&, External*);
@@ -135,6 +148,7 @@ class Program {
     int find_struct(const std::string&, Structure*);
     int find_class(const std::string&, Class*);
     int find_const(const std::string&, Constant*);
+    int find_global(const std::string&, Global*);
 
     void print();
     void print_types();
@@ -142,6 +156,7 @@ class Program {
     void print_externals();
     void print_structures();
     void print_classes();
+    void print_globals();
 };
 
 #endif // PROGRAM_H_INCLUDED

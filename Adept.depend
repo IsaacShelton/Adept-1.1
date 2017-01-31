@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1485735076 source:c:\users\isaac\google drive\adept\src\main.cpp
+1485899943 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -18,12 +18,13 @@
 	"tokens.h"
 	"errors.h"
 
-1485724035 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1485902658 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
 	<fstream>
 	<stdlib.h>
+	"../include/die.h"
 	"../include/lexer.h"
 	"../include/errors.h"
 	"../include/strings.h"
@@ -43,12 +44,12 @@
 	<algorithm>
 	"../include/strings.h"
 
-1483885006 c:\users\isaac\google drive\adept\include\strings.h
+1485903530 c:\users\isaac\google drive\adept\include\strings.h
 	<string>
 	<fstream>
 	<stdlib.h>
 
-1485740971 c:\users\isaac\google drive\adept\include\parse.h
+1485826490 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -58,7 +59,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1485812947 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1485828554 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -80,9 +81,10 @@
 	"clock.h"
 	"errors.h"
 
-1482771040 c:\users\isaac\google drive\adept\include\die.h
+1485902546 c:\users\isaac\google drive\adept\include\die.h
+	<string>
 	<iostream>
-	"errors.h"
+	"config.h"
 
 1485743749 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
@@ -119,7 +121,7 @@
 	"../include/mangling.h"
 	"../include/statement.h"
 
-1485811935 c:\users\isaac\google drive\adept\include\assemble.h
+1485826994 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -127,7 +129,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1485811954 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1485902905 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<fstream>
 	<stdlib.h>
@@ -155,6 +157,7 @@
 	"llvm/Support/FileSystem.h"
 	"llvm/Transforms/Utils/Cloning.h"
 	"../include/jit.h"
+	"../include/die.h"
 	"../include/build.h"
 	"../include/errors.h"
 	"../include/native.h"
@@ -1172,7 +1175,7 @@
 	"errors.h"
 	"asmcontext.h"
 
-1485813387 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1485900215 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1228,14 +1231,15 @@
 	"parse.h"
 	"statement.h"
 
-1485824112 c:\users\isaac\google drive\adept\include\program.h
+1485901596 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
 	"asmcontext.h"
 
-1485812105 source:c:\users\isaac\google drive\adept\src\program.cpp
+1485902663 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
+	"../include/die.h"
 	"../include/errors.h"
 	"../include/program.h"
 	"../include/assemble.h"
@@ -1323,10 +1327,9 @@
 	"../include/tokens.h"
 	"../include/asmcontext.h"
 
-1485823727 c:\users\isaac\google drive\adept\include\errors.h
+1485902470 c:\users\isaac\google drive\adept\include\errors.h
 	<string>
 	<vector>
-	"die.h"
 
 1481321161 source:c:\users\isaac\google drive\adept\src\asmcontext.cpp
 	"../include/asmcontext.h"
@@ -1383,7 +1386,7 @@
 	"config.h"
 	"program.h"
 
-1483365026 source:c:\users\isaac\google drive\adept\src\build.cpp
+1485902524 source:c:\users\isaac\google drive\adept\src\build.cpp
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
@@ -1407,6 +1410,7 @@
 	"llvm/Transforms/Utils/Cloning.h"
 	"llvm/Support/DynamicLibrary.h"
 	<unistd.h>
+	"../include/die.h"
 	"../include/build.h"
 	"../include/lexer.h"
 	"../include/parse.h"
@@ -1943,7 +1947,8 @@
 1467619289 c:\llvm\include\llvm\bitcode\llvmbitcodes.h
 	"llvm/Bitcode/BitCodes.h"
 
-1485733544 source:c:\users\isaac\google drive\adept\src\errors.cpp
+1485902589 source:c:\users\isaac\google drive\adept\src\errors.cpp
+	"../include/die.h"
 	"../include/errors.h"
 	"../include/strings.h"
 
@@ -1954,4 +1959,8 @@
 
 1485811981 source:c:\users\isaac\google drive\adept\src\mangling.cpp
 	"../include/mangling.h"
+
+1485902584 source:c:\users\isaac\google drive\adept\src\die.cpp
+	"../include/die.h"
+	"../include/strings.h"
 

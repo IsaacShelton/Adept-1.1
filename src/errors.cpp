@@ -1,4 +1,5 @@
 
+#include "../include/die.h"
 #include "../include/errors.h"
 #include "../include/strings.h"
 

@@ -23,6 +23,7 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 #include <unistd.h>
+#include "../include/die.h"
 #include "../include/build.h"
 #include "../include/lexer.h"
 #include "../include/parse.h"

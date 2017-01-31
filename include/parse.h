@@ -19,7 +19,7 @@
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors);
 
 int parse_token(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
-int parse_word(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
+int parse_word(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_keyword(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_structure(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
@@ -30,6 +30,7 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
 int parse_import(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
 int parse_constant(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_global(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string name, const AttributeInfo& attr_info, ErrorHandler& errors);
 
 int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors);
 int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors);

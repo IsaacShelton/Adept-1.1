@@ -35,7 +35,7 @@ int parse_token(Configuration& config, TokenList& tokens, Program& program, size
         if(parse_keyword(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
     case TOKENID_WORD:
-        if(parse_word(config, tokens, program, i, errors) != 0) return 1;
+        if(parse_word(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
     case TOKENID_NEWLINE:
         errors.line++;
@@ -47,7 +47,7 @@ int parse_token(Configuration& config, TokenList& tokens, Program& program, size
 
     return 0;
 }
-int parse_word(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
+int parse_word(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // a_word <unknown syntax follows>
     //   ^
 
@@ -55,9 +55,12 @@ int parse_word(Configuration& config, TokenList& tokens, Program& program, size_
     next_index(i, tokens.size());
 
     switch(tokens[i].id){
-        default:
-            errors.panic(EXPECTED_DEFINITION);
-            return 1;
+    case TOKENID_WORD:
+        if(parse_global(config, tokens, program, i, name, attr_info, errors) != 0) return 1;
+        break;
+    default:
+        errors.panic(EXPECTED_DEFINITION);
+        return 1;
     }
 
     return 0;
@@ -542,7 +545,18 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
         }
     }
 
-    if(parse_keyword(config, tokens, program, i, attr_info, errors) != 0) return 1;
+    switch(tokens[i].id){
+    case TOKENID_KEYWORD:
+        if(parse_keyword(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case TOKENID_WORD:
+        if(parse_word(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    default:
+        errors.panic(EXPECTED_DEFINITION);
+        return 1;
+    }
+
     return 0;
 }
 int parse_import(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -649,6 +663,43 @@ int parse_constant(Configuration& config, TokenList& tokens, Program& program, s
     if(parse_expression(config, tokens, program, i, &value, errors) != 0) return 1;
     program.constants.push_back( Constant(name, value, attr_info.is_public) );
     i--;
+    return 0;
+}
+int parse_global(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string name, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // name str = "Hello World"
+    //       ^
+
+    std::string type;
+    while(tokens[i].id == TOKENID_MULTIPLY){
+        type += "*";
+        next_index(i, tokens.size());
+    }
+
+    if(tokens[i].id != TOKENID_WORD){
+        errors.panic(EXPECTED_NAME_OF_TYPE);
+        return 1;
+    }
+
+    type += tokens[i].getString();
+    next_index(i, tokens.size());
+
+    if(tokens[i].id == TOKENID_ASSIGN){
+        errors.panic("Global variables can't be initialized outside of a procedure");
+        return 1;
+    }
+    else {
+        // Safe because previously did 'next_index'
+        i--;
+
+        // Append the global to the list of globals
+        std::vector<Global>* globals = &program.globals;
+        globals->resize(globals->size() + 1);
+        Global* global = &( (*globals)[globals->size()-1] );
+        global->name = name;
+        global->type = type;
+        global->is_public = attr_info.is_public;
+        global->errors = errors;
+    }
     return 0;
 }
 

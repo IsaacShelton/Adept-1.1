@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <stdlib.h>
+#include "../include/die.h"
 #include "../include/lexer.h"
 #include "../include/errors.h"
 #include "../include/strings.h"
@@ -208,7 +209,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                             escaped_content += "\\";
                             break;
                         default:
-                            fail("Unknown escape sequence '\\" << content[j] << "'");
+                            fail("Unknown escape sequence '\\" + content.substr(j, j+1) + "'");
                             return 1;
                         }
                     }

@@ -55,75 +55,67 @@ std::string to_str(double dat){
     return ss.str();
 }
 
-int8_t to_byte(std::string str){
+int8_t to_byte(const std::string& str){
     std::stringstream ss(str);
     int value;
     ss >> value;
     if (value > std::numeric_limits<int8_t>::max()) return 0;
     return (int8_t) value;
 }
-int16_t to_short(std::string str){
+int16_t to_short(const std::string& str){
     int16_t val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-int32_t to_int(std::string str){
+int32_t to_int(const std::string& str){
     int32_t val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-int64_t to_long(std::string str){
+int64_t to_long(const std::string& str){
     int64_t val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-uint8_t to_ubyte(std::string str){
+uint8_t to_ubyte(const std::string& str){
     std::stringstream ss(str);
     int value;
     ss >> value;
     if (value > std::numeric_limits<uint8_t>::max()) return 0;
     return (uint8_t) value;
 }
-uint16_t to_ushort(std::string str){
+uint16_t to_ushort(const std::string& str){
     uint16_t val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-uint32_t to_uint(std::string str){
+uint32_t to_uint(const std::string& str){
     uint32_t val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-uint64_t to_ulong(std::string str){
+uint64_t to_ulong(const std::string& str){
     uint64_t val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-float to_float(std::string str){
+float to_float(const std::string& str){
     float val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
-double to_double(std::string str){
+double to_double(const std::string& str){
     double val;
     if( ! (std::istringstream(str) >> val) ) val = 0;
     return val;
 }
 
-bool string_contains(std::string parent_string, std::string sub_string){
+bool string_contains(const std::string& parent_string, const std::string& sub_string){
     if (parent_string.find(sub_string)==std::string::npos) { return false; }
     else return true;
 }
 
-unsigned int string_count(std::string a, std::string character){
-    unsigned int char_count = 0;
-    for(unsigned int i = 0; i < a.length(); i++){
-        if(a.substr(i,1)==character) char_count++;
-    }
-    return char_count;
-}
-
-std::string string_delete_until(std::string parent_string, std::string character){
+std::string string_delete_until(const std::string& parent_string, const std::string& character){
     unsigned int index = 0;
 
     while(!( parent_string.substr(index,1)==character or index >= parent_string.length() )){
@@ -135,7 +127,7 @@ std::string string_delete_until(std::string parent_string, std::string character
 }
 
 //Gets text until character(s)
-std::string string_get_until_or(std::string parent_string, std::string characters){
+std::string string_get_until_or(const std::string& parent_string, const std::string& characters){
     unsigned int index = 0;
 
     while(!( string_contains(characters,parent_string.substr(index,1)) or index >= parent_string.length() )){
@@ -159,7 +151,7 @@ std::string string_iter_until(const std::string& code, size_t& i, char character
     return content;
 }
 
-std::string string_iter_until_or(const std::string& code, size_t& i, std::string characters){
+std::string string_iter_until_or(const std::string& code, size_t& i, const std::string& characters){
     std::string content;
     while( i < code.length() and !string_contains(characters, code.substr(i, 1)) ){
         content += code[i];
@@ -177,7 +169,7 @@ std::string string_itertest_until(const std::string& code, size_t i, char charac
     return content;
 }
 
-std::string string_itertest_until_or(const std::string& code, size_t i, std::string characters){
+std::string string_itertest_until_or(const std::string& code, size_t i, const std::string& characters){
     std::string content;
     while( i < code.length() and !string_contains(characters, code.substr(i, 1)) ){
         content += code[i];
@@ -188,7 +180,7 @@ std::string string_itertest_until_or(const std::string& code, size_t i, std::str
 
 
 //Deletes text until character(s)
-std::string string_delete_until_or(std::string parent_string, std::string characters){
+std::string string_delete_until_or(const std::string& parent_string, const std::string& characters){
     unsigned int index = 0;
 
     while(!( string_contains(characters,parent_string.substr(index,1)) or index >= parent_string.length() )){
@@ -203,7 +195,7 @@ std::string string_delete_until_or(std::string parent_string, std::string charac
     }
 }
 
-std::string string_get_until_last(std::string text, std::string character_set){
+std::string string_get_until_last(const std::string& text, const std::string& character_set){
     for(int i = text.length()-1; i >= 0; i--){
         if(text[i] == character_set[0]){
             return text.substr(i + 1, text.length()-i-1);
@@ -213,12 +205,20 @@ std::string string_get_until_last(std::string text, std::string character_set){
 }
 
 //Deletes the amount of characters from the start of the string
-std::string string_delete_amount(std::string str, int num){
+std::string string_delete_amount(const std::string& str, int num){
     return str.substr(num,str.length()-num);
 }
 
+unsigned int string_count(const std::string& a, const std::string& character){
+    unsigned int char_count = 0;
+    for(unsigned int i = 0; i < a.length(); i++){
+        if(a.substr(i,1)==character) char_count++;
+    }
+    return char_count;
+}
+
 //Replaces first string with new string
-std::string string_replace(std::string str, std::string from, std::string to) {
+std::string string_replace(std::string str, const std::string& from, const std::string& to) {
     size_t start_pos = str.find(from);
     if(start_pos == std::string::npos)
         return "";
@@ -227,7 +227,7 @@ std::string string_replace(std::string str, std::string from, std::string to) {
 }
 
 //Replaces all string(s) with new string
-std::string string_replace_all(std::string str, std::string from, std::string to) {
+std::string string_replace_all(std::string str, const std::string& from, const std::string& to) {
     if(from.empty())
         return "";
     size_t start_pos = 0;

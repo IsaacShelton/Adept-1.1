@@ -1,9 +1,9 @@
 
 #include <iostream>
+#include "../include/die.h"
 #include "../include/errors.h"
 #include "../include/program.h"
 #include "../include/assemble.h"
-
 
 int Structure::find_index(std::string member_name, int* index){
     for(size_t i = 0; i != members.size(); i++){
@@ -95,6 +95,14 @@ Constant::Constant(const std::string& n, PlainExp* v, bool p){
     is_public = p;
 }
 
+Global::Global(){}
+Global::Global(const std::string& name, const std::string& type, bool is_public, ErrorHandler& errors){
+    this->name = name;
+    this->type = type;
+    this->is_public = is_public;
+    this->errors = errors;
+}
+
 Class::Class(){}
 Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public){
     this->name = name;
@@ -118,7 +126,7 @@ Program::~Program(){
         delete constant.value;
     }
 }
-int Program::import_merge(const Program& other, bool public_import){
+int Program::import_merge(Program& other, bool public_import){
     // Merge Dependencies
     for(const ModuleDependency& new_dependency : other.imports){
         bool already_exists = false;
@@ -273,6 +281,23 @@ int Program::import_merge(const Program& other, bool public_import){
         }
     }
 
+    // Merge Globals
+    for(Global& new_global : other.globals){
+        if(!new_global.is_public) continue;
+        bool already_exists = false;
+
+        for(const Global& global : globals){
+            if(new_global.name == global.name){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            globals.push_back(new_global);
+        }
+    }
+
     return 0;
 }
 int Program::generate_types(AssembleContext& context){
@@ -357,8 +382,10 @@ int Program::find_type(const std::string& name, llvm::Type** type){
     type_name = name.substr(pointers, name.length()-pointers);
     for(size_t i = 0; i != types.size(); i++){
         if(types[i].name == type_name){
-            *type = types[i].type;
-            for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
+            if(type != NULL){
+                *type = types[i].type;
+                for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
+            }
             return 0;
         }
     }
@@ -469,7 +496,7 @@ int Program::find_method(const std::string& class_name, const std::string& name,
 int Program::find_struct(const std::string& name, Structure* structure){
     for(size_t i = 0; i != structures.size(); i++){
         if(structures[i].name == name){
-            *structure = structures[i];
+            if(structure != NULL) *structure = structures[i];
             return 0;
         }
     }
@@ -479,7 +506,7 @@ int Program::find_struct(const std::string& name, Structure* structure){
 int Program::find_class(const std::string& name, Class* klass){
     for(size_t i = 0; i != classes.size(); i++){
         if(classes[i].name == name){
-            *klass = classes[i];
+            if(klass != NULL) *klass = classes[i];
             return 0;
         }
     }
@@ -496,11 +523,22 @@ int Program::find_const(const std::string& name, Constant* constant){
 
     return 1;
 }
+int Program::find_global(const std::string& name, Global* global){
+    for(size_t i = 0; i != globals.size(); i++){
+        if(globals[i].name == name){
+            *global = globals[i];
+            return 0;
+        }
+    }
+
+    return 1;
+}
 void Program::print(){
     std::cout << std::endl;
     print_externals();
     print_structures();
     print_classes();
+    print_globals();
     print_functions();
     std::cout << std::endl;
 }
@@ -571,5 +609,10 @@ void Program::print_classes(){
         }
 
         std::cout << "}" << std::endl;
+    }
+}
+void Program::print_globals(){
+    for(const Global& global : globals){
+        std::cout << (global.is_public ? "public " : "private ") << global.name << " " << global.type << std::endl;
     }
 }

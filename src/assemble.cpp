@@ -27,6 +27,7 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 
 #include "../include/jit.h"
+#include "../include/die.h"
 #include "../include/build.h"
 #include "../include/errors.h"
 #include "../include/native.h"
@@ -138,14 +139,14 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
     build_add_symbols();
     jit_init();
 
+    // Assemble each global
+    for(size_t i = 0; i != program.globals.size(); i++){
+        if(assemble_global(assemble, config, program, program.globals[i]) != 0) return 1;
+    }
+
     // Assemble each external dependency
     for(size_t i = 0; i != program.externs.size(); i++){
         if(assemble_external(assemble, config, program, program.externs[i]) != 0) return 1;
-    }
-
-    // Assemble the skeleton of each function
-    for(size_t i = 0; i != program.functions.size(); i++){
-        if(assemble_function(assemble, config, program, program.functions[i]) != 0) return 1;
     }
 
     // Assemble the skeleton of each class
@@ -153,14 +154,19 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
         if(assemble_class(assemble, config, program, program.classes[i]) != 0) return 1;
     }
 
-    // Assemble the bodies of each function
+    // Assemble the skeleton of each function
     for(size_t i = 0; i != program.functions.size(); i++){
-        if(assemble_function_body(assemble, config, program, program.functions[i]) != 0) return 1;
+        if(assemble_function(assemble, config, program, program.functions[i]) != 0) return 1;
     }
 
     // Assemble the bodies of each class
     for(size_t i = 0; i != program.classes.size(); i++){
         if(assemble_class_body(assemble, config, program, program.classes[i]) != 0) return 1;
+    }
+
+    // Assemble the bodies of each function
+    for(size_t i = 0; i != program.functions.size(); i++){
+        if(assemble_function_body(assemble, config, program, program.functions[i]) != 0) return 1;
     }
 
     // Print Assembler Time
@@ -225,20 +231,23 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
 
         // Throw an error if main is private
         if(func.name == "main" and !func.is_public){
-            die(MAIN_IS_PRIVATE);
+            fail_filename(config, MAIN_IS_PRIVATE);
+            return 1;
         }
 
         // Convert argument typenames to llvm types
         for(size_t i = 0; i != func.arguments.size(); i++){
             if(program.find_type(func.arguments[i].type, &llvm_type) != 0){
-                die( UNDECLARED_TYPE(func.arguments[i].type) );
+                fail_filename(config, UNDECLARED_TYPE(func.arguments[i].type));
+                return 1;
             }
             args[i] = llvm_type;
         }
 
         // Convert return type typename to an llvm type
         if(program.find_type(func.return_type, &llvm_type) != 0){
-            die( UNDECLARED_TYPE(func.return_type) );
+            fail_filename(config, UNDECLARED_TYPE(func.return_type));
+            return 1;
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
@@ -283,7 +292,8 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
         func.asm_func.quit = quit;
     }
     else {
-        die( DUPLICATE_FUNC(func.name) );
+        fail_filename(config, DUPLICATE_FUNC(func.name));
+        return 1;
     }
 
     // USE IF ERROR
@@ -328,21 +338,24 @@ int assemble_method(AssembleContext& context, Configuration& config, Program& pr
 
         // Get llvm type of pointer to structure of 'Class* klass'
         if(program.find_type(klass.name, &llvm_type) != 0){
-            die( UNDECLARED_TYPE(klass.name) );
+            fail_filename(config, UNDECLARED_TYPE(klass.name));
+            return 1;
         }
         args[0] = llvm_type->getPointerTo(); // First argument is always a pointer to the class data
 
         // Convert argument typenames to llvm types
         for(size_t i = 0; i != method.arguments.size(); i++){
             if(program.find_type(method.arguments[i].type, &llvm_type) != 0){
-                die( UNDECLARED_TYPE(method.arguments[i].type) );
+                fail_filename(config, UNDECLARED_TYPE(method.arguments[i].type));
+                return 1;
             }
             args[i+1] = llvm_type;
         }
 
         // Convert return type typename to an llvm type
         if(program.find_type(method.return_type, &llvm_type) != 0){
-            die( UNDECLARED_TYPE(method.return_type) );
+            fail_filename(config, UNDECLARED_TYPE(method.return_type));
+            return 1;
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
@@ -396,7 +409,8 @@ int assemble_method(AssembleContext& context, Configuration& config, Program& pr
         method.asm_func.quit = quit;
     }
     else {
-        die( DUPLICATE_METHOD(klass.name + "." + method.name) );
+        fail_filename(config, DUPLICATE_METHOD(klass.name + "." + method.name));
+        return 1;
     }
 
     // USE IF ERROR
@@ -441,26 +455,46 @@ int assemble_external(AssembleContext& context, Configuration& config, Program& 
 
         for(size_t i = 0; i != external.arguments.size(); i++){
             if(program.find_type(external.arguments[i], &llvm_type) != 0){
-                die( UNDECLARED_TYPE(external.arguments[i]) );
+                fail_filename(config, UNDECLARED_TYPE(external.arguments[i]));
+                return 1;
             }
             args[i] = llvm_type;
         }
 
         if(program.find_type(external.return_type, &llvm_type) != 0){
-            die( UNDECLARED_TYPE(external.return_type) );
+            fail_filename(config, UNDECLARED_TYPE(external.return_type));
+            return 1;
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
         llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context.module.get());
     }
     else {
-        die( DUPLICATE_FUNC(external.name) );
+        fail_filename(config, DUPLICATE_FUNC(external.name));
+        return 1;
     }
 
     // USE IF ERROR
     // Error reading body, remove function.
     // llvm_function->eraseFromParent();
 
+    return 0;
+}
+int assemble_global(AssembleContext& context, Configuration& config, Program& program, Global& global){
+    llvm::Type* global_llvm_type;
+    const bool is_constant = false;
+    llvm::GlobalVariable* created_global;
+
+    if(program.find_type(global.type, &global_llvm_type) != 0){
+        fail_filename(config, UNDECLARED_TYPE(global.type));
+        return 1;
+    }
+
+    created_global = new llvm::GlobalVariable(*context.module.get(), global_llvm_type, is_constant,
+                        (global.is_public ? llvm::GlobalVariable::LinkageTypes::CommonLinkage : llvm::GlobalVariable::LinkageTypes::PrivateLinkage), nullptr, global.name);
+    created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) ); // Initialize the global as zero
+    created_global->setExternallyInitialized(global.is_public); // Assume externally initialized if public
+    global.variable = created_global;
     return 0;
 }
 

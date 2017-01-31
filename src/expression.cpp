@@ -585,14 +585,20 @@ WordExp::WordExp(const WordExp& other) : PlainExp(other) {
 WordExp::~WordExp(){}
 llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
+    Global global;
 
-    if(func.find_variable(value, &var) != 0){
-        errors.panic( UNDECLARED_VARIABLE(value) );
-        return NULL;
+    if(func.find_variable(value, &var) == 0){
+        if(expr_type != NULL) *expr_type = var.type;
+        return var.variable;
     }
 
-    if(expr_type != NULL) *expr_type = var.type;
-    return var.variable;
+    if(program.find_global(value, &global) == 0){
+        if(expr_type != NULL) *expr_type = global.type;
+        return global.variable;
+    }
+
+    errors.panic( UNDECLARED_VARIABLE(value) );
+    return NULL;
 }
 std::string WordExp::toString(){
     return value;

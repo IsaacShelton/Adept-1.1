@@ -106,6 +106,7 @@
 		<Unit filename="src/build.cpp" />
 		<Unit filename="src/clock.cpp" />
 		<Unit filename="src/config.cpp" />
+		<Unit filename="src/die.cpp" />
 		<Unit filename="src/errors.cpp" />
 		<Unit filename="src/expression.cpp" />
 		<Unit filename="src/finalize.cpp" />
