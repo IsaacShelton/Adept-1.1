@@ -75,7 +75,7 @@ public def main() int {
 ```
 
 ### Custom build scripts
-NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai. <br/>
 build.adept
 ```
 private import "adept/build.adept"
@@ -108,7 +108,7 @@ public def main() int {
 Adept treats any program with a function named 'build' as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you just run the command ```adept build.adept```<br>
 
 ### Using functions as operators
-NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888).
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai.
 ```
 private import "adept/terminal.adept"
 
