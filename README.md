@@ -8,7 +8,7 @@ Generally it runs as fast or faster than C code.
 ### Variables
 ```
 def main() int {
-/    age int = 36
+    age int = 36
     total int = 10 + 3
     return age + total
 }
@@ -18,7 +18,7 @@ def main() int {
 ### Functions
 ```
 def sum(a int, b int) int {
-r    return a + b
+    return a + b
 }
 def main() int {
     return sum(13, 8)
@@ -28,7 +28,7 @@ def main() int {
 ### Constants
 ```
 private import "system/system.adept"
-bprivate constant $MESSAGE "Hello World"
+private constant $MESSAGE "Hello World"
  
 public def main() int {
     puts($MESSAGE)
