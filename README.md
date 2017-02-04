@@ -8,7 +8,7 @@ Generally it runs as fast or faster than C code.
 ### Variables
 ```
 def main() int {
-    age int = 36
+/    age int = 36
     total int = 10 + 3
     return age + total
 }
@@ -18,7 +18,7 @@ def main() int {
 ### Functions
 ```
 def sum(a int, b int) int {
-    return a + b
+r    return a + b
 }
 def main() int {
     return sum(13, 8)
@@ -28,7 +28,7 @@ def main() int {
 ### Constants
 ```
 private import "system/system.adept"
-private constant $MESSAGE "Hello World"
+bprivate constant $MESSAGE "Hello World"
  
 public def main() int {
     puts($MESSAGE)
@@ -75,7 +75,7 @@ public def main() int {
 ```
 
 ### Custom build scripts
-NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai. <br/>
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai. <br/><br/>
 build.adept
 ```
 private import "adept/build.adept"
