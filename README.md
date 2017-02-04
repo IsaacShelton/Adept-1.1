@@ -20,7 +20,6 @@ def main() int {
 def sum(a int, b int) int {
     return a + b
 }
-
 def main() int {
     return sum(13, 8)
 }
@@ -30,7 +29,7 @@ def main() int {
 ```
 private import "system/system.adept"
 private constant $MESSAGE "Hello World"
-
+ 
 public def main() int {
     puts($MESSAGE)
     return 0
@@ -76,6 +75,7 @@ public def main() int {
 ```
 
 ### Custom build scripts
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)
 build.adept
 ```
 private import "adept/build.adept"
@@ -108,6 +108,7 @@ public def main() int {
 Adept treats any program with a function named 'build' as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you just run the command ```adept build.adept```<br>
 
 ### Using functions as operators
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888).
 ```
 private import "adept/terminal.adept"
 
