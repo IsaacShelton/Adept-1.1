@@ -12,6 +12,12 @@
 #include "../include/finalize.h"
 
 int main(int argc, char** argv) {
+    if(argc < 2){
+        std::cout << "Adept Compiler (c) 2016 Isaac Shelton" << std::endl;
+        std::cout << "Usage: adept <filename>" << std::endl;
+        return 1;
+    }
+
     Program program;
     Configuration config;
     AssembleContext context;

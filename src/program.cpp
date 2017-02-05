@@ -328,6 +328,14 @@ int Program::import_merge(Program& other, bool public_import){
 bool Program::resolve_if_alias(std::string& type){
     // Returns true if completed a substitution
 
+    size_t pointer_count = 0;
+    for(size_t i = 0; i != type.size(); i++){
+        if(type[i] != '*') break;
+        pointer_count++;
+    }
+
+    type = type.substr(pointer_count, type.size()-pointer_count);
+
     for(const TypeAlias& type_alias : type_aliases){
         if(type == type_alias.alias){
             type = type_alias.binding;
@@ -341,26 +349,142 @@ bool Program::resolve_if_alias(std::string& type){
 
                 if(type == type_alias.binding or already_visited) {
                     fail("Encountered recursive type alias '" + type + "'");
+                    for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
                     return false;
                 }
                 alias_has_alias = this->resolve_once_if_alias(type);
                 visited_aliases.push_back(type);
             }
+
+            for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
             return true; // We found an alias so don't continue searching
         }
     }
+
+    for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
     return false;
 }
 bool Program::resolve_once_if_alias(std::string& type){
     // Returns true if completed a substitution
 
+    size_t pointer_count = 0;
+    for(size_t i = 0; i != type.size(); i++){
+        if(type[i] != '*') break;
+        pointer_count++;
+    }
+
+    type = type.substr(pointer_count, type.size()-pointer_count);
+
     for(const TypeAlias& type_alias : type_aliases){
         if(type == type_alias.alias){
             type = type_alias.binding;
+
+            for(size_t p = 0; p != pointer_count; p++) type = type = "*" + type;
             return true; // We found an alias so don't continue searching
         }
     }
+
+    for(size_t p = 0; p != pointer_count; p++) type = type = "*" + type;
     return false;
+}
+int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type){
+    // "def(int, int) int"
+    // -----^
+
+    // NOTE: The first four characters of type_name are assumed to be "def("
+
+    size_t c = 4;
+
+    while(type_name[c] != ')'){
+        llvm::Type* arg_llvm_type;
+        std::string arg_type_string;
+
+        while(type_name[c] != ')' and type_name[c] != ','){
+            arg_type_string += type_name[c];
+            next_index(c, type_name.size());
+        }
+        if(type_name[c] == ','){
+            next_index(c, type_name.size());
+            next_index(c, type_name.size());
+        }
+        if(this->find_type(arg_type_string, &arg_llvm_type) != 0){
+            fail(UNDECLARED_TYPE(arg_type_string));
+            return 1;
+        }
+
+        llvm_args.push_back(arg_llvm_type);
+    }
+
+    next_index(c, type_name.size());
+    next_index(c, type_name.size());
+
+    std::string return_type_string = type_name.substr(c, type_name.size()-c);
+    assert(return_type_string != "");
+
+    if(this->find_type(return_type_string, return_llvm_type) != 0){
+        fail(UNDECLARED_TYPE(return_type_string));
+        return 1;
+    }
+
+    return 0;
+}
+int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type, std::vector<std::string>& typenames, std::string& return_typename){
+    // "def(int, int) int"
+    // -----^
+
+    // NOTE: The first four characters of type_name are assumed to be "def("
+
+    size_t c = 4;
+
+    while(type_name[c] != ')'){
+        llvm::Type* arg_llvm_type;
+        std::string arg_type_string;
+
+        while(type_name[c] != ')' and type_name[c] != ','){
+            arg_type_string += type_name[c];
+            next_index(c, type_name.size());
+        }
+        if(type_name[c] == ','){
+            next_index(c, type_name.size());
+            next_index(c, type_name.size());
+        }
+        if(this->find_type(arg_type_string, &arg_llvm_type) != 0){
+            fail(UNDECLARED_TYPE(arg_type_string));
+            return 1;
+        }
+
+        typenames.push_back(arg_type_string);
+        llvm_args.push_back(arg_llvm_type);
+    }
+
+    next_index(c, type_name.size());
+    next_index(c, type_name.size());
+
+    return_typename = type_name.substr(c, type_name.size()-c);
+    assert(return_typename != "");
+
+    if(this->find_type(return_typename, return_llvm_type) != 0){
+        fail(UNDECLARED_TYPE(return_typename));
+        return 1;
+    }
+
+    return 0;
+}
+int Program::function_typename_to_type(const std::string& type_name, llvm::Type** type){
+    // "def(int, int) int"
+    // -----^
+
+    // NOTE: The first four characters of type_name are assumed to be "def("
+
+    std::vector<llvm::Type*> llvm_args;
+    llvm::Type* return_llvm_type;
+
+    // Extract information from function pointer type
+    if(this->extract_function_pointer_info(type_name, llvm_args, &return_llvm_type) != 0) return 1;
+
+    llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, llvm_args, false);
+    *type = function_type->getPointerTo();
+    return 0;
 }
 int Program::generate_types(AssembleContext& context){
     // Requires types vector to be empty
@@ -443,6 +567,15 @@ int Program::find_type(const std::string& name, llvm::Type** type){
 
     type_name = name.substr(pointers, name.length()-pointers);
     this->resolve_if_alias(type_name);
+
+    if(type_name.length() > 4){
+        if(type_name.substr(0, 4) == "def("){
+            // Return after handling function pointer type
+            if(this->function_typename_to_type(type_name, type) != 0) return 1;
+            for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
+            return 0;
+        }
+    }
 
     for(size_t i = 0; i != types.size(); i++){
         if(types[i].name == type_name){

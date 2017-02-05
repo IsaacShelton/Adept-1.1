@@ -586,6 +586,7 @@ WordExp::~WordExp(){}
 llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
     Global global;
+    External function_info;
 
     if(func.find_variable(value, &var) == 0){
         if(expr_type != NULL) *expr_type = var.type;
@@ -753,6 +754,7 @@ CallExp::~CallExp(){
 }
 llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     External func_data;
+    Variable func_variable;
 
     llvm::Value* expr_value;
     std::string expr_typename;
@@ -775,42 +777,79 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
         argument_llvm_types.push_back(expected_arg_type);
     }
 
-    if(program.find_func(name, argument_types, &func_data) != 0){
-        errors.panic_undeclared_func(name, argument_types);
-        return NULL;
-    }
+    if(program.find_func(name, argument_types, &func_data) == 0){
+        // Standard function exists
 
-    std::string final_name = (func_data.is_mangled) ? mangle(name, func_data.arguments) : name;
-    llvm::Function* target = context.module->getFunction(final_name);
-    if (!target){
-        errors.panic_undeclared_func(name, argument_types);
-        return NULL;
-    }
-    assert(func_data.arguments.size() == target->arg_size());
+        std::string final_name = (func_data.is_mangled) ? mangle(name, func_data.arguments) : name;
+        llvm::Function* target = context.module->getFunction(final_name);
+        if (!target){
+            errors.panic_undeclared_func(name, argument_types);
+            return NULL;
+        }
+        assert(func_data.arguments.size() == target->arg_size());
 
-    if (target->arg_size() != args.size()){
-        // NOTE: This error should never appear
-        errors.panic("Incorrect function argument count for function '" + name + "'");
-        return NULL;
-    }
-
-    for(size_t i = 0; i != argument_values.size(); i++){
-        if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
-            errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
+        if (target->arg_size() != args.size()){
+            // NOTE: This error should never appear
+            errors.panic("Incorrect function argument count for function '" + name + "'");
             return NULL;
         }
 
-        if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i], &argument_values[i], expected_arg_type, NULL) != 0){
-            // NOTE: This error should never occur
-            errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_data.toString() +
-                 "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + argument_types[i] + "'");
-            return NULL;
+        for(size_t i = 0; i != argument_values.size(); i++){
+            if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
+                errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
+                return NULL;
+            }
+
+            if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i], &argument_values[i], expected_arg_type, NULL) != 0){
+                // NOTE: This error should never occur
+                errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_data.toString() +
+                     "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + argument_types[i] + "'");
+                return NULL;
+            }
+        }
+
+        *expr_type = func_data.return_type;
+        llvm::Value* call = context.builder.CreateCall(target, argument_values, "calltmp");
+        return call;
+    }
+
+    if(func.find_variable(name, &func_variable) == 0){
+        // Variable that could be function pointer exists
+        if(func_variable.type.length() > 4){
+            if(func_variable.type.substr(0, 4) == "def("){
+                // The variable is a function pointer
+
+                std::string varfunc_return_typename;
+                llvm::Type* varfunc_return_llvm_type;
+                std::vector<std::string> varfunc_args;
+                std::vector<llvm::Type*> varfunc_llvm_args;
+
+                if(program.extract_function_pointer_info(func_variable.type, varfunc_llvm_args, &varfunc_return_llvm_type, varfunc_args,
+                    varfunc_return_typename) != 0) return NULL;
+
+                if (varfunc_args.size() != args.size()){
+                    errors.panic("Incorrect function argument count when calling '" + name + "'");
+                    return NULL;
+                }
+
+                for(size_t i = 0; i != argument_values.size(); i++){
+                    if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
+                        errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable.type +
+                             "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
+                        return NULL;
+                    }
+                }
+
+                *expr_type = varfunc_return_typename;
+                llvm::Value* function_address = context.builder.CreateLoad(func_variable.variable);
+                llvm::Value* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+                return call;
+            }
         }
     }
 
-    *expr_type = func_data.return_type;
-    llvm::Value* call = context.builder.CreateCall(target, argument_values, "calltmp");
-    return call;
+    errors.panic_undeclared_func(name, argument_types);
+    return NULL;
 }
 std::string CallExp::toString(){
     std::string args_str;
@@ -1511,4 +1550,55 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssembleCont
 
     errors.panic(SUICIDE);
     return NULL;
+}
+
+FuncptrExp::FuncptrExp(ErrorHandler& err){
+    is_mutable = false;
+    errors = err;
+}
+FuncptrExp::FuncptrExp(const std::string& function_name, const std::vector<std::string>& function_arguments, ErrorHandler& err){
+    this->function_name = function_name;
+    this->function_arguments = function_arguments;
+    is_mutable = false;
+    errors = err;
+}
+FuncptrExp::FuncptrExp(const FuncptrExp& other) : PlainExp(other) {
+    this->function_name = other.function_name;
+    this->function_arguments = other.function_arguments;
+    is_mutable = false;
+}
+FuncptrExp::~FuncptrExp(){}
+llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    External function_data;
+    std::string final_name;
+
+    if(program.find_func(function_name, function_arguments, &function_data) != 0){
+        errors.panic(UNDECLARED_FUNC(function_name));
+        return NULL;
+    }
+
+    final_name = (function_data.is_mangled ? mangle(function_name, function_arguments) : function_name);
+    llvm::Function* target_function = context.module->getFunction(final_name);
+
+    std::string args_str;
+    for(size_t a = 0; a != function_arguments.size(); a++){
+        args_str += function_arguments[a];
+        if(a + 1 != function_arguments.size()) args_str += ", ";
+    }
+
+    *expr_type = "def(" + args_str + ") " + function_data.return_type;
+    return target_function;
+}
+std::string FuncptrExp::toString(){
+    std::string args_str;
+
+    for(size_t i = 0; i != this->function_arguments.size(); i++){
+        args_str += this->function_arguments[i];
+        if(i + 1 != this->function_arguments.size()) args_str += ", ";
+    }
+
+    return "funcptr " + this->function_name + "(" + args_str + ")";
+}
+PlainExp* FuncptrExp::clone(){
+    return new FuncptrExp(*this);
 }

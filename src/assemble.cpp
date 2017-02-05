@@ -250,7 +250,7 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
             return 1;
         }
 
-        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
+        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
         llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(func), context.module.get());
 
         // Create a new basic block to start insertion into.

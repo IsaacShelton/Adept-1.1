@@ -173,3 +173,38 @@ public def main() int {
     return 0
 }
 ```
+
+### Function pointers
+```
+private import "adept/terminal.adept"
+
+public def add(a int, b int) int {
+    // Basic function to add 2 integers
+    return a + b
+}
+
+public def mul(a int, b int) int {
+    // Basic function to multiply 2 integers
+    return a * b
+}
+
+public def printcalc(calc def(int, int) int, a int, b int) void {
+    // A simple function that preforms a calculation on 2 integers and prints the result
+    println(calc(a, b))
+}
+
+public def main() int {
+    // Declare a function pointer that points to 'add'
+    sum def(int, int) int = funcptr add(int, int)
+    
+    // Call the function pointed to by 'sum'
+    println(8 sum 13)
+    
+    // Pass it to a function and have the function call it
+    println("--------------------------")
+    printcalc(funcptr add(int,int), 8, 13)
+    printcalc(funcptr mul(int,int), 8, 13)
+    
+    return 0
+}
+```

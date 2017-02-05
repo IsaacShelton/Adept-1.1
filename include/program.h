@@ -155,6 +155,9 @@ class Program {
     int import_merge(Program&, bool);
     bool resolve_if_alias(std::string&);
     bool resolve_once_if_alias(std::string&);
+    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**);
+    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**, std::vector<std::string>&, std::string&);
+    int function_typename_to_type(const std::string&, llvm::Type**);
     int generate_types(AssembleContext&);
     int find_type(const std::string&, llvm::Type**);
     int find_func(const std::string&, External*);

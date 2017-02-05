@@ -166,24 +166,10 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
 
         std::string name = tokens[i].getString();
         std::string type;
+
         next_index(i, tokens.size());
+        if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
 
-        if(tokens[i].id != TOKENID_WORD and tokens[i].id != TOKENID_MULTIPLY){
-            errors.panic(EXPECTED_NAME_OF_TYPE);
-            return 1;
-        }
-
-        while(tokens[i].id == TOKENID_MULTIPLY){
-            type += "*";
-            next_index(i, tokens.size());
-        }
-
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic(EXPECTED_NAME_OF_TYPE);
-            return 1;
-        }
-
-        type += tokens[i].getString();
         next_index(i, tokens.size());
         members.push_back( Field{name, type} );
 
@@ -213,6 +199,10 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
 
     // Skip over class name and '{'
     next_index(i, tokens.size());
+    if(tokens[i].id != TOKENID_BEGIN){
+        errors.panic("Expected '{' after class name");
+        return 1;
+    }
     next_index(i, tokens.size());
 
     // Parse leading newlines
@@ -278,25 +268,10 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
 
         std::string name = tokens[i].getString();
         std::string type;
+
         next_index(i, tokens.size());
+        if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
 
-        // Expect name of type after name of member
-        if(tokens[i].id != TOKENID_WORD and tokens[i].id != TOKENID_MULTIPLY){
-            errors.panic(EXPECTED_NAME_OF_TYPE);
-            return 1;
-        }
-
-        while(tokens[i].id == TOKENID_MULTIPLY){
-            type += "*";
-            next_index(i, tokens.size());
-        }
-
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic(EXPECTED_NAME_OF_TYPE);
-            return 1;
-        }
-
-        type += tokens[i].getString();
         next_index(i, tokens.size());
         klass.members.push_back( ClassField{name, type, member_attr.is_public, member_attr.is_static} );
 
@@ -349,17 +324,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
         std::string type;
         next_index(i, tokens.size());
 
-        while(tokens[i].id == TOKENID_MULTIPLY){
-            type += "*";
-            next_index(i, tokens.size());
-        }
-
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected argument type");
-            return 1;
-        }
-
-        type += tokens[i].getString();
+        if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
@@ -372,25 +337,8 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     }
     next_index(i, tokens.size());
 
-    while(tokens[i].id != TOKENID_BEGIN){
-        switch(tokens[i].id){
-        case TOKENID_MULTIPLY:
-            return_type += "*";
-            break;
-        case TOKENID_WORD:
-            return_type += tokens[i].getString();
-            break;
-        default:
-            errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
-            return 1;
-        }
-        next_index(i, tokens.size());
-    }
-
-    if(return_type == ""){
-        errors.panic("No return type specified for function '" + name + "'");
-        return 1;
-    }
+    if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+    next_index(i, tokens.size());
 
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
@@ -501,16 +449,7 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
     while(tokens[i].id != TOKENID_CLOSE){
         std::string type;
 
-        while(tokens[i].id == TOKENID_MULTIPLY){
-            type += "*";
-            next_index(i, tokens.size());
-        }
-
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic(EXPECTED_NAME_OF_TYPE);
-            return 1;
-        }
-        type += tokens[i].getString();
+        if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
@@ -518,25 +457,8 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
     }
 
     next_index(i, tokens.size());
-    while(tokens[i].id != TOKENID_NEWLINE){
-        switch(tokens[i].id){
-        case TOKENID_MULTIPLY:
-            return_type += "*";
-            break;
-        case TOKENID_WORD:
-            return_type += tokens[i].getString();
-            break;
-        default:
-            errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
-            return 1;
-        }
-        next_index(i, tokens.size());
-    }
-
-    if(return_type == ""){
-        errors.panic("No return type specified for function '" + name + "'");
-        return 1;
-    }
+    if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+    next_index(i, tokens.size());
 
     errors.line++;
     program.externs.push_back( External{name, arguments, return_type, attr_info.is_public, false} );
@@ -731,6 +653,70 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
     }
     return 0;
 }
+int parse_type(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors){
+    //  **some_type   |   def (int, int) int   |   another_type
+    //  ^                  ^                            ^
+
+    if(tokens[i].id == TOKENID_KEYWORD){
+        std::string keyword = tokens[i].getString();
+
+        if(keyword == "def"){
+            // Function pointer type
+
+            next_index(i, tokens.size());
+            if(tokens[i].id != TOKENID_OPEN){
+                errors.panic("Expected '(' after keyword 'def' in function pointer type");
+                return 1;
+            }
+
+            next_index(i, tokens.size());
+            output_type = "def(";
+
+            std::vector<std::string> arguments;
+            std::string return_type;
+
+            while(tokens[i].id != TOKENID_CLOSE){
+                std::string type;
+
+                if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
+                next_index(i, tokens.size());
+
+                if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
+                arguments.push_back(type);
+            }
+
+            next_index(i, tokens.size());
+            if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+
+            for(size_t a = 0; a != arguments.size(); a++){
+                output_type += arguments[a];
+                if(a + 1 != arguments.size()) output_type += ", ";
+            }
+            output_type += ") " + return_type;
+        }
+        else {
+            errors.panic(UNEXPECTED_KEYWORD(keyword));
+            return 1;
+        }
+    }
+    else {
+        // Standard type
+
+        while(tokens[i].id == TOKENID_MULTIPLY){
+            output_type += "*";
+            next_index(i, tokens.size());
+        }
+
+        if(tokens[i].id != TOKENID_WORD){
+            errors.panic(EXPECTED_NAME_OF_TYPE);
+            return 1;
+        }
+
+        output_type += tokens[i].getString();
+    }
+
+    return 0;
+}
 
 int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
     // { some code; some more code; }
@@ -804,6 +790,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     switch(tokens[i].id){
     case TOKENID_WORD:
     case TOKENID_MULTIPLY:
+    case TOKENID_KEYWORD:
         // Variable Definition
         if(parse_block_variable_declaration(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
@@ -831,17 +818,8 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
     //       ^
 
     std::string type;
-    while(tokens[i].id == TOKENID_MULTIPLY){
-        type += "*";
-        next_index(i, tokens.size());
-    }
 
-    if(tokens[i].id != TOKENID_WORD){
-        errors.panic(EXPECTED_NAME_OF_TYPE);
-        return 1;
-    }
-
-    type += tokens[i].getString();
+    if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
     next_index(i, tokens.size());
 
     if(tokens[i].id == TOKENID_ASSIGN){
@@ -1142,26 +1120,51 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 *expression = new NullExp(errors);
             } else if(keyword == "cast"){
                 std::string target_typename;
-                while(tokens[i].id == TOKENID_MULTIPLY){
-                    target_typename += "*";
-                    next_index(i, tokens.size());
-                }
-                if(tokens[i].id != TOKENID_WORD){
-                    errors.panic(EXPECTED_NAME_OF_TYPE);
-                    return 1;
-                }
-                target_typename += tokens[i].getString();
+
+                if(parse_type(config, tokens, program, i, target_typename, errors) != 0) return 1;
                 next_index(i, tokens.size());
 
                 if(tokens[i].id != TOKENID_OPEN){
                     errors.panic("Expected '(' after target cast type");
                     return 1;
                 }
+
                 PlainExp* cast_expr;
                 next_index(i, tokens.size());
                 if(parse_expression(config, tokens, program, i, &cast_expr, errors) != 0) return 1;
                 next_index(i, tokens.size());
                 *expression = new CastExp(cast_expr, target_typename, errors);
+            } else if(keyword == "funcptr"){
+                std::string function_name;
+                std::vector<std::string> function_arguments;
+
+                if(tokens[i].id != TOKENID_WORD){
+                    errors.panic("Expected function name after 'funcptr' keyword");
+                    return 1;
+                }
+
+                function_name = tokens[i].getString();
+                next_index(i, tokens.size());
+
+                if(tokens[i].id != TOKENID_OPEN){
+                    errors.panic("Expected '(' after function name in 'funcptr' expression");
+                    return 1;
+                }
+
+                next_index(i, tokens.size());
+                while(tokens[i].id != TOKENID_CLOSE){
+                    std::string type;
+                    if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
+                    function_arguments.push_back(type);
+                    next_index(i, tokens.size());
+
+                    if(tokens[i].id == TOKENID_NEXT){
+                        next_index(i, tokens.size());
+                    }
+                }
+
+                next_index(i, tokens.size());
+                *expression = new FuncptrExp(function_name, function_arguments, errors);
             } else {
                 errors.panic( UNEXPECTED_KEYWORD_INEXPR(keyword) );
                 return 1;

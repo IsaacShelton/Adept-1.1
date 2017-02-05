@@ -28,12 +28,6 @@ int configure(Configuration& config, std::string filename, ErrorHandler& errors)
 }
 
 int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors){
-    if(argc < 2){
-        std::cout << "Adept Compiler (c) 2016 Isaac Shelton" << std::endl;
-        std::cout << "Usage: adept <filename>" << std::endl;
-        return 1;
-    }
-
     // Default Config
     config.jit = false;
     config.obj = false;

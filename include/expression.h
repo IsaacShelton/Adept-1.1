@@ -351,4 +351,18 @@ class CastExp : public PlainExp {
     llvm::Value* cast_to_ptr(Program&, Function&, AssembleContext&);
 };
 
+class FuncptrExp : public PlainExp {
+    public:
+    std::string function_name;
+    std::vector<std::string> function_arguments;
+
+    FuncptrExp(ErrorHandler&);
+    FuncptrExp(const std::string&, const std::vector<std::string>&, ErrorHandler&);
+    FuncptrExp(const FuncptrExp&);
+    ~FuncptrExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
 #endif // EXPRESSION_H_INCLUDED
