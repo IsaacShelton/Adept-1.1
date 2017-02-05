@@ -83,7 +83,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
     llvm::Value* right_value = right->assemble_immutable(program, func, context, &right_typename);
 
     if(left_value == NULL or right_value == NULL) return NULL;
-    if(assemble_merge_types(context, left_typename, right_typename, &left_value, &right_value, &type_name) != 0){
+    if(assemble_merge_types(context, program, left_typename, right_typename, &left_value, &right_value, &type_name) != 0){
         errors.panic( INCOMPATIBLE_TYPES(left_typename, right_typename) );
         return NULL;
     }
@@ -800,7 +800,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
             return NULL;
         }
 
-        if(assemble_merge_types_oneway(context, argument_types[i], func_data.arguments[i], &argument_values[i], expected_arg_type, NULL) != 0){
+        if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i], &argument_values[i], expected_arg_type, NULL) != 0){
             // NOTE: This error should never occur
             errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_data.toString() +
                  "\n    Expected type '" + func_data.arguments[i] + "' but received type '" + argument_types[i] + "'");
@@ -1076,7 +1076,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssembleC
             return NULL;
         }
 
-        if(assemble_merge_types_oneway(context, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
+        if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
             // NOTE: This error should never occur
             errors.panic("Incorrect type for argument " + to_str(i+1) + " of method '" + object_typename + "." + name + "'\n    Definition: " + func_data.toString() +
                  "\n    Expected type '" + func_data.arguments[i-1] + "' but received type '" + argument_types[i] + "'");
@@ -1215,6 +1215,7 @@ CastExp::~CastExp(){
     delete value;
 }
 llvm::Value* CastExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    program.resolve_if_alias(target_typename);
     *expr_type = target_typename;
 
     if(target_typename == "bool"){

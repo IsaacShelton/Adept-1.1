@@ -23,9 +23,9 @@ int assemble_method_body(AssembleContext&, Configuration&, Program&, Class&, Fun
 int assemble_external(AssembleContext&, Configuration&, Program&, External&);
 int assemble_global(AssembleContext&, Configuration&, Program&, Global&);
 
-void assemble_merge_conditional_types(AssembleContext&, std::string&, llvm::Value**);
-int assemble_merge_types(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Value**, std::string*);
-int assemble_merge_types_oneway(AssembleContext&, const std::string&, const std::string&, llvm::Value**, llvm::Type*, std::string*);
-bool assemble_types_mergeable(const std::string&, const std::string&);
+void assemble_merge_conditional_types(AssembleContext&, Program&, std::string&, llvm::Value**);
+int assemble_merge_types(AssembleContext&, Program&, std::string, std::string, llvm::Value**, llvm::Value**, std::string*);
+int assemble_merge_types_oneway(AssembleContext&, Program&, std::string, std::string, llvm::Value**, llvm::Type*, std::string*);
+bool assemble_types_mergeable(Program&, std::string, std::string);
 
 #endif // ASSEMBLE_H_INCLUDED

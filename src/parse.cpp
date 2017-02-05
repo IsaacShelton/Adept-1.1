@@ -139,9 +139,20 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
 
     std::string name = tokens[i].getString();
     std::vector<Field> members;
-    next_index(i, tokens.size());
-    next_index(i, tokens.size());
 
+    next_index(i, tokens.size());
+    uint16_t token = tokens[i].id;
+
+    if(token == TOKENID_ASSIGN){
+        // Instead of treating this like a structure, parse it as a type alias
+        if(parse_type_alias(config, tokens, program, i, name, attr_info, errors) != 0) return 1;
+        return 0;
+    } else if(token != TOKENID_BEGIN){
+        errors.panic("Expected '{' or '=' after name of the type");
+        return 1;
+    }
+
+    next_index(i, tokens.size());
     while(tokens[i].id == TOKENID_NEWLINE){
         errors.line++;
         next_index(i, tokens.size());
@@ -182,7 +193,7 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
         }
     }
 
-    program.structures.push_back( Structure{name, members, attr_info.is_public} );
+    program.structures.push_back( Structure{name, members, attr_info.is_public, attr_info.is_packed} );
     return 0;
 }
 int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -295,6 +306,20 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
         }
     }
 
+    return 0;
+}
+int parse_type_alias(Configuration& config, TokenList& tokens, Program& program, size_t& i, const std::string& alias, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // type type_alias = some_type
+    //                 ^
+
+    next_index(i, tokens.size());
+    if(tokens[i].id != TOKENID_WORD){
+        errors.panic("Expected type binding after type alias");
+        return 1;
+    }
+
+    std::string binding = tokens[i].getString();
+    program.type_aliases.push_back( TypeAlias(alias, binding, attr_info.is_public) );
     return 0;
 }
 int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -537,6 +562,10 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
         }
         else if(keyword == "static"){
             attr_info.is_static = true;
+            next_index(i, tokens.size());
+        }
+        else if(keyword == "packed"){
+            attr_info.is_packed = true;
             next_index(i, tokens.size());
         }
         else {

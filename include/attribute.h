@@ -5,6 +5,7 @@
 struct AttributeInfo {
     bool is_public;
     bool is_static;
+    bool is_packed;
 
     AttributeInfo();
     AttributeInfo(bool);

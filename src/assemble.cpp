@@ -498,9 +498,12 @@ int assemble_global(AssembleContext& context, Configuration& config, Program& pr
     return 0;
 }
 
-void assemble_merge_conditional_types(AssembleContext& context, std::string& type, llvm::Value** expr){
+void assemble_merge_conditional_types(AssembleContext& context, Program& program, std::string& type, llvm::Value** expr){
     // If type isn't a boolean, try to convert it to one
     // TODO: Clean up code in 'if' blocks
+
+    // Resolve any aliases
+    program.resolve_if_alias(type);
 
     if(type == "bool") return;
     if(type == "void") return;
@@ -557,8 +560,12 @@ void assemble_merge_conditional_types(AssembleContext& context, std::string& typ
 
     return;
 }
-int assemble_merge_types(AssembleContext& context, const std::string& type_a, const std::string& type_b, llvm::Value** expr_a, llvm::Value** expr_b, std::string* out){
+int assemble_merge_types(AssembleContext& context, Program& program, std::string type_a, std::string type_b, llvm::Value** expr_a, llvm::Value** expr_b, std::string* out){
     // Merge a and b if possible
+
+    // Resolve any aliases
+    program.resolve_if_alias(type_a);
+    program.resolve_if_alias(type_b);
 
     if(type_a == "void" or type_b == "void") return 1;
     if(type_a == "" or type_b == "") return 1;
@@ -579,8 +586,12 @@ int assemble_merge_types(AssembleContext& context, const std::string& type_a, co
 
     return 1;
 }
-int assemble_merge_types_oneway(AssembleContext& context, const std::string& type_a, const std::string& type_b, llvm::Value** expr_a, llvm::Type* exprtype_b, std::string* out){
+int assemble_merge_types_oneway(AssembleContext& context, Program& program, std::string type_a, std::string type_b, llvm::Value** expr_a, llvm::Type* exprtype_b, std::string* out){
     // Merge a into b if possible
+
+    // Resolve any aliases
+    program.resolve_if_alias(type_a);
+    program.resolve_if_alias(type_b);
 
     if(type_a == "void" or type_b == "void") return 1;
     if(type_a == "" or type_b == "void") return 1;
@@ -601,8 +612,12 @@ int assemble_merge_types_oneway(AssembleContext& context, const std::string& typ
 
     return 1;
 }
-bool assemble_types_mergeable(const std::string& a, const std::string& b){
+bool assemble_types_mergeable(Program& program, std::string a, std::string b){
     // Checks if types can merge, (oneway conversion, merging 'a' into a 'b')
+
+    // Resolve any aliases
+    program.resolve_if_alias(a);
+    program.resolve_if_alias(b);
 
     if(a == "" or b == "") return false;
     if(a == "void" or b == "void") return false;

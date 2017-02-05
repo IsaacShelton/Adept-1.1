@@ -186,7 +186,8 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
     PM.add(new TargetLibraryInfoWrapperPass(TLII));
 
     // Add the target data from the target machine, if it exists, or the module.
-    module->setDataLayout(Target->createDataLayout());
+    DataLayout data_layout = Target->createDataLayout();
+    module->setDataLayout(data_layout);
 
     // Override function attributes based on CPUStr, FeaturesStr, and command line
     // flags.

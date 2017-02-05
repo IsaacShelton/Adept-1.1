@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <algorithm>
 #include "../include/die.h"
 #include "../include/errors.h"
 #include "../include/program.h"
@@ -119,6 +120,13 @@ int Class::find_index(std::string member_name, int* index){
     }
 
     return 1;
+}
+
+TypeAlias::TypeAlias(){}
+TypeAlias::TypeAlias(const std::string& alias, const std::string& binding, bool is_public){
+    this->alias = alias;
+    this->binding = binding;
+    this->is_public = is_public;
 }
 
 Program::~Program(){
@@ -298,7 +306,61 @@ int Program::import_merge(Program& other, bool public_import){
         }
     }
 
+    // Merge Type Aliases
+    for(TypeAlias& new_type_alias : other.type_aliases){
+        if(!new_type_alias.is_public) continue;
+        bool already_exists = false;
+
+        for(const TypeAlias& type_alias : type_aliases){
+            if(new_type_alias.alias == type_alias.alias){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            type_aliases.push_back(new_type_alias);
+        }
+    }
+
     return 0;
+}
+bool Program::resolve_if_alias(std::string& type){
+    // Returns true if completed a substitution
+
+    for(const TypeAlias& type_alias : type_aliases){
+        if(type == type_alias.alias){
+            type = type_alias.binding;
+
+            bool alias_has_alias = this->resolve_once_if_alias(type);
+            std::vector<std::string> visited_aliases = { type };
+
+            while(alias_has_alias){
+                // Resolve until there is nothing left to resolve
+                bool already_visited = (std::find(visited_aliases.begin(), visited_aliases.end(), type) != visited_aliases.end());
+
+                if(type == type_alias.binding or already_visited) {
+                    fail("Encountered recursive type alias '" + type + "'");
+                    return false;
+                }
+                alias_has_alias = this->resolve_once_if_alias(type);
+                visited_aliases.push_back(type);
+            }
+            return true; // We found an alias so don't continue searching
+        }
+    }
+    return false;
+}
+bool Program::resolve_once_if_alias(std::string& type){
+    // Returns true if completed a substitution
+
+    for(const TypeAlias& type_alias : type_aliases){
+        if(type == type_alias.alias){
+            type = type_alias.binding;
+            return true; // We found an alias so don't continue searching
+        }
+    }
+    return false;
 }
 int Program::generate_types(AssembleContext& context){
     // Requires types vector to be empty
@@ -337,7 +399,7 @@ int Program::generate_types(AssembleContext& context){
     for(size_t i = 0; i != structures.size(); i++){
         Structure& struct_data = structures[i];
         std::vector<llvm::Type*> members;
-        members.reserve(100);
+        members.reserve(16);
 
         for(size_t j = 0; j != struct_data.members.size(); j++){
             llvm::Type* member_type;
@@ -348,7 +410,7 @@ int Program::generate_types(AssembleContext& context){
             members.push_back(member_type);
         }
 
-        static_cast<llvm::StructType*>(types[i].type)->setBody(members);
+        static_cast<llvm::StructType*>(types[i].type)->setBody(members, struct_data.is_packed);
     }
 
     // Fill in llvm structures from class data
@@ -380,6 +442,8 @@ int Program::find_type(const std::string& name, llvm::Type** type){
     }
 
     type_name = name.substr(pointers, name.length()-pointers);
+    this->resolve_if_alias(type_name);
+
     for(size_t i = 0; i != types.size(); i++){
         if(types[i].name == type_name){
             if(type != NULL){
@@ -422,7 +486,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             bool args_match = true;
             if(args.size() != functions[i].arguments.size()) continue;
             for(size_t a = 0; a != args.size(); a++){
-                if( !assemble_types_mergeable(args[a], functions[i].arguments[a].type) ){
+                if( !assemble_types_mergeable(*this, args[a], functions[i].arguments[a].type) ){
                     args_match = false;
                     break;
                 }
@@ -446,7 +510,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             bool args_match = true;
             if(args.size() != externs[i].arguments.size()) continue;
             for(size_t a = 0; a != args.size(); a++){
-                if( !assemble_types_mergeable(args[a], externs[i].arguments[a]) ){
+                if( !assemble_types_mergeable(*this, args[a], externs[i].arguments[a]) ){
                     args_match = false;
                     break;
                 }
@@ -472,7 +536,7 @@ int Program::find_method(const std::string& class_name, const std::string& name,
             bool args_match = true;
             if(args.size() != klass.methods[i].arguments.size()) continue;
             for(size_t a = 0; a != args.size(); a++){
-                if( !assemble_types_mergeable(args[a], klass.methods[i].arguments[a].type) ){
+                if( !assemble_types_mergeable(*this, args[a], klass.methods[i].arguments[a].type) ){
                     args_match = false;
                     break;
                 }

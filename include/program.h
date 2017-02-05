@@ -16,6 +16,7 @@ class External;
 class ModuleDependency;
 class Constant;
 class Class;
+class TypeAlias;
 class Program;
 
 struct Variable {
@@ -41,6 +42,7 @@ class Structure {
     std::string name;
     std::vector<Field> members;
     bool is_public;
+    bool is_packed;
 
     int find_index(std::string name, int* index);
 };
@@ -125,6 +127,16 @@ class Class {
     int find_index(std::string name, int* index);
 };
 
+class TypeAlias {
+    public:
+    std::string alias;
+    std::string binding;
+    bool is_public;
+
+    TypeAlias();
+    TypeAlias(const std::string&, const std::string&, bool);
+};
+
 class Program {
     public:
     std::vector<ModuleDependency> imports;
@@ -137,9 +149,12 @@ class Program {
     std::vector<External> externs;
     std::vector<Type> types;
     std::vector<Global> globals;
+    std::vector<TypeAlias> type_aliases;
 
     ~Program();
     int import_merge(Program&, bool);
+    bool resolve_if_alias(std::string&);
+    bool resolve_once_if_alias(std::string&);
     int generate_types(AssembleContext&);
     int find_type(const std::string&, llvm::Type**);
     int find_func(const std::string&, External*);

@@ -126,7 +126,7 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleC
     llvm::Value* llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
     if(llvm_value == NULL) return 1;
 
-    if(assemble_merge_types_oneway(context, expression_type, this->variable_type, &llvm_value, llvm_type, NULL) != 0){
+    if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, llvm_type, NULL) != 0){
         errors.panic( INCOMPATIBLE_TYPES(expression_type, this->variable_type) );
         return 1;
     }
@@ -184,7 +184,7 @@ int ReturnStatement::assemble(Program& program, Function& func, AssembleContext&
         llvm::Value* llvm_value = this->return_value->assemble_immutable(program, func, context, &expression_type);
         if(llvm_value == NULL) return 1;
 
-        if(assemble_merge_types_oneway(context, expression_type, func.return_type, &llvm_value, func.asm_func.return_type, NULL) != 0){
+        if(assemble_merge_types_oneway(context, program, expression_type, func.return_type, &llvm_value, func.asm_func.return_type, NULL) != 0){
             errors.panic( INCOMPATIBLE_TYPES(expression_type, func.return_type) );
             return 1;
         }
@@ -263,7 +263,7 @@ int AssignStatement::assemble(Program& program, Function& func, AssembleContext&
     if(llvm_value == NULL) return 1;
 
     // Merge expression type into required type if possible
-    if(assemble_merge_types_oneway(context, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
+    if(assemble_merge_types_oneway(context, program, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
         errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
         return 1;
     }
@@ -360,7 +360,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
             return 1;
         }
 
-        if(assemble_merge_types_oneway(context, argument_types[i], function_data.arguments[i], &argument_values[i], expected_argument_type, NULL) != 0){
+        if(assemble_merge_types_oneway(context, program, argument_types[i], function_data.arguments[i], &argument_values[i], expected_argument_type, NULL) != 0){
             // NOTE: This error should never occur
             errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + this->name + "'\n    Definition: " + function_data.toString() +
                  "\n    Expected type '" + function_data.arguments[i] + "' but received type '" + argument_types[i] + "'");
@@ -505,7 +505,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
             return 1;
         }
 
-        if(assemble_merge_types_oneway(context, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
+        if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
             // NOTE: This error should never occur
             errors.panic("Incorrect type for argument " + to_str(i+1) + " of method '" + object_typename + "." + name + "'\n    Definition: " + func_data.toString() +
                  "\n    Expected type '" + func_data.arguments[i-1] + "' but received type '" + argument_types[i] + "'");
@@ -573,7 +573,7 @@ int IfStatement::assemble(Program& program, Function& func, AssembleContext& con
     llvm::Value* expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
     if(expr_value == NULL) return 1;
 
-    assemble_merge_conditional_types(context, expr_typename, &expr_value);
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
 
     if(expr_typename != "bool"){
         errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
@@ -658,7 +658,7 @@ int UnlessStatement::assemble(Program& program, Function& func, AssembleContext&
     llvm::Value* expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
     if(expr_value == NULL) return 1;
 
-    assemble_merge_conditional_types(context, expr_typename, &expr_value);
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
 
     if(expr_typename != "bool"){
         errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
@@ -747,7 +747,7 @@ int WhileStatement::assemble(Program& program, Function& func, AssembleContext& 
     llvm::Value* expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
     if(expr_value == NULL) return 1;
 
-    assemble_merge_conditional_types(context, expr_typename, &expr_value);
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
 
     if(expr_typename != "bool"){
         errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
@@ -836,7 +836,7 @@ int UntilStatement::assemble(Program& program, Function& func, AssembleContext& 
     llvm::Value* expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
     if(expr_value == NULL) return 1;
 
-    assemble_merge_conditional_types(context, expr_typename, &expr_value);
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
 
     if(expr_typename != "bool"){
         errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
@@ -930,7 +930,7 @@ int IfElseStatement::assemble(Program& program, Function& func, AssembleContext&
     llvm::Value* expression_value = this->condition->assemble_immutable(program, func, context, &expression_typename);
     if(expression_value == NULL) return 1;
 
-    assemble_merge_conditional_types(context, expression_typename, &expression_value);
+    assemble_merge_conditional_types(context, program, expression_typename, &expression_value);
 
     if(expression_typename != "bool"){
         errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
@@ -1053,7 +1053,7 @@ int UnlessElseStatement::assemble(Program& program, Function& func, AssembleCont
     llvm::Value* expression_value = this->condition->assemble_immutable(program, func, context, &expression_typename);
     if(expression_value == NULL) return 1;
 
-    assemble_merge_conditional_types(context, expression_typename, &expression_value);
+    assemble_merge_conditional_types(context, program, expression_typename, &expression_value);
 
     if(expression_typename != "bool"){
         errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");

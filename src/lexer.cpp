@@ -166,7 +166,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
                 or word == "null" or word == "if" or word == "while"  or word == "unless" or word == "until"
                 or word == "else" or word == "constant" or word == "dynamic" or word == "cast" or word == "class"
-                or word == "static"){
+                or word == "static" or word == "packed"){
                     tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
                 }
                 else if(word == "and"){
@@ -260,13 +260,92 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
     return 0;
 }
 int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code_size, const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
-    std::string content = (is_negative) ? "-" : "" ;
+    std::string content;
 
-    while( (prefix_char >= 48 and prefix_char <= 57) or prefix_char == '_' ){
-        content += prefix_char;
+    content = prefix_char;
+    next_index(i, code_size);
+    prefix_char = code[i];
+
+    if(prefix_char == 'x'){
+        // Handle hex then return
+
+        content = "";
         next_index(i, code_size);
         prefix_char = code[i];
+
+        while( (prefix_char >= 48 and prefix_char <= 57) or (prefix_char >= 65 and prefix_char <= 70) or (prefix_char >= 97 and prefix_char <= 102)  or prefix_char == '_' ){
+            content += prefix_char;
+            next_index(i, code_size);
+            prefix_char = code[i];
+        }
+
+        uint64_t hex_result;
+        std::stringstream string_stream;
+        string_stream << std::hex << content;
+        string_stream >> hex_result;
+
+        switch(prefix_char){
+        case 'u':
+            next_index(i, code_size);
+            prefix_char = code[i];
+
+            switch(prefix_char){
+            case 'b':
+                tokens.push_back( TOKEN_UBYTE(static_cast<unsigned char>(hex_result)) );
+                break;
+            case 's':
+                tokens.push_back( TOKEN_USHORT(static_cast<uint16_t>(hex_result)) );
+                break;
+            case 'i':
+                tokens.push_back( TOKEN_UINT(static_cast<uint32_t>(hex_result)) );
+                break;
+            case 'l':
+                tokens.push_back( TOKEN_ULONG(hex_result) );
+                break;
+            default:
+                tokens.push_back( TOKEN_UINT(static_cast<uint32_t>(hex_result)) );
+                i--;
+            }
+            break;
+        case 's':
+            next_index(i, code_size);
+            prefix_char = code[i];
+
+            switch(prefix_char){
+            case 'b':
+                tokens.push_back( TOKEN_BYTE(static_cast<char>(hex_result)) );
+                break;
+            case 's':
+                tokens.push_back( TOKEN_SHORT(static_cast<int16_t>(hex_result)) );
+                break;
+            case 'i':
+                tokens.push_back( TOKEN_INT(static_cast<int32_t>(hex_result)) );
+                break;
+            case 'l':
+                tokens.push_back( TOKEN_LONG(static_cast<int64_t>(hex_result)) );
+                break;
+            default:
+                tokens.push_back( TOKEN_INT(static_cast<int32_t>(hex_result)) );
+                i--;
+            }
+            break;
+        default:
+            tokens.push_back( TOKEN_INT(static_cast<int>(hex_result)) );
+            i--;
+        }
+
+        return 0;
     }
+    else {
+        content = (is_negative ? "-" : "") + content;
+
+        while( (prefix_char >= 48 and prefix_char <= 57) or prefix_char == '_' ){
+            content += prefix_char;
+            next_index(i, code_size);
+            prefix_char = code[i];
+        }
+    }
+
     if(prefix_char == '.'){
         next_index(i, code_size);
         prefix_char = code[i];
