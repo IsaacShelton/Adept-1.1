@@ -48,6 +48,8 @@ class Structure {
 };
 
 class Function {
+    // NOTE: This class is also used for methods
+
     public:
     std::string name;
     std::vector<Field> arguments;
@@ -55,13 +57,14 @@ class Function {
     StatementList statements;
     bool is_public;
     bool is_static;
+    bool is_stdcall;
     Class* parent_class;
 
     std::vector<Variable> variables;
     AssembleFunction asm_func;
 
     Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool);
-    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool);
+    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool);
     Function(const Function&);
     ~Function();
     int find_variable(std::string, Variable*);
@@ -75,9 +78,11 @@ class External {
     std::string return_type;
     bool is_public;
     bool is_mangled;
+    bool is_stdcall;
 
+    External();
+    External(const std::string&, const std::vector<std::string>&, const std::string&, bool, bool, bool);
     std::string toString();
-
 };
 
 class ModuleDependency {
@@ -151,15 +156,19 @@ class Program {
     std::vector<Global> globals;
     std::vector<TypeAlias> type_aliases;
 
+    static bool is_function_typename(const std::string&);
+    static bool is_pointer_typename(const std::string&);
+    static bool function_typename_is_stdcall(const std::string&);
+
     ~Program();
     int import_merge(Program&, bool);
-    bool resolve_if_alias(std::string&);
-    bool resolve_once_if_alias(std::string&);
-    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**);
-    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**, std::vector<std::string>&, std::string&);
-    int function_typename_to_type(const std::string&, llvm::Type**);
+    bool resolve_if_alias(std::string&) const;
+    bool resolve_once_if_alias(std::string&) const;
+    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**) const;
+    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**, std::vector<std::string>&, std::string&) const;
+    int function_typename_to_type(const std::string&, llvm::Type**) const;
     int generate_types(AssembleContext&);
-    int find_type(const std::string&, llvm::Type**);
+    int find_type(const std::string&, llvm::Type**) const;
     int find_func(const std::string&, External*);
     int find_func(const std::string&, const std::vector<std::string>&, External*);
     int find_method(const std::string&, const std::string&, const std::vector<std::string>&, External*);

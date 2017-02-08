@@ -10,47 +10,7 @@ Token::Token(){
 
 Token::Token(const Token& other){
     id = other.id;
-
-    switch(other.id){
-    case TOKENID_STRING:
-    case TOKENID_WORD:
-    case TOKENID_KEYWORD:
-    case TOKENID_CONSTANT:
-        data = new std::string( *(static_cast<std::string*>(other.data)) );
-        break;
-    case TOKENID_BYTE:
-        data = new int8_t( *(static_cast<int8_t*>(other.data)) );
-        break;
-    case TOKENID_SHORT:
-        data = new int16_t( *(static_cast<int16_t*>(other.data)) );
-        break;
-    case TOKENID_INT:
-        data = new int32_t( *(static_cast<int32_t*>(other.data)) );
-        break;
-    case TOKENID_LONG:
-        data = new int64_t( *(static_cast<int64_t*>(other.data)) );
-        break;
-    case TOKENID_UBYTE:
-        data = new uint8_t( *(static_cast<uint8_t*>(other.data)) );
-        break;
-    case TOKENID_USHORT:
-        data = new uint16_t( *(static_cast<uint16_t*>(other.data)) );
-        break;
-    case TOKENID_UINT:
-        data = new uint32_t( *(static_cast<uint32_t*>(other.data)) );
-        break;
-    case TOKENID_ULONG:
-        data = new uint64_t( *(static_cast<uint64_t*>(other.data)) );
-        break;
-    case TOKENID_FLOAT:
-        data = new float( *(static_cast<float*>(other.data)) );
-        break;
-    case TOKENID_DOUBLE:
-        data = new double( *(static_cast<double*>(other.data)) );
-        break;
-    default:
-        data = NULL;
-    }
+    data = other.data;
 }
 
 Token::Token(uint16_t i){
@@ -61,10 +21,6 @@ Token::Token(uint16_t i){
 Token::Token(uint16_t i, void* d){
     id = i;
     data = d;
-}
-
-Token::~Token(){
-    free();
 }
 
 void Token::free(){
@@ -302,5 +258,11 @@ int Token::getPrecedence(){
     // No Precedence
     default:
         return 0;
+    }
+}
+
+void free_tokens(TokenList& tokens){
+    for(Token& token : tokens){
+        token.free();
     }
 }

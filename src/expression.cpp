@@ -586,7 +586,6 @@ WordExp::~WordExp(){}
 llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     Variable var;
     Global global;
-    External function_info;
 
     if(func.find_variable(value, &var) == 0){
         if(expr_type != NULL) *expr_type = var.type;
@@ -755,6 +754,7 @@ CallExp::~CallExp(){
 llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     External func_data;
     Variable func_variable;
+    Global func_global;
 
     llvm::Value* expr_value;
     std::string expr_typename;
@@ -809,42 +809,85 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
         }
 
         *expr_type = func_data.return_type;
-        llvm::Value* call = context.builder.CreateCall(target, argument_values, "calltmp");
+        llvm::CallInst* call = context.builder.CreateCall(target, argument_values, "calltmp");
+        call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
         return call;
     }
 
     if(func.find_variable(name, &func_variable) == 0){
         // Variable that could be function pointer exists
-        if(func_variable.type.length() > 4){
-            if(func_variable.type.substr(0, 4) == "def("){
-                // The variable is a function pointer
+        if(Program::is_function_typename(func_variable.type)){
+            // The variable is a function pointer
 
-                std::string varfunc_return_typename;
-                llvm::Type* varfunc_return_llvm_type;
-                std::vector<std::string> varfunc_args;
-                std::vector<llvm::Type*> varfunc_llvm_args;
+            std::string varfunc_return_typename;
+            llvm::Type* varfunc_return_llvm_type;
+            std::vector<std::string> varfunc_args;
+            std::vector<llvm::Type*> varfunc_llvm_args;
 
-                if(program.extract_function_pointer_info(func_variable.type, varfunc_llvm_args, &varfunc_return_llvm_type, varfunc_args,
-                    varfunc_return_typename) != 0) return NULL;
+            if(program.extract_function_pointer_info(func_variable.type, varfunc_llvm_args, &varfunc_return_llvm_type, varfunc_args,
+                varfunc_return_typename) != 0) return NULL;
 
-                if (varfunc_args.size() != args.size()){
-                    errors.panic("Incorrect function argument count when calling '" + name + "'");
+            if (varfunc_args.size() != args.size()){
+                errors.panic("Incorrect function argument count when calling '" + name + "'");
+                return NULL;
+            }
+
+            for(size_t i = 0; i != argument_values.size(); i++){
+                if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
+                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable.type +
+                         "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
                     return NULL;
                 }
-
-                for(size_t i = 0; i != argument_values.size(); i++){
-                    if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
-                        errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable.type +
-                             "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
-                        return NULL;
-                    }
-                }
-
-                *expr_type = varfunc_return_typename;
-                llvm::Value* function_address = context.builder.CreateLoad(func_variable.variable);
-                llvm::Value* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
-                return call;
             }
+
+            *expr_type = varfunc_return_typename;
+            llvm::Value* function_address = context.builder.CreateLoad(func_variable.variable);
+            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+
+            if(Program::function_typename_is_stdcall(func_variable.type)){
+                call->setCallingConv(llvm::CallingConv::X86_StdCall);
+            } else {
+                call->setCallingConv(llvm::CallingConv::C);
+            }
+            return call;
+        }
+    }
+
+    if(program.find_global(name, &func_global) == 0){
+        if(Program::is_function_typename(func_global.type)){
+            // The variable is a function pointer
+
+            std::string varfunc_return_typename;
+            llvm::Type* varfunc_return_llvm_type;
+            std::vector<std::string> varfunc_args;
+            std::vector<llvm::Type*> varfunc_llvm_args;
+
+            if(program.extract_function_pointer_info(func_global.type, varfunc_llvm_args, &varfunc_return_llvm_type, varfunc_args,
+                varfunc_return_typename) != 0) return NULL;
+
+            if (varfunc_args.size() != args.size()){
+                errors.panic("Incorrect function argument count when calling '" + name + "'");
+                return NULL;
+            }
+
+            for(size_t i = 0; i != argument_values.size(); i++){
+                if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
+                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_global.type +
+                         "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
+                    return NULL;
+                }
+            }
+
+            *expr_type = varfunc_return_typename;
+            llvm::Value* function_address = context.builder.CreateLoad(func_global.variable);
+            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+
+            if(Program::function_typename_is_stdcall(func_global.type)){
+                call->setCallingConv(llvm::CallingConv::X86_StdCall);
+            } else {
+                call->setCallingConv(llvm::CallingConv::C);
+            }
+            return call;
         }
     }
 
@@ -1418,7 +1461,7 @@ llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssembleCont
     else if(type_name == "ptr"){
         return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty(), "cast");
     }
-    else if(type_name[0] == '*'){
+    else if(type_name[0] == '*' or Program::is_function_typename(type_name)){
         llvm_value = context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
         return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty(), "cast");
     }
@@ -1542,6 +1585,9 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssembleCont
     }
     else if(type_name == "ulong" or type_name == "long"){
         return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
+    }
+    else if(Program::is_function_typename(type_name)){
+        return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");

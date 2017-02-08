@@ -24,15 +24,18 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->statements = statements;
     this->is_public = is_public;
     this->is_static = false;
+    this->is_stdcall = false;
     this->parent_class = NULL;
 }
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public, bool is_static){
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public,
+                   bool is_static, bool is_stdcall){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
     this->statements = statements;
     this->is_public = is_public;
     this->is_static = is_static;
+    this->is_stdcall = is_stdcall;
     this->parent_class = NULL;
 }
 Function::Function(const Function& other){
@@ -42,6 +45,7 @@ Function::Function(const Function& other){
     statements.resize(other.statements.size());
     is_public = other.is_public;
     is_static = other.is_static;
+    is_stdcall = other.is_stdcall;
     parent_class = other.parent_class;
     variables = other.variables;
     asm_func = other.asm_func;
@@ -69,9 +73,20 @@ void Function::print_statements(){
     }
 }
 
+External::External(){}
+External::External(const std::string& name, const std::vector<std::string>& arguments, const std::string& return_type, bool is_public, bool is_mangled, bool is_stdcall){
+    this->name = name;
+    this->arguments = arguments;
+    this->return_type = return_type;
+    this->is_public = is_public;
+    this->is_mangled = is_mangled;
+    this->is_stdcall = is_stdcall;
+}
 std::string External::toString(){
-    std::string prefix = (is_public) ? "public " : "private ";
+    std::string prefix = std::string(is_public ? "public " : "private ");
     std::string arg_str;
+
+    if(this->is_stdcall) prefix += "stdcall ";
 
     for(size_t a = 0; a != arguments.size(); a++){
         arg_str += arguments[a];
@@ -129,6 +144,45 @@ TypeAlias::TypeAlias(const std::string& alias, const std::string& binding, bool 
     this->is_public = is_public;
 }
 
+bool Program::is_function_typename(const std::string& type_name){
+    // "def(int, int) ptr" -> true
+    // "**int" -> false
+
+    // Function Pointer Type Layout ( [] = optional ):
+    // "[stdcall] def(type, type, type) type"
+
+    if(type_name.length() < 6) return false;
+    if(type_name.substr(0, 4) == "def("){
+        return true;
+    }
+
+    if(type_name.length() < 8) return false;
+    if(type_name.substr(0, 8) == "stdcall "){
+        return true;
+    }
+
+    return false;
+}
+bool Program::is_pointer_typename(const std::string& type_name){
+    // "**uint" -> true
+    // "long" -> false
+
+    if(type_name.length() < 1) return false;
+    if(type_name[0] == '*') return true;
+    return false;
+}
+bool Program::function_typename_is_stdcall(const std::string& type_name){
+    // Function Pointer Type Layout ( [] = optional ):
+    // "[stdcall] def(type, type, type) type"
+
+    if(type_name.length() < 8) return false;
+    if(type_name.substr(0, 8) == "stdcall "){
+        return true;
+    }
+
+    return false;
+}
+
 Program::~Program(){
     for(Constant& constant : constants){
         delete constant.value;
@@ -175,7 +229,7 @@ int Program::import_merge(Program& other, bool public_import){
                 arg_typenames[i] = new_func.arguments[i].type;
             }
 
-            externs.push_back( External{new_func.name, arg_typenames, new_func.return_type, public_import, true} );
+            externs.push_back( External(new_func.name, arg_typenames, new_func.return_type, public_import, true, new_func.is_stdcall) );
         }
     }
 
@@ -251,7 +305,6 @@ int Program::import_merge(Program& other, bool public_import){
         if(!already_exists){
             External target = new_external;
             target.is_public = public_import;
-            target.is_mangled = new_external.is_mangled;
             externs.push_back(target);
         }
     }
@@ -325,7 +378,7 @@ int Program::import_merge(Program& other, bool public_import){
 
     return 0;
 }
-bool Program::resolve_if_alias(std::string& type){
+bool Program::resolve_if_alias(std::string& type) const {
     // Returns true if completed a substitution
 
     size_t pointer_count = 0;
@@ -341,7 +394,7 @@ bool Program::resolve_if_alias(std::string& type){
             type = type_alias.binding;
 
             bool alias_has_alias = this->resolve_once_if_alias(type);
-            std::vector<std::string> visited_aliases = { type };
+            std::vector<std::string> visited_aliases;
 
             while(alias_has_alias){
                 // Resolve until there is nothing left to resolve
@@ -364,7 +417,7 @@ bool Program::resolve_if_alias(std::string& type){
     for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
     return false;
 }
-bool Program::resolve_once_if_alias(std::string& type){
+bool Program::resolve_once_if_alias(std::string& type) const {
     // Returns true if completed a substitution
 
     size_t pointer_count = 0;
@@ -373,7 +426,7 @@ bool Program::resolve_once_if_alias(std::string& type){
         pointer_count++;
     }
 
-    type = type.substr(pointer_count, type.size()-pointer_count);
+    type = type.substr(pointer_count, type.length()-pointer_count);
 
     for(const TypeAlias& type_alias : type_aliases){
         if(type == type_alias.alias){
@@ -387,25 +440,34 @@ bool Program::resolve_once_if_alias(std::string& type){
     for(size_t p = 0; p != pointer_count; p++) type = type = "*" + type;
     return false;
 }
-int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type){
+int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type) const {
     // "def(int, int) int"
     // -----^
 
-    // NOTE: The first four characters of type_name are assumed to be "def("
+    // NOTE: type_name is assumed to be a valid function pointer type
 
-    size_t c = 4;
+    size_t c = 0;
+    if(type_name.length() > 8){
+        if(type_name.substr(0, 8) == "stdcall "){
+            c = 8;
+        }
+    }
+    c += 4;
 
     while(type_name[c] != ')'){
         llvm::Type* arg_llvm_type;
         std::string arg_type_string;
+        int balance = 0;
 
-        while(type_name[c] != ')' and type_name[c] != ','){
+        while((type_name[c] != ')' and type_name[c] != ',') or balance != 0){
+            if(type_name[c] == '(') balance += 1;
+            if(type_name[c] == ')') balance -= 1;
             arg_type_string += type_name[c];
-            next_index(c, type_name.size());
+            next_index(c, type_name.length());
         }
         if(type_name[c] == ','){
-            next_index(c, type_name.size());
-            next_index(c, type_name.size());
+            next_index(c, type_name.length());
+            next_index(c, type_name.length());
         }
         if(this->find_type(arg_type_string, &arg_llvm_type) != 0){
             fail(UNDECLARED_TYPE(arg_type_string));
@@ -415,10 +477,10 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
         llvm_args.push_back(arg_llvm_type);
     }
 
-    next_index(c, type_name.size());
-    next_index(c, type_name.size());
+    next_index(c, type_name.length());
+    next_index(c, type_name.length());
 
-    std::string return_type_string = type_name.substr(c, type_name.size()-c);
+    std::string return_type_string = type_name.substr(c, type_name.length()-c);
     assert(return_type_string != "");
 
     if(this->find_type(return_type_string, return_llvm_type) != 0){
@@ -428,25 +490,35 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
 
     return 0;
 }
-int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type, std::vector<std::string>& typenames, std::string& return_typename){
+int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type, std::vector<std::string>& typenames, std::string& return_typename) const {
     // "def(int, int) int"
     // -----^
 
-    // NOTE: The first four characters of type_name are assumed to be "def("
+    // NOTE: type_name is assumed to be a valid function pointer type
 
-    size_t c = 4;
+    size_t c = 0;
+    if(type_name.length() > 8){
+        if(type_name.substr(0, 8) == "stdcall "){
+            c = 8;
+        }
+    }
+
+    c += 4;
 
     while(type_name[c] != ')'){
         llvm::Type* arg_llvm_type;
         std::string arg_type_string;
+        int balance = 0;
 
-        while(type_name[c] != ')' and type_name[c] != ','){
+        while((type_name[c] != ')' and type_name[c] != ',') or balance != 0){
+            if(type_name[c] == '(') balance += 1;
+            if(type_name[c] == ')') balance -= 1;
             arg_type_string += type_name[c];
-            next_index(c, type_name.size());
+            next_index(c, type_name.length());
         }
         if(type_name[c] == ','){
-            next_index(c, type_name.size());
-            next_index(c, type_name.size());
+            next_index(c, type_name.length());
+            next_index(c, type_name.length());
         }
         if(this->find_type(arg_type_string, &arg_llvm_type) != 0){
             fail(UNDECLARED_TYPE(arg_type_string));
@@ -457,10 +529,10 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
         llvm_args.push_back(arg_llvm_type);
     }
 
-    next_index(c, type_name.size());
-    next_index(c, type_name.size());
+    next_index(c, type_name.length());
+    next_index(c, type_name.length());
 
-    return_typename = type_name.substr(c, type_name.size()-c);
+    return_typename = type_name.substr(c, type_name.length()-c);
     assert(return_typename != "");
 
     if(this->find_type(return_typename, return_llvm_type) != 0){
@@ -470,7 +542,7 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
 
     return 0;
 }
-int Program::function_typename_to_type(const std::string& type_name, llvm::Type** type){
+int Program::function_typename_to_type(const std::string& type_name, llvm::Type** type) const {
     // "def(int, int) int"
     // -----^
 
@@ -557,24 +629,29 @@ int Program::generate_types(AssembleContext& context){
 
     return 0;
 }
-int Program::find_type(const std::string& name, llvm::Type** type){
-    size_t pointers;
+int Program::find_type(const std::string& name, llvm::Type** type) const{
+    size_t pointers = 0;
+    size_t alias_pointers = 0;
     std::string type_name;
 
-    for(pointers = 0; pointers != name.length(); pointers++){
+    for(; pointers != name.length(); pointers++){
         if(name[pointers] != '*') break;
     }
 
     type_name = name.substr(pointers, name.length()-pointers);
     this->resolve_if_alias(type_name);
 
-    if(type_name.length() > 4){
-        if(type_name.substr(0, 4) == "def("){
-            // Return after handling function pointer type
-            if(this->function_typename_to_type(type_name, type) != 0) return 1;
-            for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
-            return 0;
-        }
+    for(; alias_pointers != type_name.length(); alias_pointers++){
+        if(type_name[alias_pointers] != '*') break;
+    }
+    type_name = type_name.substr(alias_pointers, type_name.length()-alias_pointers);
+    pointers += alias_pointers;
+
+    if(Program::is_function_typename(type_name)){
+        // Return after handling function pointer type
+        if(this->function_typename_to_type(type_name, type) != 0) return 1;
+        for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
+        return 0;
     }
 
     for(size_t i = 0; i != types.size(); i++){
@@ -592,11 +669,14 @@ int Program::find_type(const std::string& name, llvm::Type** type){
 int Program::find_func(const std::string& name, External* func){
     for(size_t i = 0; i != functions.size(); i++){
         if(functions[i].name == name){
+            // SPEED: Maybe cache 'functions[i]'?
+
             External external;
             external.name = functions[i].name;
             external.return_type = functions[i].return_type;
             external.is_public = functions[i].is_public;
             external.is_mangled = true;
+            external.is_stdcall = functions[i].is_stdcall;
             for(Field& field : functions[i].arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -626,11 +706,14 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             }
             if(!args_match) continue;
 
+            // SPEED: Maybe cache 'functions[i]'?
+
             External external;
             external.name = functions[i].name;
             external.return_type = functions[i].return_type;
             external.is_public = functions[i].is_public;
             external.is_mangled = true;
+            external.is_stdcall = functions[i].is_stdcall;
             for(Field& field : functions[i].arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -676,11 +759,14 @@ int Program::find_method(const std::string& class_name, const std::string& name,
             }
             if(!args_match) continue;
 
+            // SPEED: Maybe cache 'klass.methods[i]'?
+
             External external;
             external.name = klass.methods[i].name;
             external.return_type = klass.methods[i].return_type;
             external.is_public = klass.methods[i].is_public;
             external.is_mangled = true;
+            external.is_stdcall = klass.methods[i].is_stdcall;
             for(Field& field : klass.methods[i].arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -757,6 +843,7 @@ void Program::print_functions(){
 void Program::print_externals(){
     for(External& e : externs){
         std::cout << (e.is_public ? "public " : "private ");
+        if(e.is_stdcall) std::cout << "stdcall ";
         std::cout << "foreign " << e.name << "(";
         for(size_t a = 0; a != e.arguments.size(); a++){
             std::cout << e.arguments[a];

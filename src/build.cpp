@@ -81,6 +81,7 @@ extern "C" int adept_compile(const char* file, BuildConfig* build_config) {
     // Compiler Frontend
     if( tokenize(config, file, tokens, errors)     != 0 ) return 1;
     if( parse(config, tokens, program, errors)     != 0 ) return 1;
+    free_tokens(*tokens);
     delete tokens;
 
     // Compiler Backend

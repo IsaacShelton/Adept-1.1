@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
     if( configure(config, argc, argv, errors)      != 0 ) return 1;
     if( tokenize(config, argv[1], tokens, errors)  != 0 ) return 1;
     if( parse(config, tokens, program, errors)     != 0 ) return 1;
+    free_tokens(*tokens);
     delete tokens;
 
     // Compiler Backend

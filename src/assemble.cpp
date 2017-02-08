@@ -1,5 +1,6 @@
 
 #include <string>
+#include <future>
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,6 +32,7 @@
 #include "../include/build.h"
 #include "../include/errors.h"
 #include "../include/native.h"
+#include "../include/threads.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
 #include "../include/mangling.h"
@@ -139,15 +141,52 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
     build_add_symbols();
     jit_init();
 
-    // Assemble each global
-    for(size_t i = 0; i != program.globals.size(); i++){
-        if(assemble_global(assemble, config, program, program.globals[i]) != 0) return 1;
+    size_t thread_count = 8;
+    size_t target_batch_size;
+    size_t overflow_batch_size;
+    std::vector<std::future<int>> futures;
+
+    // Divide work into threads (not the most elegant solution but it's good enough for now)
+    // For instance if we wanted to assemble 253 globals in 8 theads, the threads whould each responsible
+    // for the following amount of globals:
+
+    // [00]  [01]  [02]  [03]  [04]  [05]  [06]  [07]
+    //  31,   31,   31,   31,   31,   31,   31,   36
+
+    // Start on globals
+    target_batch_size = program.globals.size() / (thread_count);
+    overflow_batch_size = target_batch_size + (program.globals.size() % thread_count);
+    for(size_t i = 0; i < program.globals.size(); ){
+        if(program.globals.size()-i != overflow_batch_size){
+            futures.push_back( std::async(assemble_globals_batch, &assemble, &config, &program, &program.globals[i], target_batch_size) );
+            i += target_batch_size;
+        }
+        else {
+            futures.push_back( std::async(assemble_globals_batch, &assemble, &config, &program, &program.globals[i], overflow_batch_size) );
+            break;
+        }
     }
 
-    // Assemble each external dependency
-    for(size_t i = 0; i != program.externs.size(); i++){
-        if(assemble_external(assemble, config, program, program.externs[i]) != 0) return 1;
+    // Wait for globals to finish and check if any errors were found
+    if(threads_int_result(futures) != 0) return 1;
+
+    // Start on externals
+    futures.clear();
+    target_batch_size = program.externs.size() / (thread_count);
+    overflow_batch_size = target_batch_size + (program.externs.size() % thread_count);
+    for(size_t i = 0; i < program.externs.size(); ){
+        if(program.externs.size()-i != overflow_batch_size){
+            futures.push_back( std::async(assemble_externals_batch, &assemble, &config, &program, &program.externs[i], target_batch_size) );
+            i += target_batch_size;
+        }
+        else {
+            futures.push_back( std::async(assemble_externals_batch, &assemble, &config, &program, &program.externs[i], overflow_batch_size) );
+            break;
+        }
     }
+
+    // Wait for externals to finish and check if any errors were found
+    if(threads_int_result(futures) != 0) return 1;
 
     // Assemble the skeleton of each class
     for(size_t i = 0; i != program.classes.size(); i++){
@@ -177,6 +216,29 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
 
     if(!config.jit and !config.obj and !config.bytecode and config.link){
         if(build(assemble, config, program, errors) != 0) return 1;
+    }
+
+    return 0;
+}
+
+int assemble_globals_batch(const AssembleContext* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count){
+    // ASYNC: Assembles a chunk of globals, intended for threading purposes
+
+    for(size_t g = 0; g != globals_count; g++){
+        if(assemble_global(context, config, program, &globals[g]) != 0){
+            return 1;
+        }
+    }
+
+    return 0;
+}
+int assemble_externals_batch(const AssembleContext* context, const Configuration* config, const Program* program, External* externs, size_t externs_count){
+    // ASYNC: Assembles a chunk of globals, intended for threading purposes
+
+    for(size_t e = 0; e != externs_count; e++){
+        if(assemble_external(context, config, program, &externs[e]) != 0){
+            return 1;
+        }
     }
 
     return 0;
@@ -445,32 +507,36 @@ int assemble_method_body(AssembleContext& context, Configuration& config, Progra
     llvm::verifyFunction(*llvm_function);
     return 0;
 }
-int assemble_external(AssembleContext& context, Configuration& config, Program& program, External& external){
-    std::string final_name = (external.is_mangled) ? mangle(external.name, external.arguments) : external.name;
-    llvm::Function* llvm_function = context.module->getFunction(final_name);
+int assemble_external(const AssembleContext* context, const Configuration* config, const Program* program, const External* external){
+    // ASYNC: This function is thread safe if used correctly:
+    //   - No arguements should be modified until ensuring that this function has finished
+    //   - All pointers passed to this function must be valid
+
+    std::string final_name = (external->is_mangled) ? mangle(external->name, external->arguments) : external->name;
+    llvm::Function* llvm_function = context->module->getFunction(final_name);
 
     if(!llvm_function){
         llvm::Type* llvm_type;
-        std::vector<llvm::Type*> args(external.arguments.size());
+        std::vector<llvm::Type*> args(external->arguments.size());
 
-        for(size_t i = 0; i != external.arguments.size(); i++){
-            if(program.find_type(external.arguments[i], &llvm_type) != 0){
-                fail_filename(config, UNDECLARED_TYPE(external.arguments[i]));
+        for(size_t i = 0; i != external->arguments.size(); i++){
+            if(program->find_type(external->arguments[i], &llvm_type) != 0){
+                fail_filename(*config, UNDECLARED_TYPE(external->arguments[i]));
                 return 1;
             }
             args[i] = llvm_type;
         }
 
-        if(program.find_type(external.return_type, &llvm_type) != 0){
-            fail_filename(config, UNDECLARED_TYPE(external.return_type));
+        if(program->find_type(external->return_type, &llvm_type) != 0){
+            fail_filename(*config, UNDECLARED_TYPE(external->return_type));
             return 1;
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context.module.get());
+        llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context->module.get());
     }
     else {
-        fail_filename(config, DUPLICATE_FUNC(external.name));
+        fail_filename(*config, DUPLICATE_FUNC(external->name));
         return 1;
     }
 
@@ -480,21 +546,37 @@ int assemble_external(AssembleContext& context, Configuration& config, Program& 
 
     return 0;
 }
-int assemble_global(AssembleContext& context, Configuration& config, Program& program, Global& global){
+int assemble_global(const AssembleContext* context, const Configuration* config, const Program* program, Global* global){
+    // ASYNC: This function is thread safe if used correctly:
+    //   - This function modifies the global passed to it, so it must not be modified until ensuring that this
+    //     function has finished
+    //   - No other arguements should be modified until ensuring that this function has finished
+    //   - All pointers passed to this function must be valid
+
     llvm::Type* global_llvm_type;
     const bool is_constant = false;
     llvm::GlobalVariable* created_global;
 
-    if(program.find_type(global.type, &global_llvm_type) != 0){
-        fail_filename(config, UNDECLARED_TYPE(global.type));
+    if(program->find_type(global->type, &global_llvm_type) != 0){
+        fail_filename(*config, UNDECLARED_TYPE(global->type));
         return 1;
     }
 
-    created_global = new llvm::GlobalVariable(*context.module.get(), global_llvm_type, is_constant,
-                        (global.is_public ? llvm::GlobalVariable::LinkageTypes::CommonLinkage : llvm::GlobalVariable::LinkageTypes::PrivateLinkage), nullptr, global.name);
-    created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) ); // Initialize the global as zero
-    created_global->setExternallyInitialized(global.is_public); // Assume externally initialized if public
-    global.variable = created_global;
+    created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
+                        (global->is_public ? llvm::GlobalVariable::LinkageTypes::CommonLinkage : llvm::GlobalVariable::LinkageTypes::PrivateLinkage), nullptr, global->name);
+
+     // Initialize the global as zero
+    if(Program::is_function_typename(global->type) or Program::is_pointer_typename(global->type)){
+        // Safety: Probally not very safe, but whatever. 'global_llvm_type' should always be a pointer
+        assert(global_llvm_type->isPointerTy());
+        created_global->setInitializer( llvm::ConstantPointerNull::get( static_cast<llvm::PointerType*>(global_llvm_type) ) );
+    }
+    else {
+        created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) );
+    }
+
+    created_global->setExternallyInitialized(global->is_public); // Assume externally initialized if public
+    global->variable = created_global;
     return 0;
 }
 
@@ -610,6 +692,22 @@ int assemble_merge_types_oneway(AssembleContext& context, Program& program, std:
         return 0;
     }
 
+    if(Program::is_function_typename(type_a) and type_b == "ptr"){
+        if(out != NULL) *out = type_b;
+        llvm::Type* llvm_func_type;
+        if(program.function_typename_to_type(type_a, &llvm_func_type) != 0) return 1;
+        *expr_a = context.builder.CreateBitCast(*expr_a, llvm_func_type, "casttmp");
+        return 0;
+    }
+
+    if(Program::is_function_typename(type_b) and type_a == "ptr"){
+        if(out != NULL) *out = type_a;
+        llvm::Type* llvm_func_type;
+        if(program.function_typename_to_type(type_b, &llvm_func_type) != 0) return 1;
+        *expr_a = context.builder.CreateBitCast(*expr_a, llvm_func_type, "casttmp");
+        return 0;
+    }
+
     return 1;
 }
 bool assemble_types_mergeable(Program& program, std::string a, std::string b){
@@ -625,6 +723,9 @@ bool assemble_types_mergeable(Program& program, std::string a, std::string b){
     if(a == b) return true;
     if(b[0] == '*' and a == "ptr") return true;
     if(a[0] == '*' and b == "ptr") return true;
+
+    if(Program::is_function_typename(a)) return true;
+    if(Program::is_function_typename(b)) return true;
 
     return false;
 }

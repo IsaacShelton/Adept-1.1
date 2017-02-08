@@ -20,10 +20,6 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
         config.clock.print_since("PARSER DONE", filename_name(config.filename));
         config.clock.remember();
     }
-
-    if(config.filename == "model.adept"){
-        program.print();
-    }
     return 0;
 }
 
@@ -56,6 +52,7 @@ int parse_word(Configuration& config, TokenList& tokens, Program& program, size_
 
     switch(tokens[i].id){
     case TOKENID_WORD:
+    case TOKENID_KEYWORD:
         if(parse_global(config, tokens, program, i, name, attr_info, errors) != 0) return 1;
         break;
     default:
@@ -288,12 +285,9 @@ int parse_type_alias(Configuration& config, TokenList& tokens, Program& program,
     //                 ^
 
     next_index(i, tokens.size());
-    if(tokens[i].id != TOKENID_WORD){
-        errors.panic("Expected type binding after type alias");
-        return 1;
-    }
+    std::string binding;
 
-    std::string binding = tokens[i].getString();
+    if(parse_type(config, tokens, program, i, binding, errors) != 0) return 1;
     program.type_aliases.push_back( TypeAlias(alias, binding, attr_info.is_public) );
     return 0;
 }
@@ -343,7 +337,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
-    program.functions.push_back( Function{name, arguments, return_type, statements, attr_info.is_public} );
+    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall) );
     return 0;
 }
 int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -425,7 +419,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
-    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static);
+    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall);
     created_method.parent_class = klass;
     klass->methods.push_back( std::move(created_method) );
     return 0;
@@ -461,7 +455,7 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
 
     errors.line++;
-    program.externs.push_back( External{name, arguments, return_type, attr_info.is_public, false} );
+    program.externs.push_back( External(name, arguments, return_type, attr_info.is_public, false, attr_info.is_stdcall) );
     return 0;
 }
 int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -488,6 +482,10 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
         }
         else if(keyword == "packed"){
             attr_info.is_packed = true;
+            next_index(i, tokens.size());
+        }
+        else if(keyword == "stdcall"){
+            attr_info.is_stdcall = true;
             next_index(i, tokens.size());
         }
         else {
@@ -554,6 +552,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
 
     if( tokenize(*import_config, name, import_tokens, error_handler) != 0 )         return 1;
     if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ) return 1;
+    free_tokens(*import_tokens);
     delete import_tokens;
 
     std::string mangled_name = mangle_filename(name);
@@ -621,17 +620,7 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
     //       ^
 
     std::string type;
-    while(tokens[i].id == TOKENID_MULTIPLY){
-        type += "*";
-        next_index(i, tokens.size());
-    }
-
-    if(tokens[i].id != TOKENID_WORD){
-        errors.panic(EXPECTED_NAME_OF_TYPE);
-        return 1;
-    }
-
-    type += tokens[i].getString();
+    if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
     next_index(i, tokens.size());
 
     if(tokens[i].id == TOKENID_ASSIGN){
@@ -660,7 +649,52 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
     if(tokens[i].id == TOKENID_KEYWORD){
         std::string keyword = tokens[i].getString();
 
-        if(keyword == "def"){
+        if(keyword == "stdcall"){
+            // Function pointer type
+
+            next_index(i, tokens.size());
+            if(tokens[i].id != TOKENID_KEYWORD){
+                errors.panic("Expected keyword after 'stdcall'");
+                return 1;
+            }
+
+            if(tokens[i].getString() != "def"){
+                errors.panic("Expected keyword 'def' after keyword 'stdcall'");
+                return 1;
+            }
+
+            next_index(i, tokens.size());
+            if(tokens[i].id != TOKENID_OPEN){
+                errors.panic("Expected '(' after keyword 'def' in function pointer type");
+                return 1;
+            }
+
+            next_index(i, tokens.size());
+            output_type = "stdcall def(";
+
+            std::vector<std::string> arguments;
+            std::string return_type;
+
+            while(tokens[i].id != TOKENID_CLOSE){
+                std::string type;
+
+                if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
+                next_index(i, tokens.size());
+
+                if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
+                arguments.push_back(type);
+            }
+
+            next_index(i, tokens.size());
+            if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+
+            for(size_t a = 0; a != arguments.size(); a++){
+                output_type += arguments[a];
+                if(a + 1 != arguments.size()) output_type += ", ";
+            }
+            output_type += ") " + return_type;
+        }
+        else if(keyword == "def"){
             // Function pointer type
 
             next_index(i, tokens.size());

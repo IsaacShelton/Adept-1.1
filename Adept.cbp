@@ -98,6 +98,7 @@
 		<Unit filename="include/program.h" />
 		<Unit filename="include/statement.h" />
 		<Unit filename="include/strings.h" />
+		<Unit filename="include/threads.h" />
 		<Unit filename="include/tokens.h" />
 		<Unit filename="include/type.h" />
 		<Unit filename="src/asmcontext.cpp" />
@@ -119,6 +120,7 @@
 		<Unit filename="src/program.cpp" />
 		<Unit filename="src/statement.cpp" />
 		<Unit filename="src/strings.cpp" />
+		<Unit filename="src/threads.cpp" />
 		<Unit filename="src/tokens.cpp" />
 		<Unit filename="src/type.cpp" />
 		<Extensions>

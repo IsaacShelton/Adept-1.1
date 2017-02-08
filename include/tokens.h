@@ -101,7 +101,6 @@ struct Token {
     Token(const Token&);
     Token(uint16_t);
     Token(uint16_t, void*);
-    ~Token();
 
     // Deallocation
     void reset();
@@ -128,5 +127,7 @@ struct Token {
 };
 
 typedef std::vector<Token> TokenList;
+
+void free_tokens(TokenList& tokens);
 
 #endif // TOKENS_H_INCLUDED
