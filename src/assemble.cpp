@@ -556,26 +556,40 @@ int assemble_global(const AssembleContext* context, const Configuration* config,
     llvm::Type* global_llvm_type;
     const bool is_constant = false;
     llvm::GlobalVariable* created_global;
+    llvm::GlobalVariable::LinkageTypes linkage;
 
     if(program->find_type(global->type, &global_llvm_type) != 0){
         fail_filename(*config, UNDECLARED_TYPE(global->type));
         return 1;
     }
 
-    created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
-                        (global->is_public ? llvm::GlobalVariable::LinkageTypes::CommonLinkage : llvm::GlobalVariable::LinkageTypes::PrivateLinkage), nullptr, global->name);
-
-     // Initialize the global as zero
-    if(Program::is_function_typename(global->type) or Program::is_pointer_typename(global->type)){
-        // Safety: Probally not very safe, but whatever. 'global_llvm_type' should always be a pointer
-        assert(global_llvm_type->isPointerTy());
-        created_global->setInitializer( llvm::ConstantPointerNull::get( static_cast<llvm::PointerType*>(global_llvm_type) ) );
+    if(global->is_imported){
+        linkage = llvm::GlobalVariable::LinkageTypes::ExternalLinkage;
     }
     else {
-        created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) );
+        if(global->is_public){
+            linkage = llvm::GlobalVariable::LinkageTypes::CommonLinkage;
+        } else {
+            linkage = llvm::GlobalVariable::LinkageTypes::InternalLinkage;
+        }
     }
 
-    created_global->setExternallyInitialized(global->is_public); // Assume externally initialized if public
+    created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
+                        linkage, nullptr, global->name);
+
+    if(!global->is_imported){
+        // Initialize the global as zero
+        if(Program::is_function_typename(global->type) or Program::is_pointer_typename(global->type)){
+            // Safety: Probally not very safe, but whatever. 'global_llvm_type' should always be a pointer
+            assert(global_llvm_type->isPointerTy());
+            created_global->setInitializer( llvm::ConstantPointerNull::get( static_cast<llvm::PointerType*>(global_llvm_type) ) );
+        }
+        else {
+            created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) );
+        }
+    }
+
+    created_global->setExternallyInitialized( (global->is_public or global->is_imported) ); // Assume externally initialized if public
     global->variable = created_global;
     return 0;
 }

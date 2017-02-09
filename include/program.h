@@ -112,6 +112,7 @@ class Global {
     std::string name;
     std::string type;
     bool is_public;
+    bool is_imported;
     llvm::Value* variable;
     ErrorHandler errors;
 

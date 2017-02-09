@@ -94,7 +94,7 @@
 	"errors.h"
 	"expression.h"
 
-1486515040 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1486681781 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -129,7 +129,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1486597059 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1486684226 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>
@@ -1233,13 +1233,13 @@
 	"parse.h"
 	"statement.h"
 
-1486591463 c:\users\isaac\google drive\adept\include\program.h
+1486683554 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
 	"asmcontext.h"
 
-1486591457 source:c:\users\isaac\google drive\adept\src\program.cpp
+1486683617 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	"../include/die.h"
@@ -1254,13 +1254,14 @@
 	<iostream>
 	"../include/clock.h"
 
-1481580402 source:c:\users\isaac\google drive\adept\src\jit.cpp
+1486683446 source:c:\users\isaac\google drive\adept\src\jit.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
 	"llvm/ExecutionEngine/GenericValue.h"
 	"llvm/ExecutionEngine/MCJIT.h"
+	"llvm/ExecutionEngine/Interpreter.h"
 	"llvm/Support/DynamicLibrary.h"
 	"llvm/IR/BasicBlock.h"
 	"llvm/IR/Constants.h"
@@ -1276,6 +1277,7 @@
 	"llvm/Support/TargetSelect.h"
 	"llvm/Support/FileSystem.h"
 	"../include/jit.h"
+	"../include/mangling.h"
 
 1481578289 c:\users\isaac\google drive\adept\include\jit.h
 	"llvm/ADT/APFloat.h"
@@ -1971,4 +1973,10 @@
 	<future>
 	<thread>
 	<vector>
+
+1486597353 source:c:\users\isaac\google drive\adept\src\threads.cpp
+	"../include/threads.h"
+
+1449527239 c:\llvm\include\llvm\executionengine\interpreter.h
+	"llvm/ExecutionEngine/ExecutionEngine.h"
 

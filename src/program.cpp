@@ -116,6 +116,7 @@ Global::Global(const std::string& name, const std::string& type, bool is_public,
     this->name = name;
     this->type = type;
     this->is_public = is_public;
+    this->is_imported = false;
     this->errors = errors;
 }
 
@@ -355,7 +356,10 @@ int Program::import_merge(Program& other, bool public_import){
         }
 
         if(!already_exists){
-            globals.push_back(new_global);
+            Global cloned_global = new_global;
+
+            cloned_global.is_imported = true;
+            globals.push_back(std::move(cloned_global));
         }
     }
 
@@ -696,25 +700,25 @@ int Program::find_func(const std::string& name, External* func){
 int Program::find_func(const std::string& name, const std::vector<std::string>& args, External* func){
     for(size_t i = 0; i != functions.size(); i++){
         if(functions[i].name == name){
+            External external;
             bool args_match = true;
-            if(args.size() != functions[i].arguments.size()) continue;
+            Function* function_found = &functions[i];
+
+            if(args.size() != function_found->arguments.size()) continue;
             for(size_t a = 0; a != args.size(); a++){
-                if( !assemble_types_mergeable(*this, args[a], functions[i].arguments[a].type) ){
+                if( !assemble_types_mergeable(*this, args[a], function_found->arguments[a].type) ){
                     args_match = false;
                     break;
                 }
             }
             if(!args_match) continue;
 
-            // SPEED: Maybe cache 'functions[i]'?
-
-            External external;
-            external.name = functions[i].name;
-            external.return_type = functions[i].return_type;
-            external.is_public = functions[i].is_public;
+            external.name = function_found->name;
+            external.return_type = function_found->return_type;
+            external.is_public = function_found->is_public;
             external.is_mangled = true;
-            external.is_stdcall = functions[i].is_stdcall;
-            for(Field& field : functions[i].arguments) external.arguments.push_back(field.type);
+            external.is_stdcall = function_found->is_stdcall;
+            for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
 
             *func = external;
             return 0;
@@ -749,25 +753,25 @@ int Program::find_method(const std::string& class_name, const std::string& name,
 
     for(size_t i = 0; i != klass.methods.size(); i++){
         if(klass.methods[i].name == name){
+            External external;
             bool args_match = true;
-            if(args.size() != klass.methods[i].arguments.size()) continue;
+            Function* found_method = &klass.methods[i];
+
+            if(args.size() != found_method->arguments.size()) continue;
             for(size_t a = 0; a != args.size(); a++){
-                if( !assemble_types_mergeable(*this, args[a], klass.methods[i].arguments[a].type) ){
+                if( !assemble_types_mergeable(*this, args[a], found_method->arguments[a].type) ){
                     args_match = false;
                     break;
                 }
             }
             if(!args_match) continue;
 
-            // SPEED: Maybe cache 'klass.methods[i]'?
-
-            External external;
-            external.name = klass.methods[i].name;
-            external.return_type = klass.methods[i].return_type;
-            external.is_public = klass.methods[i].is_public;
+            external.name = found_method->name;
+            external.return_type = found_method->return_type;
+            external.is_public = found_method->is_public;
             external.is_mangled = true;
-            external.is_stdcall = klass.methods[i].is_stdcall;
-            for(Field& field : klass.methods[i].arguments) external.arguments.push_back(field.type);
+            external.is_stdcall = found_method->is_stdcall;
+            for(Field& field : found_method->arguments) external.arguments.push_back(field.type);
 
             *func = external;
             return 0;

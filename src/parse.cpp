@@ -638,6 +638,7 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
         global->name = name;
         global->type = type;
         global->is_public = attr_info.is_public;
+        global->is_imported = false;
         global->errors = errors;
     }
     return 0;

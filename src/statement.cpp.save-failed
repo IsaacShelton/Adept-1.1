@@ -408,6 +408,8 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
         }
     }
 
+    std::cout << "ok" << std::endl;
+
     if(program.find_global(name, &func_global) == 0){
         if(Program::is_function_typename(func_global.type)){
             // The variable is a function pointer
@@ -446,7 +448,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
     }
 
     errors.panic_undeclared_func(name, argument_types);
-    return 1;
+    return 0;
 }
 std::string CallStatement::toString(unsigned int indent, bool skip_initial_indent){
     std::string result;
