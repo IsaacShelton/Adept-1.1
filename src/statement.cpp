@@ -1208,3 +1208,62 @@ bool UnlessElseStatement::isTerminator(){
 bool UnlessElseStatement::isConditional(){
     return true;
 }
+
+DeallocStatement::DeallocStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+DeallocStatement::DeallocStatement(PlainExp* value, ErrorHandler& errors){
+    this->value = value;
+    this->errors = errors;
+}
+DeallocStatement::DeallocStatement(const DeallocStatement& other) : Statement(other) {
+    this->value = other.value->clone();
+    this->errors = other.errors;
+}
+DeallocStatement::~DeallocStatement(){
+    delete this->value;
+}
+int DeallocStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Type* llvm_type;
+    std::string type_name;
+    llvm::Value* pointer = value->assemble_immutable(program, func, context, &type_name);
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return 1;
+    }
+
+    llvm::Function* free_function = context.module->getFunction("free");
+
+    if(!free_function){
+        errors.panic("Can't delete object because the function 'free' is missing");
+        return 1;
+    }
+
+    std::vector<llvm::Value*> free_args(1);
+    free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context), "casttmp");
+    context.builder.CreateCall(free_function, free_args, "deltmp");
+    return 0;
+}
+std::string DeallocStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += "delete " + value->toString();
+    return result;
+}
+Statement* DeallocStatement::clone(){
+    return new DeallocStatement(*this);
+}
+bool DeallocStatement::isTerminator(){
+    return false;
+}
+bool DeallocStatement::isConditional(){
+    return false;
+}

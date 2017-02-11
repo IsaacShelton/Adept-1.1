@@ -811,6 +811,13 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
     else if(keyword == "until"){
         if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
     }
+    else if(keyword == "delete"){
+        PlainExp* expression;
+
+        next_index(i, tokens.size());
+        if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
+        statements.push_back( new DeallocStatement(expression, errors) );
+    }
     else {
         errors.panic( UNEXPECTED_KEYWORD(keyword) );
         return 1;

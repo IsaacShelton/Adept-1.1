@@ -391,5 +391,4 @@ class AllocExp : public PlainExp {
     PlainExp* clone();
 };
 
-
 #endif // EXPRESSION_H_INCLUDED

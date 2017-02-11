@@ -230,4 +230,19 @@ class UnlessElseStatement : public Statement {
     bool isConditional();
 };
 
+class DeallocStatement : public Statement {
+    public:
+    PlainExp* value;
+
+    DeallocStatement(ErrorHandler&);
+    DeallocStatement(PlainExp*, ErrorHandler&);
+    DeallocStatement(const DeallocStatement&);
+    ~DeallocStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
 #endif // STATEMENT_H_INCLUDED
