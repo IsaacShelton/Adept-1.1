@@ -197,7 +197,7 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
         errs() << argv[0] << ": warning: ignoring -mc-relax-all because filetype != obj";
 
     {
-        raw_pwrite_stream *OS = &output->os();
+        raw_pwrite_stream *output_stream = &output->os();
 
         // Manually do the buffering rather than using buffer_ostream,
         // so we can memcmp the contents in CompileTwice mode
@@ -205,7 +205,7 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
         std::unique_ptr<raw_svector_ostream> buffer_stream;
         if ((options.filetype != TargetMachine::CGFT_AssemblyFile && !output->os().supportsSeeking()) || options.compile_twice) {
             buffer_stream = make_unique<raw_svector_ostream>(buffer);
-            OS = buffer_stream.get();
+            output_stream = buffer_stream.get();
         }
 
         AnalysisID start_before_id = nullptr;
@@ -232,7 +232,7 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
             for (const std::string& run_pass : options.run_pass_names) {
                 if (addPass(PM, argv[0], run_pass, TPC, options)) return 1;
             }
-            PM.add( createPrintMIRPass(*OS) );
+            PM.add( createPrintMIRPass(*output_stream) );
         } else {
             if (!options.start_after.empty()) {
                 const PassInfo *pass_info = pass_registry->getPassInfo(options.start_after);
@@ -252,7 +252,7 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
             }
 
             // Ask the target to add backend passes as necessary.
-            if (Target->addPassesToEmitFile(PM, *OS, options.filetype, options.no_verify,
+            if (Target->addPassesToEmitFile(PM, *output_stream, options.filetype, options.no_verify,
                               start_before_id, start_after_id, stop_after_id,
                               mir_parser.get())) {
                 errs() << argv[0] << ": target does not support generation of this"
@@ -310,13 +310,13 @@ static std::unique_ptr<tool_output_file> getOutputStream(const char *target_name
             output_filename = "-";
         else {
             // If bitcode_filename ends in .bc or .ll, remove it.
-            StringRef IFN = bitcode_filename;
-            if (IFN.endswith(".bc") || IFN.endswith(".ll"))
-                output_filename = IFN.drop_back(3);
-            else if (IFN.endswith(".mir"))
-                output_filename = IFN.drop_back(4);
+            StringRef input_filename = bitcode_filename;
+            if (input_filename.endswith(".bc") || input_filename.endswith(".ll"))
+                output_filename = input_filename.drop_back(3);
+            else if (input_filename.endswith(".mir"))
+                output_filename = input_filename.drop_back(4);
             else
-                output_filename = IFN;
+                output_filename = input_filename;
 
             switch (options.filetype) {
             case TargetMachine::CGFT_AssemblyFile:

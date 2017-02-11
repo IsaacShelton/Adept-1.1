@@ -105,22 +105,22 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         case TOKENID_MODULUS:
             return context.builder.CreateSRem(left_value, right_value, "remtmp");
         case TOKENID_EQUALITY:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
         case TOKENID_INEQUALITY:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
         case TOKENID_LESS:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpSLT(left_value, right_value, "cmptmp");
         case TOKENID_GREATER:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpSGT(left_value, right_value, "cmptmp");
         case TOKENID_LESSEQ:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpSLE(left_value, right_value, "cmptmp");
         case TOKENID_GREATEREQ:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpSGE(left_value, right_value, "cmptmp");
         case TOKENID_AND:
             if(type_name != "bool"){
@@ -152,10 +152,10 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         case TOKENID_MODULUS:
             return context.builder.CreateFRem(left_value, right_value, "remtmp");
         case TOKENID_EQUALITY:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateFCmpOEQ(left_value, right_value, "cmptmp");
         case TOKENID_INEQUALITY:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateFCmpONE(left_value, right_value, "cmptmp");
         default:
             std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
@@ -163,7 +163,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         }
     }
     else if(type_name == "ptr" or type_name[0] == '*'){
-        *expr_type = "ptr";
+        if(expr_type != NULL) *expr_type = "ptr";
 
         switch (operation) {
         case TOKENID_ADD:
@@ -202,10 +202,10 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
                 return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy(), "cast");
             }
         case TOKENID_EQUALITY:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
         case TOKENID_INEQUALITY:
-            *expr_type = "bool";
+            if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
         default:
             std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
@@ -626,7 +626,7 @@ llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleCon
     llvm::Value* llvm_value = this->value->assemble(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
-    *expr_type = "*" + type_name;
+    if(expr_type != NULL) *expr_type = "*" + type_name;
     return llvm_value;
 }
 std::string AddrWordExp::toString(){
@@ -808,7 +808,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
             }
         }
 
-        *expr_type = func_data.return_type;
+        if(expr_type != NULL) *expr_type = func_data.return_type;
         llvm::CallInst* call = context.builder.CreateCall(target, argument_values, "calltmp");
         call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
         return call;
@@ -840,7 +840,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
                 }
             }
 
-            *expr_type = varfunc_return_typename;
+            if(expr_type != NULL) *expr_type = varfunc_return_typename;
             llvm::Value* function_address = context.builder.CreateLoad(func_variable.variable);
             llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
 
@@ -878,7 +878,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssembleContext
                 }
             }
 
-            *expr_type = varfunc_return_typename;
+            if(expr_type != NULL) *expr_type = varfunc_return_typename;
             llvm::Value* function_address = context.builder.CreateLoad(func_global.variable);
             llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
 
@@ -1166,7 +1166,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssembleC
         }
     }
 
-    *expr_type = func_data.return_type;
+    if(expr_type != NULL) *expr_type = func_data.return_type;
     llvm::Value* call = context.builder.CreateCall(target, argument_values, "calltmp");
     return call;
 }
@@ -1193,7 +1193,7 @@ NullExp::NullExp(const NullExp& other) : PlainExp(other) {
 }
 NullExp::~NullExp(){}
 llvm::Value* NullExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
-    *expr_type = "ptr";
+    if(expr_type != NULL) *expr_type = "ptr";
     return llvm::ConstantPointerNull::get( llvm::Type::getInt8PtrTy(context.context) );
 }
 std::string NullExp::toString(){
@@ -1223,7 +1223,7 @@ llvm::Value* NotExp::assemble(Program& program, Function& func, AssembleContext&
     std::string type_name;
     llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
-    *expr_type = "bool";
+    if(expr_type != NULL) *expr_type = "bool";
 
     if(type_name == "bool"){
         return context.builder.CreateNot(llvm_value, "nottmp");
@@ -1298,7 +1298,7 @@ CastExp::~CastExp(){
 }
 llvm::Value* CastExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     program.resolve_if_alias(target_typename);
-    *expr_type = target_typename;
+    if(expr_type != NULL) *expr_type = target_typename;
 
     if(target_typename == "bool"){
         return this->cast_to_bool(program, func, context);
@@ -1339,6 +1339,9 @@ llvm::Value* CastExp::cast_to_bool(Program& program, Function& func, AssembleCon
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
     if(type_name == "bool"){
         return llvm_value;
     }
@@ -1370,6 +1373,9 @@ llvm::Value* CastExp::cast_to_byte(Program& program, Function& func, AssembleCon
     std::string type_name;
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
         return context.builder.CreateZExt(llvm_value, context.builder.getInt8Ty(), "cast");
@@ -1403,6 +1409,9 @@ llvm::Value* CastExp::cast_to_short(Program& program, Function& func, AssembleCo
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
     if(type_name == "bool"){
         return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty(), "cast");
     }
@@ -1435,10 +1444,8 @@ llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssembleCont
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
-    if(type_name == ""){
-        errors.panic( UNDECLARED_TYPE("") );
-        return NULL;
-    }
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
         return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "cast");
@@ -1461,7 +1468,7 @@ llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssembleCont
     else if(type_name == "ptr"){
         return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty(), "cast");
     }
-    else if(type_name[0] == '*' or Program::is_function_typename(type_name)){
+    else if(Program::is_pointer_typename(type_name) or Program::is_function_typename(type_name)){
         llvm_value = context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
         return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty(), "cast");
     }
@@ -1477,6 +1484,9 @@ llvm::Value* CastExp::cast_to_long(Program& program, Function& func, AssembleCon
     std::string type_name;
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
         return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "cast");
@@ -1512,6 +1522,9 @@ llvm::Value* CastExp::cast_to_float(Program& program, Function& func, AssembleCo
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
     if(type_name == "bool"){
         return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy(), "cast");
     }
@@ -1543,6 +1556,9 @@ llvm::Value* CastExp::cast_to_double(Program& program, Function& func, AssembleC
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
 
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
     if(type_name == "bool"){
         return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy(), "cast");
     }
@@ -1570,6 +1586,9 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssembleCont
     std::string type_name;
     llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
         return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
@@ -1632,7 +1651,7 @@ llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssembleCont
         if(a + 1 != function_arguments.size()) args_str += ", ";
     }
 
-    *expr_type = "def(" + args_str + ") " + function_data.return_type;
+    if(expr_type != NULL) *expr_type = "def(" + args_str + ") " + function_data.return_type;
     return target_function;
 }
 std::string FuncptrExp::toString(){
@@ -1647,4 +1666,42 @@ std::string FuncptrExp::toString(){
 }
 PlainExp* FuncptrExp::clone(){
     return new FuncptrExp(*this);
+}
+
+SizeofExp::SizeofExp(ErrorHandler& err){
+    is_mutable = false;
+    errors = err;
+}
+SizeofExp::SizeofExp(const std::string& type_name, ErrorHandler& err){
+    this->type_name = type_name;
+    is_mutable = false;
+    errors = err;
+}
+SizeofExp::SizeofExp(const SizeofExp& other) : PlainExp(other){
+    this->type_name = other.type_name;
+    is_mutable = false;
+}
+SizeofExp::~SizeofExp(){}
+llvm::Value* SizeofExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "usize";
+    llvm::Type* llvm_type;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return NULL;
+    }
+
+    llvm::DataLayout data_layout = context.module->getDataLayout();
+    uint64_t type_size = data_layout.getTypeAllocSize(llvm_type);
+
+    return llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size, false));
+}
+std::string SizeofExp::toString(){
+    return "sizeof " + this->type_name;
+}
+PlainExp* SizeofExp::clone(){
+    return new SizeofExp(*this);
 }

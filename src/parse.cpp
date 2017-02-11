@@ -11,6 +11,9 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
+    // Generate standard type aliases
+    program.generate_type_aliases();
+
     for(size_t i = 0; i != tokens->size(); i++){
         if(parse_token(config, *tokens, program, i, errors) != 0) return 1;
     }
@@ -1200,6 +1203,16 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
 
                 next_index(i, tokens.size());
                 *expression = new FuncptrExp(function_name, function_arguments, errors);
+            } else if(keyword == "sizeof"){
+                std::string sizeof_typename;
+
+                if(parse_type(config, tokens, program, i, sizeof_typename, errors) != 0){
+                    errors.panic("Expected typename after 'sizeof' operator");
+                    return 1;
+                }
+
+                next_index(i, tokens.size());
+                *expression = new SizeofExp(sizeof_typename, errors);
             } else {
                 errors.panic( UNEXPECTED_KEYWORD_INEXPR(keyword) );
                 return 1;

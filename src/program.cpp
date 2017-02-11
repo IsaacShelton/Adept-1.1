@@ -562,6 +562,10 @@ int Program::function_typename_to_type(const std::string& type_name, llvm::Type*
     *type = function_type->getPointerTo();
     return 0;
 }
+void Program::generate_type_aliases(){
+    // Standard type aliases
+    type_aliases.push_back( TypeAlias("usize", "uint", false) );
+}
 int Program::generate_types(AssembleContext& context){
     // Requires types vector to be empty
 

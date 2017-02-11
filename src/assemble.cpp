@@ -509,7 +509,7 @@ int assemble_method_body(AssembleContext& context, Configuration& config, Progra
 }
 int assemble_external(const AssembleContext* context, const Configuration* config, const Program* program, const External* external){
     // ASYNC: This function is thread safe if used correctly:
-    //   - No arguements should be modified until ensuring that this function has finished
+    //   - No arguments should be modified until ensuring that this function has finished
     //   - All pointers passed to this function must be valid
 
     std::string final_name = (external->is_mangled) ? mangle(external->name, external->arguments) : external->name;
@@ -540,17 +540,13 @@ int assemble_external(const AssembleContext* context, const Configuration* confi
         return 1;
     }
 
-    // USE IF ERROR
-    // Error reading body, remove function.
-    // llvm_function->eraseFromParent();
-
     return 0;
 }
 int assemble_global(const AssembleContext* context, const Configuration* config, const Program* program, Global* global){
     // ASYNC: This function is thread safe if used correctly:
     //   - This function modifies the global passed to it, so it must not be modified until ensuring that this
     //     function has finished
-    //   - No other arguements should be modified until ensuring that this function has finished
+    //   - No other arguments should be modified until ensuring that this function has finished
     //   - All pointers passed to this function must be valid
 
     llvm::Type* global_llvm_type;

@@ -31,7 +31,6 @@ int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& err
 }
 
 int shutdown(){
-
     llvm::llvm_shutdown();
     return 0;
 }

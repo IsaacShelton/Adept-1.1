@@ -365,4 +365,17 @@ class FuncptrExp : public PlainExp {
     PlainExp* clone();
 };
 
+class SizeofExp : public PlainExp {
+    public:
+    std::string type_name;
+
+    SizeofExp(ErrorHandler&);
+    SizeofExp(const std::string&, ErrorHandler&);
+    SizeofExp(const SizeofExp&);
+    ~SizeofExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
 #endif // EXPRESSION_H_INCLUDED
