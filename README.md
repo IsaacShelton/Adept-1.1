@@ -208,3 +208,43 @@ public def main() int {
     return 0
 }
 ```
+
+### Sizeof, new, and delete
+```
+private import "system/system.adept"
+private import "adept/terminal.adept"
+
+private type SmallType {
+    length usize
+    data ptr
+}
+
+private type BigType {
+    a int
+    b int
+    c int
+    d long
+    e SmallType
+}
+
+public def main() int {
+    // Get the size of the type 'BigType' and print it
+    // NOTE: This will be different depending on the alignment of the type and
+    //   depending on what the target system is. You can ensure a type is aligned to
+    //   one byte by specifing the 'packed' attribute
+    length usize = sizeof BigType
+    println(cast int(length))
+    
+    // Use 'new' operator to allocate an object of type 'BigType' on the heap
+    data *BigType = new BigType
+    
+    // Use the allocated object
+    data.c = 12345
+    println(data.c)
+    
+    // Use 'delete' statement to free the object
+    delete data
+    return 0
+}
+
+```
