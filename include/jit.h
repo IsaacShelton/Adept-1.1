@@ -23,9 +23,11 @@
 #include "llvm/Support/FileSystem.h"
 
 #include <string>
+#include "program.h"
 #include "asmcontext.h"
 
 void jit_init();
 int jit_run(AssembleContext&, std::string, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
+int jit_run(AssembleContext&, std::string, std::vector<ModuleDependency>& dependencies, ErrorHandler& errors, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
 
 #endif // JIT_H_INCLUDED

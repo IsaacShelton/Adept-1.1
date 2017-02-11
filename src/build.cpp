@@ -86,7 +86,7 @@ extern "C" int adept_compile(const char* file, BuildConfig* build_config) {
 
     // Compiler Backend
     if( assemble(context, config, program, errors) != 0 ) return 1;
-    if( finalize(config, context, errors)          != 0 ) return 1;
+    if( finalize(config, program, context, errors)          != 0 ) return 1;
 
     // Output divider if needed
     if(config.time and !config.silent){

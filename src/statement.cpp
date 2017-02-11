@@ -1239,8 +1239,12 @@ int DeallocStatement::assemble(Program& program, Function& func, AssembleContext
     llvm::Function* free_function = context.module->getFunction("free");
 
     if(!free_function){
-        errors.panic("Can't delete object because the function 'free' is missing");
-        return 1;
+        // Declare the malloc function if it doesn't already exist
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt8PtrTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm::Type::getInt8Ty(context.context), args, false);
+        free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
     }
 
     std::vector<llvm::Value*> free_args(1);

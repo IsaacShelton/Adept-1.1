@@ -700,7 +700,28 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleCo
         return NULL;
     }
 
-    if(pointer_typename[0] != '*' or !pointer_value->getType()->isPointerTy()){
+    if(Program::is_array_typename(pointer_typename)){
+        // Handle as higher level array
+        return this->assemble_highlevel_array(program, func, context, expr_type, pointer_value, pointer_typename);
+    }
+    else {
+        // Handle as lower lever array
+        return this->assemble_lowlevel_array(program, func, context, expr_type, pointer_value, pointer_typename);
+    }
+
+    return NULL;
+}
+std::string IndexLoadExp::toString(){
+    return value->toString() + "[" + index->toString() + "]";
+}
+PlainExp* IndexLoadExp::clone(){
+    return new IndexLoadExp(*this);
+}
+llvm::Value* IndexLoadExp::assemble_lowlevel_array(Program& program, Function& func, AssembleContext& context, std::string* expr_type,
+                                                    llvm::Value* pointer_value, const std::string& pointer_typename){
+    // Assemble lower lever array
+
+    if(!Program::is_pointer_typename(pointer_typename) or !pointer_value->getType()->isPointerTy()){
         errors.panic("Can't dereference non-pointer type '" + pointer_typename + "'");
         return NULL;
     }
@@ -724,11 +745,46 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssembleCo
     pointer_value = context.builder.CreateGEP(pointer_value, indices, "memberptr");
     return pointer_value;
 }
-std::string IndexLoadExp::toString(){
-    return value->toString() + "[" + index->toString() + "]";
-}
-PlainExp* IndexLoadExp::clone(){
-    return new IndexLoadExp(*this);
+llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& func, AssembleContext& context, std::string* expr_type,
+                                                    llvm::Value* pointer_value, const std::string& pointer_typename){
+    // Assemble higher lever array
+    // NOTE: pointer_typename is assumed to be an array
+
+    std::string target_typename = pointer_typename.substr(2, pointer_typename.length()-2);
+
+    // Prepare Member GEP Indices
+    std::vector<llvm::Value*> member_gep_indices(2);
+    member_gep_indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+    member_gep_indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+
+    // Create Member GEP
+    pointer_value = context.builder.CreateGEP(program.llvm_array_type, pointer_value, member_gep_indices, "memberptr");
+    pointer_value = context.builder.CreateLoad(pointer_value);
+
+    // Cast i8* to the correct type
+    llvm::Type* target_llvm_type;
+    if(program.find_type(target_typename, &target_llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(target_typename));
+        return NULL;
+    }
+    pointer_value = context.builder.CreateBitCast(pointer_value, target_llvm_type->getPointerTo(), "casttmp");
+
+    std::string index_typename;
+    llvm::Value* index_value = index->assemble_immutable(program, func, context, &index_typename);
+    if(index_value == NULL) return NULL;
+
+    if(index_typename != "int"){
+        errors.panic("Expected 'int' type when using []");
+        return NULL;
+    }
+
+    if(expr_type != NULL) *expr_type = target_typename;
+
+    std::vector<llvm::Value*> indices(1);
+    indices[0] = index_value;
+
+    pointer_value = context.builder.CreateGEP(pointer_value, indices, "memberptr");
+    return pointer_value;
 }
 
 CallExp::CallExp(ErrorHandler& err){
@@ -962,6 +1018,11 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
         return this->assemble_class(program, func, context, expr_type, target_class, data, type_name);
     }
 
+    if(Program::is_array_typename(type_name)){
+        // The type is actually an array
+        return this->assemble_array(program, func, context, expr_type, data, type_name);
+    }
+
     // No structure or class named that was found
     errors.panic( UNDECLARED_STRUCT(type_name) );
     return NULL;
@@ -1047,6 +1108,31 @@ llvm::Value* MemberExp::assemble_class(Program& program, Function& func, Assembl
 
     return member_ptr;
 }
+llvm::Value* MemberExp::assemble_array(Program& program, Function& func, AssembleContext& context, std::string* expr_type, llvm::Value* data, std::string& data_typename){
+    int index;
+    llvm::Value* member_index;
+
+    if(member == "data"){
+        if(expr_type != NULL) *expr_type = "ptr";
+        index = 0;
+    } else if(member == "length"){
+        if(expr_type != NULL) *expr_type = "usize";
+        index = 1;
+    } else {
+        errors.panic("Array type has no member named '" + member + "'");
+        return NULL;
+    }
+
+    // Prepare GEP Indices
+    std::vector<llvm::Value*> indices(2);
+    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
+    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+    indices[1] = member_index;
+
+    // Create GEP
+    llvm::Value* member_ptr = context.builder.CreateGEP(program.llvm_array_type, data, indices, "memberptr");
+    return member_ptr;
+}
 
 MemberCallExp::MemberCallExp(ErrorHandler& err){
     is_mutable = false;
@@ -1081,19 +1167,12 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssembleC
     llvm::Value* object_value = object->assemble(program, func, context, &object_typename);
     llvm::Type* object_llvm_type;
 
-    if(object_typename == ""){
-        // The type name is blank so yeah (This should never occur)
-        errors.panic("Undeclared type ''");
-        errors.panic(SUICIDE);
-        return NULL;
-    }
-    else if(object_typename[0] == '*'){
+    if(Program::is_pointer_typename(object_typename)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
         object_value = context.builder.CreateLoad(object_value, "loadtmp");
         object_typename = object_typename.substr(1, object_typename.length()-1);
     }
-
 
     // Ensure the object is mutable
     if(!object->is_mutable){
@@ -1710,15 +1789,49 @@ AllocExp::AllocExp(ErrorHandler& err){
 }
 AllocExp::AllocExp(const std::string& type_name, ErrorHandler& err){
     this->type_name = type_name;
+    this->amount = 1;
+    this->element_amount = 0;
+    is_mutable = false;
+    errors = err;
+}
+AllocExp::AllocExp(const std::string& type_name, size_t amount, ErrorHandler& err){
+    this->type_name = type_name;
+    this->amount = amount;
+    this->element_amount = 0;
+    is_mutable = false;
+    errors = err;
+}
+AllocExp::AllocExp(const std::string& type_name, size_t amount, size_t element_amount, ErrorHandler& err){
+    this->type_name = type_name;
+    this->amount = amount;
+    this->element_amount = element_amount;
     is_mutable = false;
     errors = err;
 }
 AllocExp::AllocExp(const AllocExp& other) : PlainExp(other){
     this->type_name = other.type_name;
+    this->amount = other.amount;
+    this->element_amount = other.element_amount;
     is_mutable = false;
 }
 AllocExp::~AllocExp(){}
 llvm::Value* AllocExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(element_amount == 0){
+        // Assemble without creating as a high level array
+        return this->assemble_plain(program, func, context, expr_type);
+    }
+    else {
+        // Assemble by creating high level array
+        return this->assemble_elements(program, func, context, expr_type);
+    }
+}
+std::string AllocExp::toString(){
+    return "new " + this->type_name + (amount != 1 ? " * " + to_str(amount) : "");
+}
+PlainExp* AllocExp::clone(){
+    return new AllocExp(*this);
+}
+llvm::Value* AllocExp::assemble_plain(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "*" + type_name;
     llvm::Type* llvm_type;
 
@@ -1733,14 +1846,21 @@ llvm::Value* AllocExp::assemble(Program& program, Function& func, AssembleContex
     llvm::Function* malloc_function = context.module->getFunction("malloc");
 
     if(!malloc_function){
-        errors.panic("Can't create new object because the function 'malloc' is missing");
-        return NULL;
+        // Declare the malloc function if it doesn't already exist
+        llvm::Type* return_llvm_type;;
+
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt32Ty(context.context);
+        return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+        malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
     }
 
     uint64_t type_size = context.module->getDataLayout().getTypeAllocSize(llvm_type);
     std::vector<llvm::Value*> malloc_args(1);
 
-    malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size, false));
+    malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * amount, false));
     llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
 
     // Special casting if allocated type is a function pointer
@@ -1754,9 +1874,38 @@ llvm::Value* AllocExp::assemble(Program& program, Function& func, AssembleContex
     // Otherwise standard pointer cast
     return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo(), "casttmp");
 }
-std::string AllocExp::toString(){
-    return "new " + this->type_name;
-}
-PlainExp* AllocExp::clone(){
-    return new AllocExp(*this);
+llvm::Value* AllocExp::assemble_elements(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "[]" + type_name;
+    llvm::Type* llvm_type;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return NULL;
+    }
+
+    llvm::Function* malloc_function = context.module->getFunction("malloc");
+
+    if(!malloc_function){
+        // Declare the malloc function if it doesn't already exist
+        llvm::Type* return_llvm_type;;
+
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt32Ty(context.context);
+        return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+        malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
+    }
+
+    uint64_t type_size = context.module->getDataLayout().getTypeAllocSize(llvm_type);
+    std::vector<llvm::Value*> malloc_args(1);
+
+    malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * amount * element_amount, false));
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+
+    std::vector<llvm::Value*> ctor_args = { heap_memory, llvm::ConstantInt::get(context.context, llvm::APInt(32, element_amount, false)) };
+    return context.builder.CreateCall(program.llvm_array_ctor, ctor_args, "calltmp");
 }

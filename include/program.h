@@ -157,19 +157,33 @@ class Program {
     std::vector<Global> globals;
     std::vector<TypeAlias> type_aliases;
 
+    llvm::Type* llvm_array_type;
+    llvm::Function* llvm_array_ctor;
+
+    enum TypeModifier {
+        Pointer = 0,
+        Array = 1,
+    };
+
     static bool is_function_typename(const std::string&);
     static bool is_pointer_typename(const std::string&);
+    static bool is_array_typename(const std::string&);
     static bool function_typename_is_stdcall(const std::string&);
 
     ~Program();
     int import_merge(Program&, bool);
+
     bool resolve_if_alias(std::string&) const;
     bool resolve_once_if_alias(std::string&) const;
+
     int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**) const;
     int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, llvm::Type**, std::vector<std::string>&, std::string&) const;
     int function_typename_to_type(const std::string&, llvm::Type**) const;
+    void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&) const;
+
     void generate_type_aliases();
     int generate_types(AssembleContext&);
+
     int find_type(const std::string&, llvm::Type**) const;
     int find_func(const std::string&, External*);
     int find_func(const std::string&, const std::vector<std::string>&, External*);

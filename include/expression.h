@@ -255,6 +255,12 @@ class IndexLoadExp : public PlainExp {
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
+
+    private:
+    llvm::Value* assemble_lowlevel_array(Program&, Function&, AssembleContext&, std::string*,
+                                                       llvm::Value*, const std::string&);
+    llvm::Value* assemble_highlevel_array(Program&, Function&, AssembleContext&, std::string*,
+                                                       llvm::Value*, const std::string&);
 };
 
 class CallExp : public PlainExp {
@@ -287,6 +293,7 @@ class MemberExp : public PlainExp {
     private:
     llvm::Value* assemble_struct(Program&, Function&, AssembleContext&, std::string*, Structure&, llvm::Value*);
     llvm::Value* assemble_class(Program&, Function&, AssembleContext&, std::string*, Class&, llvm::Value*, std::string&);
+    llvm::Value* assemble_array(Program&, Function&, AssembleContext&, std::string*, llvm::Value*, std::string&);
 };
 
 class MemberCallExp : public PlainExp {
@@ -381,14 +388,22 @@ class SizeofExp : public PlainExp {
 class AllocExp : public PlainExp {
     public:
     std::string type_name;
+    size_t amount;
+    size_t element_amount;
 
     AllocExp(ErrorHandler&);
     AllocExp(const std::string&, ErrorHandler&);
+    AllocExp(const std::string&, size_t, ErrorHandler&);
+    AllocExp(const std::string&, size_t, size_t, ErrorHandler&);
     AllocExp(const AllocExp&);
     ~AllocExp();
     llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
     std::string toString();
     PlainExp* clone();
+
+    private:
+    llvm::Value* assemble_plain(Program&, Function&, AssembleContext&, std::string*);
+    llvm::Value* assemble_elements(Program&, Function&, AssembleContext&, std::string*);
 };
 
 #endif // EXPRESSION_H_INCLUDED

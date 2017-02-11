@@ -13,8 +13,8 @@
 int assemble(AssembleContext&, Configuration&, Program&, ErrorHandler& errors);
 int build(AssembleContext&, Configuration&, Program&);
 
-int assemble_globals_batch(const AssembleContext* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count);
-int assemble_externals_batch(const AssembleContext* context, const Configuration* config, const Program* program, External* globals, size_t globals_count);
+int assemble_globals_batch(AssembleContext* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count);
+int assemble_externals_batch(AssembleContext* context, const Configuration* config, const Program* program, External* globals, size_t globals_count);
 
 int assemble_structure(AssembleContext&, Configuration&, Program&, Structure&);
 int assemble_class(AssembleContext&, Configuration&, Program&, Class&);
@@ -23,8 +23,8 @@ int assemble_function(AssembleContext&, Configuration&, Program&, Function&);
 int assemble_function_body(AssembleContext&, Configuration&, Program&, Function&);
 int assemble_method(AssembleContext&, Configuration&, Program&, Class&, Function&);
 int assemble_method_body(AssembleContext&, Configuration&, Program&, Class&, Function&);
-int assemble_external(const AssembleContext*, const Configuration*, const Program*, const External*);
-int assemble_global(const AssembleContext*, const Configuration*, const Program*, Global*);
+int assemble_external(AssembleContext*, const Configuration*, const Program*, const External*);
+int assemble_global(AssembleContext*, const Configuration*, const Program*, Global*);
 
 void assemble_merge_conditional_types(AssembleContext&, Program&, std::string&, llvm::Value**);
 int assemble_merge_types(AssembleContext&, Program&, std::string, std::string, llvm::Value**, llvm::Value**, std::string*);

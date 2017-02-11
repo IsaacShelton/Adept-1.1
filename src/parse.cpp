@@ -647,15 +647,29 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
     return 0;
 }
 int parse_type(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors){
-    //  **some_type   |   def (int, int) int   |   another_type
-    //  ^                  ^                            ^
+    //  **some_type   |   def (int, int) int   |   another_type   |   [] int
+    //  ^                  ^                            ^             ^
 
-    while(tokens[i].id == TOKENID_MULTIPLY){
-        output_type += "*";
+    uint16_t prefix_token_id = tokens[i].id;
+
+    while(prefix_token_id == TOKENID_MULTIPLY or prefix_token_id == TOKENID_BRACKET_OPEN){
+        if(prefix_token_id == TOKENID_MULTIPLY){
+            output_type += "*";
+        }
+        else if(prefix_token_id == TOKENID_BRACKET_OPEN){
+            next_index(i, tokens.size());
+            if(tokens[i].id != TOKENID_BRACKET_CLOSE){
+                errors.panic("Expected ']' after '[' in type");
+                return 1;
+            }
+            output_type += "[]";
+        }
+
         next_index(i, tokens.size());
+        prefix_token_id = tokens[i].id;
     }
 
-    if(tokens[i].id == TOKENID_KEYWORD){
+    if(prefix_token_id == TOKENID_KEYWORD){
         std::string keyword = tokens[i].getString();
 
         if(keyword == "stdcall"){
@@ -744,8 +758,7 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
     }
     else {
         // Standard type
-
-        if(tokens[i].id != TOKENID_WORD){
+        if(prefix_token_id != TOKENID_WORD){
             errors.panic(EXPECTED_NAME_OF_TYPE);
             return 1;
         }
@@ -844,12 +857,20 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         if(parse_block_call(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
     case TOKENID_ASSIGN:
-    case TOKENID_BRACKET_OPEN:
         // Variable Assign
         if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
         break;
     case TOKENID_MEMBER:
         if(parse_block_word_member(config, tokens, program, statements, i, name, errors) != 0) return 1;
+        break;
+    case TOKENID_BRACKET_OPEN:
+        next_index(i, tokens.size());
+        if(tokens[i].id == TOKENID_BRACKET_CLOSE){
+            if(parse_block_variable_declaration(config, tokens, program, statements, --i, name, errors) != 0) return 1;
+        }
+        else {
+            if(parse_block_assign(config, tokens, program, statements, --i, name, 0, errors) != 0) return 1;
+        }
         break;
     default:
         errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
@@ -953,6 +974,11 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
             errors.panic(SUICIDE);
             return 1;
         }
+    }
+
+    if(tokens[i].id != TOKENID_ASSIGN){
+        errors.panic("Expected '=' after mutable expression");
+        return 1;
     }
 
     next_index(i, tokens.size());
@@ -1221,15 +1247,63 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 next_index(i, tokens.size());
                 *expression = new SizeofExp(sizeof_typename, errors);
             } else if(keyword == "new"){
-                std::string sizeof_typename;
+                std::string new_typename;
+                size_t amount = 1;
+                size_t element_amount = 0;
 
-                if(parse_type(config, tokens, program, i, sizeof_typename, errors) != 0){
+                if(tokens[i].id == TOKENID_BRACKET_OPEN){
+                    next_index(i, tokens.size());
+
+                    if(tokens[i].id == TOKENID_INT){
+                        int integer_value = tokens[i].getInt();
+
+                        if(integer_value < 0){
+                            errors.panic("Array length specified must be 0 or greater");
+                            return 1;
+                        }
+
+                        element_amount = integer_value;
+                        next_index(i, tokens.size());
+
+                        if(tokens[i].id != TOKENID_BRACKET_CLOSE){
+                            errors.panic("Expected ']' after integer value in [] after 'new' operator");
+                            return 1;
+                        }
+
+                        next_index(i, tokens.size());
+                    }
+                    else {
+                        i--;
+                    }
+                }
+
+                if(parse_type(config, tokens, program, i, new_typename, errors) != 0){
                     errors.panic("Expected typename after 'new' keyword");
                     return 1;
                 }
-
                 next_index(i, tokens.size());
-                *expression = new AllocExp(sizeof_typename, errors);
+
+                if(tokens[i].id == TOKENID_MULTIPLY){
+                    int new_amount;
+                    next_index(i, tokens.size());
+
+                    if(tokens[i].id != TOKENID_INT){
+                        errors.panic("Expected integer value after '*' in 'new' operator");
+                        return 1;
+                    }
+
+                    new_amount = tokens[i].getInt();
+
+                    if(new_amount < 1){
+                        errors.panic("Must allocate at least one object when using the 'new' operator");
+                        return 1;
+                    }
+
+                    amount = new_amount;
+                    next_index(i, tokens.size());
+                }
+
+                *expression = new AllocExp(new_typename, amount, element_amount, errors);
             } else {
                 errors.panic( UNEXPECTED_KEYWORD_INEXPR(keyword) );
                 return 1;

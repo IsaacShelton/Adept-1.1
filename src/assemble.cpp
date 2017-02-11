@@ -70,7 +70,7 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
         build_context.module = llvm::CloneModule(context.module.get());
 
         // Run 'build()'
-        if(jit_run(build_context, "build", build_result) != 0) return 1;
+        if(jit_run(build_context, "build", program.imports, errors, build_result) != 0) return 1;
         if(build_result != "0") return 1;
 
         return 0;
@@ -104,6 +104,9 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
         delete program.imports[i].program;
     }
 
+    // Link to the minimal Adept core
+    linked_objects += "\"C:/Users/isaac/.adept/lib/core.o\" ";
+
     for(const std::string& lib : program.extra_libs){
         linked_objects += "\"" + lib + "\" ";
     }
@@ -135,9 +138,9 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
 
     return 0;
 }
-int assemble(AssembleContext& assemble, Configuration& config, Program& program, ErrorHandler& errors){
-    assemble.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), assemble.context);
-    if(program.generate_types(assemble) != 0) return 1;
+int assemble(AssembleContext& context, Configuration& config, Program& program, ErrorHandler& errors){
+    context.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), context.context);
+    if(program.generate_types(context) != 0) return 1;
     build_add_symbols();
     jit_init();
 
@@ -158,11 +161,11 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
     overflow_batch_size = target_batch_size + (program.globals.size() % thread_count);
     for(size_t i = 0; i < program.globals.size(); ){
         if(program.globals.size()-i != overflow_batch_size){
-            futures.push_back( std::async(assemble_globals_batch, &assemble, &config, &program, &program.globals[i], target_batch_size) );
+            futures.push_back( std::async(assemble_globals_batch, &context, &config, &program, &program.globals[i], target_batch_size) );
             i += target_batch_size;
         }
         else {
-            futures.push_back( std::async(assemble_globals_batch, &assemble, &config, &program, &program.globals[i], overflow_batch_size) );
+            futures.push_back( std::async(assemble_globals_batch, &context, &config, &program, &program.globals[i], overflow_batch_size) );
             break;
         }
     }
@@ -176,11 +179,11 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
     overflow_batch_size = target_batch_size + (program.externs.size() % thread_count);
     for(size_t i = 0; i < program.externs.size(); ){
         if(program.externs.size()-i != overflow_batch_size){
-            futures.push_back( std::async(assemble_externals_batch, &assemble, &config, &program, &program.externs[i], target_batch_size) );
+            futures.push_back( std::async(assemble_externals_batch, &context, &config, &program, &program.externs[i], target_batch_size) );
             i += target_batch_size;
         }
         else {
-            futures.push_back( std::async(assemble_externals_batch, &assemble, &config, &program, &program.externs[i], overflow_batch_size) );
+            futures.push_back( std::async(assemble_externals_batch, &context, &config, &program, &program.externs[i], overflow_batch_size) );
             break;
         }
     }
@@ -190,22 +193,22 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
 
     // Assemble the skeleton of each class
     for(size_t i = 0; i != program.classes.size(); i++){
-        if(assemble_class(assemble, config, program, program.classes[i]) != 0) return 1;
+        if(assemble_class(context, config, program, program.classes[i]) != 0) return 1;
     }
 
     // Assemble the skeleton of each function
     for(size_t i = 0; i != program.functions.size(); i++){
-        if(assemble_function(assemble, config, program, program.functions[i]) != 0) return 1;
+        if(assemble_function(context, config, program, program.functions[i]) != 0) return 1;
     }
 
     // Assemble the bodies of each class
     for(size_t i = 0; i != program.classes.size(); i++){
-        if(assemble_class_body(assemble, config, program, program.classes[i]) != 0) return 1;
+        if(assemble_class_body(context, config, program, program.classes[i]) != 0) return 1;
     }
 
     // Assemble the bodies of each function
     for(size_t i = 0; i != program.functions.size(); i++){
-        if(assemble_function_body(assemble, config, program, program.functions[i]) != 0) return 1;
+        if(assemble_function_body(context, config, program, program.functions[i]) != 0) return 1;
     }
 
     // Print Assembler Time
@@ -215,13 +218,13 @@ int assemble(AssembleContext& assemble, Configuration& config, Program& program,
     }
 
     if(!config.jit and !config.obj and !config.bytecode and config.link){
-        if(build(assemble, config, program, errors) != 0) return 1;
+        if(build(context, config, program, errors) != 0) return 1;
     }
 
     return 0;
 }
 
-int assemble_globals_batch(const AssembleContext* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count){
+int assemble_globals_batch(AssembleContext* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count){
     // ASYNC: Assembles a chunk of globals, intended for threading purposes
 
     for(size_t g = 0; g != globals_count; g++){
@@ -232,7 +235,7 @@ int assemble_globals_batch(const AssembleContext* context, const Configuration* 
 
     return 0;
 }
-int assemble_externals_batch(const AssembleContext* context, const Configuration* config, const Program* program, External* externs, size_t externs_count){
+int assemble_externals_batch(AssembleContext* context, const Configuration* config, const Program* program, External* externs, size_t externs_count){
     // ASYNC: Assembles a chunk of globals, intended for threading purposes
 
     for(size_t e = 0; e != externs_count; e++){
@@ -507,7 +510,7 @@ int assemble_method_body(AssembleContext& context, Configuration& config, Progra
     llvm::verifyFunction(*llvm_function);
     return 0;
 }
-int assemble_external(const AssembleContext* context, const Configuration* config, const Program* program, const External* external){
+int assemble_external(AssembleContext* context, const Configuration* config, const Program* program, const External* external){
     // ASYNC: This function is thread safe if used correctly:
     //   - No arguments should be modified until ensuring that this function has finished
     //   - All pointers passed to this function must be valid
@@ -542,7 +545,7 @@ int assemble_external(const AssembleContext* context, const Configuration* confi
 
     return 0;
 }
-int assemble_global(const AssembleContext* context, const Configuration* config, const Program* program, Global* global){
+int assemble_global(AssembleContext* context, const Configuration* config, const Program* program, Global* global){
     // ASYNC: This function is thread safe if used correctly:
     //   - This function modifies the global passed to it, so it must not be modified until ensuring that this
     //     function has finished

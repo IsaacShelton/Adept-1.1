@@ -7,7 +7,7 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
-int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& errors){
+int finalize(Configuration& config, Program& program, AssembleContext& context, ErrorHandler& errors){
     if(config.time and !config.silent){
         config.clock.print_since_start("DONE", filename_name(config.filename));
         config.clock.remember();
@@ -17,7 +17,7 @@ int finalize(Configuration& config, AssembleContext& assemble, ErrorHandler& err
         std::string result;
 
         // Run just in time
-        if(jit_run(assemble, "main", result) != 0) return 1;
+        if(jit_run(context, "main", program.imports, errors, result) != 0) return 1;
 
         // Print Execution Time
         if(config.time and !config.silent){

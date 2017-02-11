@@ -166,10 +166,18 @@ bool Program::is_function_typename(const std::string& type_name){
 }
 bool Program::is_pointer_typename(const std::string& type_name){
     // "**uint" -> true
-    // "long" -> false
+    // "long"   -> false
 
     if(type_name.length() < 1) return false;
     if(type_name[0] == '*') return true;
+    return false;
+}
+bool Program::is_array_typename(const std::string& type_name){
+    // "[]int"  -> true
+    // "**uint" -> false
+
+    if(type_name.length() < 2) return false;
+    if(type_name[0] == '[' and type_name[1] == ']') return true;
     return false;
 }
 bool Program::function_typename_is_stdcall(const std::string& type_name){
@@ -382,6 +390,7 @@ int Program::import_merge(Program& other, bool public_import){
 
     return 0;
 }
+
 bool Program::resolve_if_alias(std::string& type) const {
     // Returns true if completed a substitution
 
@@ -444,6 +453,7 @@ bool Program::resolve_once_if_alias(std::string& type) const {
     for(size_t p = 0; p != pointer_count; p++) type = type = "*" + type;
     return false;
 }
+
 int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, llvm::Type** return_llvm_type) const {
     // "def(int, int) int"
     // -----^
@@ -562,12 +572,25 @@ int Program::function_typename_to_type(const std::string& type_name, llvm::Type*
     *type = function_type->getPointerTo();
     return 0;
 }
+void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers) const{
+    for(size_t i = modifiers.size(); i-- != 0;){
+        switch(modifiers[i]){
+        case Program::TypeModifier::Pointer:
+            *type = (*type)->getPointerTo();
+            break;
+        case Program::TypeModifier::Array:
+            *type = llvm_array_type;
+            break;
+        }
+    }
+}
+
 void Program::generate_type_aliases(){
     // Standard type aliases
     type_aliases.push_back( TypeAlias("usize", "uint", false) );
 }
 int Program::generate_types(AssembleContext& context){
-    // Requires types vector to be empty
+    // NOTE: Requires types vector to be empty
 
     // Create from structures
     for(size_t i = 0; i != structures.size(); i++){
@@ -635,30 +658,57 @@ int Program::generate_types(AssembleContext& context){
         static_cast<llvm::StructType*>(types[classes_start_index+i].type)->setBody(members);
     }
 
+    // Create a struct type for arrays
+    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
+    llvm_array_type = llvm::StructType::create(elements, ".arr");
+
+    // Create a constructor for arrays
+    std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
+    llvm::FunctionType* array_ctor_type = llvm::FunctionType::get(llvm_array_type, array_ctor_args, false);
+    llvm_array_ctor = llvm::Function::Create(array_ctor_type, llvm::Function::ExternalLinkage, ".arrctor", context.module.get());
+
     return 0;
 }
 int Program::find_type(const std::string& name, llvm::Type** type) const{
-    size_t pointers = 0;
-    size_t alias_pointers = 0;
-    std::string type_name;
+    // For keeping track of 'pointers to' & 'arrays of'
+    std::vector<TypeModifier> type_modifiers;
 
-    for(; pointers != name.length(); pointers++){
-        if(name[pointers] != '*') break;
+    std::string type_name;
+    size_t type_i = 0;
+    size_t alias_type_i = 0;
+
+    for(; name[type_i] == '*' or name[type_i] == '['; type_i++){
+        switch(name[type_i]){
+        case '*':
+            type_modifiers.push_back(TypeModifier::Pointer);
+            break;
+        case '[':
+            type_i += 1; // Next character is assumed to be ']'
+            type_modifiers.push_back(TypeModifier::Array);
+            break;
+        }
     }
 
-    type_name = name.substr(pointers, name.length()-pointers);
+    type_name = name.substr(type_i, name.length()-type_i);
     this->resolve_if_alias(type_name);
 
-    for(; alias_pointers != type_name.length(); alias_pointers++){
-        if(type_name[alias_pointers] != '*') break;
+    for(; type_name[alias_type_i] == '*' or type_name[alias_type_i] == '['; alias_type_i++){
+        switch(type_name[alias_type_i]){
+        case '*':
+            type_modifiers.push_back(TypeModifier::Pointer);
+            break;
+        case '[':
+            alias_type_i += 1; // Next character is assumed to be ']'
+            type_modifiers.push_back(TypeModifier::Array);
+            break;
+        }
     }
-    type_name = type_name.substr(alias_pointers, type_name.length()-alias_pointers);
-    pointers += alias_pointers;
+    type_name = type_name.substr(alias_type_i, type_name.length()-alias_type_i);
 
     if(Program::is_function_typename(type_name)){
         // Return after handling function pointer type
         if(this->function_typename_to_type(type_name, type) != 0) return 1;
-        for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
+        this->apply_type_modifiers(type, type_modifiers);
         return 0;
     }
 
@@ -666,7 +716,7 @@ int Program::find_type(const std::string& name, llvm::Type** type) const{
         if(types[i].name == type_name){
             if(type != NULL){
                 *type = types[i].type;
-                for(size_t i = 0; i != pointers; i++) *type = (*type)->getPointerTo();
+                this->apply_type_modifiers(type, type_modifiers);
             }
             return 0;
         }
