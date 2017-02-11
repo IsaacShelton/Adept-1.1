@@ -86,17 +86,24 @@ public def main() int {
 
 ### Low-Level Arrays
 ```
+private import "adept/terminal.adept"
+
 public def main() int {
     // Allocate 10 ints
-    an_array *int = malloc(4ui * sizeof int)
+    an_array *int = new int * 10
     
-    // Using arrays with basic pointer arithmetic
+    // Using low-level arrays with basic pointer arithmetic
     *an_array = 10
     an_array[3] = 42
     an_array[7] = an_array[0] + 3
     
+    // Print some of the values we set
+    println(*an_array)
+    println(an_array[3])    
+    println(an_array[7])
+    
     // Free the dynamically allocated memory
-    free(an_array)
+    delete an_array
     return 0
 }
 ```
