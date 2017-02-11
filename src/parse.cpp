@@ -650,6 +650,11 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
     //  **some_type   |   def (int, int) int   |   another_type
     //  ^                  ^                            ^
 
+    while(tokens[i].id == TOKENID_MULTIPLY){
+        output_type += "*";
+        next_index(i, tokens.size());
+    }
+
     if(tokens[i].id == TOKENID_KEYWORD){
         std::string keyword = tokens[i].getString();
 
@@ -674,7 +679,7 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
             }
 
             next_index(i, tokens.size());
-            output_type = "stdcall def(";
+            output_type += "stdcall def(";
 
             std::vector<std::string> arguments;
             std::string return_type;
@@ -708,7 +713,7 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
             }
 
             next_index(i, tokens.size());
-            output_type = "def(";
+            output_type += "def(";
 
             std::vector<std::string> arguments;
             std::string return_type;
@@ -739,11 +744,6 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
     }
     else {
         // Standard type
-
-        while(tokens[i].id == TOKENID_MULTIPLY){
-            output_type += "*";
-            next_index(i, tokens.size());
-        }
 
         if(tokens[i].id != TOKENID_WORD){
             errors.panic(EXPECTED_NAME_OF_TYPE);
@@ -1213,6 +1213,16 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
 
                 next_index(i, tokens.size());
                 *expression = new SizeofExp(sizeof_typename, errors);
+            } else if(keyword == "new"){
+                std::string sizeof_typename;
+
+                if(parse_type(config, tokens, program, i, sizeof_typename, errors) != 0){
+                    errors.panic("Expected typename after 'new' keyword");
+                    return 1;
+                }
+
+                next_index(i, tokens.size());
+                *expression = new AllocExp(sizeof_typename, errors);
             } else {
                 errors.panic( UNEXPECTED_KEYWORD_INEXPR(keyword) );
                 return 1;

@@ -1694,9 +1694,7 @@ llvm::Value* SizeofExp::assemble(Program& program, Function& func, AssembleConte
         return NULL;
     }
 
-    llvm::DataLayout data_layout = context.module->getDataLayout();
-    uint64_t type_size = data_layout.getTypeAllocSize(llvm_type);
-
+    uint64_t type_size = context.module->getDataLayout().getTypeAllocSize(llvm_type);
     return llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size, false));
 }
 std::string SizeofExp::toString(){
@@ -1704,4 +1702,61 @@ std::string SizeofExp::toString(){
 }
 PlainExp* SizeofExp::clone(){
     return new SizeofExp(*this);
+}
+
+AllocExp::AllocExp(ErrorHandler& err){
+    is_mutable = false;
+    errors = err;
+}
+AllocExp::AllocExp(const std::string& type_name, ErrorHandler& err){
+    this->type_name = type_name;
+    is_mutable = false;
+    errors = err;
+}
+AllocExp::AllocExp(const AllocExp& other) : PlainExp(other){
+    this->type_name = other.type_name;
+    is_mutable = false;
+}
+AllocExp::~AllocExp(){}
+llvm::Value* AllocExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "*" + type_name;
+    llvm::Type* llvm_type;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return NULL;
+    }
+
+    llvm::Function* malloc_function = context.module->getFunction("malloc");
+
+    if(!malloc_function){
+        errors.panic("Can't create new object because the function 'malloc' is missing");
+        return NULL;
+    }
+
+    uint64_t type_size = context.module->getDataLayout().getTypeAllocSize(llvm_type);
+    std::vector<llvm::Value*> malloc_args(1);
+
+    malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size, false));
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+
+    // Special casting if allocated type is a function pointer
+    if(Program::is_function_typename(type_name)){
+        llvm::Type* llvm_func_type;
+        if(program.function_typename_to_type(type_name, &llvm_func_type) != 0) return NULL;
+        heap_memory = context.builder.CreateBitCast(heap_memory, llvm_func_type->getPointerTo(), "casttmp");
+        return heap_memory;
+    }
+
+    // Otherwise standard pointer cast
+    return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo(), "casttmp");
+}
+std::string AllocExp::toString(){
+    return "new " + this->type_name;
+}
+PlainExp* AllocExp::clone(){
+    return new AllocExp(*this);
 }

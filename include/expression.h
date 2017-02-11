@@ -378,4 +378,18 @@ class SizeofExp : public PlainExp {
     PlainExp* clone();
 };
 
+class AllocExp : public PlainExp {
+    public:
+    std::string type_name;
+
+    AllocExp(ErrorHandler&);
+    AllocExp(const std::string&, ErrorHandler&);
+    AllocExp(const AllocExp&);
+    ~AllocExp();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
+
 #endif // EXPRESSION_H_INCLUDED
