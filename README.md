@@ -57,7 +57,34 @@ public def main() int {
 }
 ```
 
-### Arrays
+### Higher-Level Arrays
+```
+private import "adept/terminal.adept"
+
+public def main() int {
+    // Create an array
+    integer_array [] int = new [3] int
+    
+    // Set some elements of the array
+    integer_array[0] = 10
+    integer_array[1] = 11
+    integer_array[2] = 12
+
+    // Print the length of the array
+    println(integer_array.length)
+    
+    // Print some elements of the array
+    println(integer_array[0])
+    println(integer_array[1])
+    println(integer_array[2])
+    
+    // Free the array data
+    delete integer_array.data
+    return 0
+}
+```
+
+### Low-Level Arrays
 ```
 public def main() int {
     // Allocate 10 ints
