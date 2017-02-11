@@ -43,7 +43,7 @@ private import "system/system.adept"
 
 public def main() int {
     // Allocate 12 bytes (one extra for null termination)
-    hello *ubyte = malloc(12)
+    hello *ubyte = malloc(12ui)
     
     // Set the byte array
     strcpy(hello, "Hello World")
@@ -60,10 +60,10 @@ public def main() int {
 ### Arrays
 ```
 public def main() int {
-    // Allocate 10 ints (since an int is 32 bits)
-    an_array *int = malloc(40)
+    // Allocate 10 ints
+    an_array *int = malloc(4ui * sizeof int)
     
-    // Using arrays with pointer arithmetic
+    // Using arrays with basic pointer arithmetic
     *an_array = 10
     an_array[3] = 42
     an_array[7] = an_array[0] + 3
