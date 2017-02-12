@@ -191,11 +191,13 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     classes->resize(classes->size()+1);
 
     // Store a reference to the created class
-    Class& klass = (*classes)[classes->size()-1];
+    Class* klass = &( (*classes)[classes->size()-1] );
+    size_t class_offset_plus_one = classes->size();
 
     // Fill in the class data
-    klass.name = tokens[i].getString();
-    klass.is_public = attr_info.is_public;
+    klass->name = tokens[i].getString();
+    klass->is_public = attr_info.is_public;
+    klass->is_imported = false;
 
     // Skip over class name and '{'
     next_index(i, tokens.size());
@@ -226,7 +228,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
                 if(keyword == "def"){
                     // Parse the method
                     next_index(i, tokens.size());
-                    if(parse_method(config, tokens, program, i, &klass, member_attr, errors) != 0) return 1;
+                    if(parse_method(config, tokens, program, i, klass, class_offset_plus_one, member_attr, errors) != 0) return 1;
                     next_index(i, tokens.size());
 
                     // Skip normal member stuff
@@ -273,7 +275,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
 
         next_index(i, tokens.size());
-        klass.members.push_back( ClassField{name, type, member_attr.is_public, member_attr.is_static} );
+        klass->members.push_back( ClassField{name, type, member_attr.is_public, member_attr.is_static} );
 
         while(tokens[i].id == TOKENID_NEWLINE){
             errors.line++;
@@ -343,7 +345,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall) );
     return 0;
 }
-int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, size_t class_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
     // def method_name() ret_type { <some code> }
     //           ^
 
@@ -423,7 +425,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
     Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall);
-    created_method.parent_class = klass;
+    created_method.parent_class_offset = class_offset_plus_one;
     klass->methods.push_back( std::move(created_method) );
     return 0;
 }

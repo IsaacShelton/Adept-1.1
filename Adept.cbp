@@ -59,6 +59,7 @@
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-std=c++11" />
+					<Add option="-Wextra" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -68,7 +69,7 @@
 		<Compiler>
 			<Add option="-Os" />
 			<Add option="-std=c++11" />
-			<Add option="-Wall" />
+			<Add option="-w" />
 			<Add option="-fno-exceptions -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -fno-rtti -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS" />
 			<Add option="-fpermissive" />
 			<Add option="-DNDEBUG" />

@@ -25,16 +25,16 @@ int main(int argc, char** argv) {
     TokenList* tokens = new TokenList;
 
     // Compiler Frontend
-    if( configure(config, argc, argv, errors)      != 0 ) return 1;
-    if( tokenize(config, argv[1], tokens, errors)  != 0 ) return 1;
-    if( parse(config, tokens, program, errors)     != 0 ) return 1;
+    if( configure(config, argc, argv, errors)      != 0 ) exit(1);
+    if( tokenize(config, argv[1], tokens, errors)  != 0 ) exit(1);
+    if( parse(config, tokens, program, errors)     != 0 ) exit(1);
     free_tokens(*tokens);
     delete tokens;
 
     // Compiler Backend
-    if( assemble(context, config, program, errors) != 0 ) return 1;
-    if( finalize(config, program, context, errors)          != 0 ) return 1;
-    if( shutdown() != 0 ) return 1;
+    if( assemble(context, config, program, errors) != 0 ) exit(1);
+    if( finalize(config, program, context, errors) != 0 ) exit(1);
+    if( shutdown() != 0 ) exit(1);
 
     return 0;
 }

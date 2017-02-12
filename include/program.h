@@ -58,11 +58,12 @@ class Function {
     bool is_public;
     bool is_static;
     bool is_stdcall;
-    Class* parent_class;
+    size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
 
     std::vector<Variable> variables;
     AssembleFunction asm_func;
 
+    Function();
     Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool);
     Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool);
     Function(const Function&);

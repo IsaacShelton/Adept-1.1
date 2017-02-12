@@ -17,6 +17,12 @@ int Structure::find_index(std::string member_name, int* index){
     return 1;
 }
 
+Function::Function(){
+    this->is_public = false;
+    this->is_static = false;
+    this->is_stdcall = false;
+    this->parent_class_offset = 0;
+}
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public){
     this->name = name;
     this->arguments = arguments;
@@ -25,7 +31,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_public = is_public;
     this->is_static = false;
     this->is_stdcall = false;
-    this->parent_class = NULL;
+    this->parent_class_offset = 0;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public,
                    bool is_static, bool is_stdcall){
@@ -36,7 +42,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_public = is_public;
     this->is_static = is_static;
     this->is_stdcall = is_stdcall;
-    this->parent_class = NULL;
+    this->parent_class_offset = 0;
 }
 Function::Function(const Function& other){
     name = other.name;
@@ -46,7 +52,7 @@ Function::Function(const Function& other){
     is_public = other.is_public;
     is_static = other.is_static;
     is_stdcall = other.is_stdcall;
-    parent_class = other.parent_class;
+    parent_class_offset = other.parent_class_offset;
     variables = other.variables;
     asm_func = other.asm_func;
 
@@ -120,7 +126,10 @@ Global::Global(const std::string& name, const std::string& type, bool is_public,
     this->errors = errors;
 }
 
-Class::Class(){}
+Class::Class(){
+    this->is_public = false;
+    this->is_imported = false;
+}
 Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public){
     this->name = name;
     this->members = members;
@@ -290,11 +299,6 @@ int Program::import_merge(Program& other, bool public_import){
             *target = new_class;
             target->is_public = public_import;
             target->is_imported = true;
-
-            // Update parent class info for each method
-            for(Function& method : target->methods){
-                method.parent_class = target;
-            }
         }
     }
 
@@ -591,6 +595,7 @@ void Program::generate_type_aliases(){
 }
 int Program::generate_types(AssembleContext& context){
     // NOTE: Requires types vector to be empty
+    assert(types.size() == 0);
 
     // Create from structures
     for(size_t i = 0; i != structures.size(); i++){

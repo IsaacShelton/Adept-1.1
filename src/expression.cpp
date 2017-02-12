@@ -563,7 +563,7 @@ llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleConte
     return const_string;
 }
 std::string StringExp::toString(){
-    return "\"" + value + "\"";
+    return "\"" + string_replace_all(value, "\n", "\\n") + "\"";
 }
 PlainExp* StringExp::clone(){
     return new StringExp(*this);
@@ -993,13 +993,7 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssembleConte
         return NULL;
     }
 
-    if(type_name == ""){
-        // The type name is blank so yeah (This should never occur)
-        errors.panic("Undeclared type ''");
-        errors.panic(SUICIDE);
-        return NULL;
-    }
-    else if(type_name[0] == '*'){
+    if(Program::is_pointer_typename(type_name)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
         data = context.builder.CreateLoad(data, "loadtmp");
@@ -1077,7 +1071,7 @@ llvm::Value* MemberExp::assemble_class(Program& program, Function& func, Assembl
 
     // Make sure that the member is not static and public
     ClassField* field = &target.members[index];
-    std::string parent_class_name = (func.parent_class != NULL) ? func.parent_class->name : "";
+    std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
 
     if(!field->is_public and parent_class_name != data_typename){
         errors.panic("The member '" + member + "' of class '" + target.name + "' is private");
@@ -1205,7 +1199,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssembleC
         return NULL;
     }
 
-    std::string parent_class_name = (func.parent_class != NULL) ? func.parent_class->name : "";
+    std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
 
     // Ensure the function is public
     if(!func_data.is_public and parent_class_name != object_typename){

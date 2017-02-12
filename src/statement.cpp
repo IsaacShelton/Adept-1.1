@@ -505,13 +505,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
     llvm::Value* object_value = object->assemble(program, func, context, &object_typename);
     llvm::Type* object_llvm_type;
 
-    if(object_typename == ""){
-        // The type name is blank so yeah (This should never occur)
-        errors.panic("Undeclared type ''");
-        errors.panic(SUICIDE);
-        return 1;
-    }
-    else if(object_typename[0] == '*'){
+    if(Program::is_pointer_typename(object_typename)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
         object_value = context.builder.CreateLoad(object_value, "loadtmp");
@@ -549,7 +543,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
         return 1;
     }
 
-    std::string parent_class_name = (func.parent_class != NULL) ? func.parent_class->name : "";
+    std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
 
     // Ensure the function is public
     if(!func_data.is_public and parent_class_name != object_typename){
@@ -557,16 +551,18 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
         return 1;
     }
 
-    argument_values.insert(argument_values.begin(), object_value);
-    argument_types.insert(argument_types.begin(), "*" + object_typename);
-    argument_llvm_types.insert(argument_llvm_types.begin(), object_llvm_type->getPointerTo());
-
     std::string final_name = mangle(object_typename, name, func_data.arguments);
+
     llvm::Function* target = context.module->getFunction(final_name);
     if (!target){
         errors.panic_undeclared_method(object_typename, name, argument_types);
         return 1;
     }
+
+    argument_values.insert(argument_values.begin(), object_value);
+    argument_types.insert(argument_types.begin(), "*" + object_typename);
+    argument_llvm_types.insert(argument_llvm_types.begin(), object_llvm_type->getPointerTo());
+
     assert(func_data.arguments.size() == target->arg_size());
 
     if (target->arg_size() != args.size()+1){
@@ -640,7 +636,7 @@ IfStatement::~IfStatement(){
     }
 }
 int IfStatement::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -725,7 +721,7 @@ UnlessStatement::~UnlessStatement(){
     }
 }
 int UnlessStatement::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -810,7 +806,7 @@ WhileStatement::~WhileStatement(){
     }
 }
 int WhileStatement::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -899,7 +895,7 @@ UntilStatement::~UntilStatement(){
     }
 }
 int UntilStatement::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -996,7 +992,7 @@ IfElseStatement::~IfElseStatement(){
     }
 }
 int IfElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
@@ -1119,7 +1115,7 @@ UnlessElseStatement::~UnlessElseStatement(){
     }
 }
 int UnlessElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);

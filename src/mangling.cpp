@@ -1,13 +1,18 @@
 
 #include "../include/mangling.h"
 
-std::string mangle(const Function& func){
+std::string mangle(const Program& program, const Function& func){
     if(func.name == "main") return "main";
 
     std::string mangled_name = func.name;
     for(const Field& arg : func.arguments){
         mangled_name += "@" + arg.type;
     }
+
+    if(func.parent_class_offset != 0){
+        mangled_name = program.classes[func.parent_class_offset-1].name + "." + mangled_name;
+    }
+
     return mangled_name;
 }
 

@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1486835353 source:c:\users\isaac\google drive\adept\src\main.cpp
+1486941379 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -49,7 +49,7 @@
 	<fstream>
 	<stdlib.h>
 
-1486323141 c:\users\isaac\google drive\adept\include\parse.h
+1486939194 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -59,7 +59,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1486831118 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1486939570 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	"../include/die.h"
@@ -94,7 +94,7 @@
 	"errors.h"
 	"expression.h"
 
-1486826524 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1486941805 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -129,7 +129,7 @@
 	"config.h"
 	"asmcontext.h"
 
-1486836105 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1486941601 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>
@@ -1177,7 +1177,7 @@
 	"errors.h"
 	"asmcontext.h"
 
-1486832706 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1486940588 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1233,13 +1233,13 @@
 	"parse.h"
 	"statement.h"
 
-1486832069 c:\users\isaac\google drive\adept\include\program.h
+1486939287 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
 	"asmcontext.h"
 
-1486832487 source:c:\users\isaac\google drive\adept\src\program.cpp
+1486939278 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	"../include/die.h"
@@ -1254,7 +1254,7 @@
 	<iostream>
 	"../include/clock.h"
 
-1486835942 source:c:\users\isaac\google drive\adept\src\jit.cpp
+1486836825 source:c:\users\isaac\google drive\adept\src\jit.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -1276,6 +1276,7 @@
 	"llvm/Support/Casting.h"
 	"llvm/Support/TargetSelect.h"
 	"llvm/Support/FileSystem.h"
+	"../include/die.h"
 	"../include/jit.h"
 	"../include/assemble.h"
 	"../include/mangling.h"
@@ -1959,12 +1960,12 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1485811942 c:\users\isaac\google drive\adept\include\mangling.h
+1486941542 c:\users\isaac\google drive\adept\include\mangling.h
 	<string>
 	<vector>
 	"program.h"
 
-1485811981 source:c:\users\isaac\google drive\adept\src\mangling.cpp
+1486941813 source:c:\users\isaac\google drive\adept\src\mangling.cpp
 	"../include/mangling.h"
 
 1485902584 source:c:\users\isaac\google drive\adept\src\die.cpp

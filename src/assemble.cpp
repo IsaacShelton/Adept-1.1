@@ -288,7 +288,7 @@ int assemble_class_body(AssembleContext& context, Configuration& config, Program
     return 0;
 }
 int assemble_function(AssembleContext& context, Configuration& config, Program& program, Function& func){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     if(!llvm_function){
         llvm::Type* llvm_type;
@@ -316,7 +316,7 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(func), context.module.get());
+        llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(program, func), context.module.get());
 
         // Create a new basic block to start insertion into.
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
@@ -368,7 +368,7 @@ int assemble_function(AssembleContext& context, Configuration& config, Program& 
     return 0;
 }
 int assemble_function_body(AssembleContext& context, Configuration& config, Program& program, Function& func){
-    llvm::Function* llvm_function = context.module->getFunction( mangle(func) );
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
     AssembleFunction& asm_func = func.asm_func;
 
     assert(llvm_function != NULL);
@@ -425,6 +425,7 @@ int assemble_method(AssembleContext& context, Configuration& config, Program& pr
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
         llvm_function = llvm::Function::Create(function_type, (method.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_name, context.module.get());
+        assert(llvm_function != NULL);
 
         // Create a new basic block to start insertion into.
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
@@ -477,10 +478,6 @@ int assemble_method(AssembleContext& context, Configuration& config, Program& pr
         fail_filename(config, DUPLICATE_METHOD(klass.name + "." + method.name));
         return 1;
     }
-
-    // USE IF ERROR
-    // Error reading body, remove function.
-    // llvm_function->eraseFromParent();
 
     return 0;
 }
