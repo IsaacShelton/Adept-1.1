@@ -1,6 +1,7 @@
 
 #include <unistd.h>
 #include <iostream>
+#include <boost/filesystem.hpp>
 #include "../include/die.h"
 #include "../include/type.h"
 #include "../include/parse.h"
@@ -378,17 +379,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         std::string type;
         next_index(i, tokens.size());
 
-        while(tokens[i].id == TOKENID_MULTIPLY){
-            type += "*";
-            next_index(i, tokens.size());
-        }
-
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected argument type");
-            return 1;
-        }
-
-        type += tokens[i].getString();
+        if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
@@ -399,22 +390,10 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         errors.panic("Expected method return type after method name");
         return 1;
     }
-    next_index(i, tokens.size());
 
-    while(tokens[i].id != TOKENID_BEGIN){
-        switch(tokens[i].id){
-        case TOKENID_MULTIPLY:
-            return_type += "*";
-            break;
-        case TOKENID_WORD:
-            return_type += tokens[i].getString();
-            break;
-        default:
-            errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
-            return 1;
-        }
-        next_index(i, tokens.size());
-    }
+    next_index(i, tokens.size());
+    if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+    next_index(i, tokens.size());
 
     if(return_type == ""){
         errors.panic("No return type specified for method '" + klass->name + "." + name + "'");
@@ -517,6 +496,8 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     // import PackageName
     //             ^
 
+    using namespace boost::filesystem;
+
     if(tokens[i].id != TOKENID_STRING){
         errors.panic("Expected module name after 'import'");
         return 1;
@@ -525,7 +506,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     std::string name = tokens[i].getString();
     TokenList* import_tokens = new TokenList;
     Configuration* import_config = new Configuration(config);
-    Program* import_program = new Program;
+    Program* import_program;
     std::string target_bc;
     std::string target_obj;
 
@@ -552,15 +533,24 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
         return 1;
     }
 
+    // Get the full filename of the source file that we want to compile
+    std::string source_filename = absolute(path(name), current_path()).string();
+
     ErrorHandler error_handler(errors_name);
-    import_config->filename = name;
+    import_config->filename = source_filename;
+    import_program = program.parent_manager->newProgram(source_filename);
 
-    if( tokenize(*import_config, name, import_tokens, error_handler) != 0 )         return 1;
-    if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ) return 1;
-    free_tokens(*import_tokens);
-    delete import_tokens;
+    if(import_program != NULL){
+        if( tokenize(*import_config, source_filename, import_tokens, error_handler) != 0 ) return 1;
+        if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ) return 1;
+        free_tokens(*import_tokens);
+        delete import_tokens;
+    }
+    else {
+        import_program = program.parent_manager->getProgram(source_filename);
+    }
 
-    std::string mangled_name = mangle_filename(name);
+    std::string mangled_name = mangle_filename(source_filename);
     target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
     target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
@@ -572,7 +562,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
         if(program.imports[i].target_obj == target_obj) return 0;
     }
 
-    program.imports.push_back( ModuleDependency(name, target_bc, target_obj, import_program, import_config) );
+    program.imports.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config) );
     return 0;
 }
 int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -1170,6 +1160,11 @@ int parse_expression(Configuration& config, TokenList& tokens, Program& program,
     return 0;
 }
 int parse_expression_primary(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
+    while(tokens[i].id == TOKENID_NEWLINE){
+        next_index(i, tokens.size());
+        errors.line++;
+    }
+
     switch (tokens[i].id) {
     case TOKENID_WORD:
         next_index(i, tokens.size());

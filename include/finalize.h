@@ -1,6 +1,6 @@
 
-#ifndef ADEPT_H_INCLUDED
-#define ADEPT_H_INCLUDED
+#ifndef FINALIZE_H_INCLUDED
+#define FINALIZE_H_INCLUDED
 
 #include "../include/parse.h"
 #include "../include/errors.h"
@@ -8,7 +8,7 @@
 #include "../include/tokens.h"
 #include "../include/asmcontext.h"
 
-int finalize(Configuration& config, Program& program, AssembleContext& assemble, ErrorHandler& errors);
+int finalize(AssembleContext& assemble, Configuration& config, Program& program, ErrorHandler& errors);
 int shutdown();
 
-#endif // ADEPT_H_INCLUDED
+#endif // FINALIZE_H_INCLUDED

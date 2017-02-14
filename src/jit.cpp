@@ -69,6 +69,7 @@ int jit_run(AssembleContext& context, std::string func_name, std::vector<ModuleD
     llvm::ExecutionEngine* execution_engine = llvm::EngineBuilder(std::move(context.module)).setErrorStr(&error_str).create();
 
     if(execution_engine != 0) {
+        /*
         if(dependencies.size() != 0){
             fail("Only one module JIT is currently supported :\\");
             return 1;
@@ -82,8 +83,8 @@ int jit_run(AssembleContext& context, std::string func_name, std::vector<ModuleD
             execution_engine->addModule(std::move(import_context.module));
 
             delete dependency->config;
-            delete dependency->program;
         }
+        */
 
         // Call main function
         llvm::GenericValue return_value = execution_engine->runFunction(entry_point, args);

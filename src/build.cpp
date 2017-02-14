@@ -23,7 +23,9 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 #include <unistd.h>
+#include <boost/filesystem.hpp>
 #include "../include/die.h"
+#include "../include/cache.h"
 #include "../include/build.h"
 #include "../include/lexer.h"
 #include "../include/parse.h"
@@ -68,25 +70,37 @@ extern "C" BuildConfig adept_config(){
 }
 
 extern "C" int adept_compile(const char* file, BuildConfig* build_config) {
-    Program program;
+    // Function for adept build scripts to invoke adept
+
+    using namespace boost::filesystem;
+
+    // Get the full filename of the source file that we want to compile
+    std::string source_filename = absolute(path(file), current_path()).string();
+
     Configuration config;
     AssembleContext context;
+    ErrorHandler errors(filename_name(source_filename));
     TokenList* tokens = new TokenList;
-    ErrorHandler errors(filename_name(file));
+    Program* program = adept_current_program->parent_manager->newProgram(source_filename);
 
     // Setup a configuration for the file
-    if(configure(config, file, errors) != 0) return 1;
+    if(configure(config, source_filename, errors) != 0) return 1;
     if(build_config != NULL) build_transfer_config(&config, build_config);
 
-    // Compiler Frontend
-    if( tokenize(config, file, tokens, errors)     != 0 ) return 1;
-    if( parse(config, tokens, program, errors)     != 0 ) return 1;
-    free_tokens(*tokens);
-    delete tokens;
+    if(program != NULL){
+        // Compiler Frontend
+        if( tokenize(config, source_filename, tokens, errors) != 0 ) return 1;
+        if( parse(config, tokens, *program, errors) != 0 ) return 1;
+        free_tokens(*tokens); // Free data held by tokens
+        delete tokens; // Free the token list itself
+    }
+    else {
+        program = adept_current_program->parent_manager->getProgram(source_filename);
+    }
 
     // Compiler Backend
-    if( assemble(context, config, program, errors) != 0 ) return 1;
-    if( finalize(config, program, context, errors)          != 0 ) return 1;
+    if( assemble(context, config, *program, errors) != 0 ) return 1;
+    if( finalize(context, config, *program, errors) != 0 ) return 1;
 
     // Output divider if needed
     if(config.time and !config.silent){

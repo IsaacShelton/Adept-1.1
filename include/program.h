@@ -6,6 +6,7 @@
 #include "config.h"
 #include "statement.h"
 #include "asmcontext.h"
+class CacheManager; // "cache.h" included at end of file
 
 struct Variable;
 struct Field;
@@ -88,14 +89,12 @@ class External {
 
 class ModuleDependency {
     public:
-    std::string name;
+    std::string filename;
     std::string target_bc;
     std::string target_obj;
-
-    Program* program;
     Configuration* config;
 
-    ModuleDependency(std::string, std::string, std::string, Program*, Configuration*);
+    ModuleDependency(const std::string&, const std::string&, const std::string&, Configuration*);
 };
 
 class Constant {
@@ -146,6 +145,7 @@ class TypeAlias {
 
 class Program {
     public:
+    CacheManager* parent_manager;
     std::vector<ModuleDependency> imports;
     std::vector<std::string> extra_libs;
 
@@ -171,6 +171,7 @@ class Program {
     static bool is_array_typename(const std::string&);
     static bool function_typename_is_stdcall(const std::string&);
 
+    Program(CacheManager*);
     ~Program();
     int import_merge(Program&, bool);
 
@@ -202,5 +203,7 @@ class Program {
     void print_classes();
     void print_globals();
 };
+
+#include "cache.h"
 
 #endif // PROGRAM_H_INCLUDED

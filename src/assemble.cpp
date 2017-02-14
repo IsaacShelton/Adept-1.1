@@ -87,10 +87,11 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
     for(size_t i = 0; i != program.imports.size(); i++){
         AssembleContext import_context;
         ModuleDependency* dependency = &program.imports[i];
+        Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
 
-        if(assemble(import_context, *dependency->config, *dependency->program, errors) != 0) return 1;
+        if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
 
-        if(dependency->program->functions.size() != 0){
+        if(dependency_program->functions.size() != 0 or dependency_program->classes.size() != 0){
             out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
             llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
             out_stream->flush();
@@ -101,7 +102,6 @@ int build(AssembleContext& context, Configuration& config, Program& program, Err
         }
 
         delete program.imports[i].config;
-        delete program.imports[i].program;
     }
 
     // Link to the minimal Adept core
@@ -252,13 +252,8 @@ int assemble_structure(AssembleContext& context, Configuration& config, Program&
     return 0;
 }
 int assemble_class(AssembleContext& context, Configuration& config, Program& program, Class& klass){
-    if(klass.is_imported){
-        // Don't assemble the class if it was imported
-        return 0;
-    }
-
     for(size_t i = 0; i != klass.methods.size(); i++){
-        if(assemble_method(context, config, program, klass, klass.methods[i]) != 0) return 1;
+        if(assemble_method(context, config, program, klass, klass.methods[i], klass.is_imported) != 0) return 1;
     }
     return 0;
 }
@@ -393,7 +388,7 @@ int assemble_function_body(AssembleContext& context, Configuration& config, Prog
     llvm::verifyFunction(*llvm_function);
     return 0;
 }
-int assemble_method(AssembleContext& context, Configuration& config, Program& program, Class& klass, Function& method){
+int assemble_method(AssembleContext& context, Configuration& config, Program& program, Class& klass, Function& method, bool is_imported){
     std::string final_name = mangle(klass, method);
     llvm::Function* llvm_function = context.module->getFunction(final_name);
 
@@ -424,55 +419,57 @@ int assemble_method(AssembleContext& context, Configuration& config, Program& pr
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
-        llvm_function = llvm::Function::Create(function_type, (method.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_name, context.module.get());
+        llvm_function = llvm::Function::Create(function_type, (method.is_public or is_imported) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_name, context.module.get());
         assert(llvm_function != NULL);
 
-        // Create a new basic block to start insertion into.
-        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
-        llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
-        llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
+        if(!is_imported){
+            // Create a new basic block to start insertion into.
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
+            llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
+            llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
 
-        context.builder.SetInsertPoint(entry);
+            context.builder.SetInsertPoint(entry);
 
-        llvm::AllocaInst* exitval;
-        if(!llvm_type->isVoidTy()){
-            exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
-        }
-
-        size_t i = 0;
-        method.variables.reserve(args.size());
-
-        for(auto& arg : llvm_function->args()){
-            if(i == 0){
-                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, "this");
-                context.builder.CreateStore(&arg, alloca);
-                method.variables.push_back( Variable{"this", "*" + klass.name, alloca} );
-                i++;
-                continue;
+            llvm::AllocaInst* exitval;
+            if(!llvm_type->isVoidTy()){
+                exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
             }
 
-            Field& method_argument = method.arguments[i-1];
-            llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, method_argument.name);
-            context.builder.CreateStore(&arg, alloca);
-            method.variables.push_back( Variable{method_argument.name, method_argument.type, alloca} );
-            i++;
-        }
+            size_t i = 0;
+            method.variables.reserve(args.size());
 
-        context.builder.SetInsertPoint(quit);
+            for(auto& arg : llvm_function->args()){
+                if(i == 0){
+                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, "this");
+                    context.builder.CreateStore(&arg, alloca);
+                    method.variables.push_back( Variable{"this", "*" + klass.name, alloca} );
+                    i++;
+                    continue;
+                }
 
-        if(!llvm_type->isVoidTy()){
-            llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
-            method.asm_func.exitval = exitval;
-            context.builder.CreateRet(retval);
-        }
-        else {
-            context.builder.CreateRet(NULL);
-        }
+                Field& method_argument = method.arguments[i-1];
+                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, method_argument.name);
+                context.builder.CreateStore(&arg, alloca);
+                method.variables.push_back( Variable{method_argument.name, method_argument.type, alloca} );
+                i++;
+            }
 
-        method.asm_func.return_type = llvm_type;
-        method.asm_func.entry = entry;
-        method.asm_func.body = body;
-        method.asm_func.quit = quit;
+            context.builder.SetInsertPoint(quit);
+
+            if(!llvm_type->isVoidTy()){
+                llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
+                method.asm_func.exitval = exitval;
+                context.builder.CreateRet(retval);
+            }
+            else {
+                context.builder.CreateRet(NULL);
+            }
+
+            method.asm_func.return_type = llvm_type;
+            method.asm_func.entry = entry;
+            method.asm_func.body = body;
+            method.asm_func.quit = quit;
+        }
     }
     else {
         fail_filename(config, DUPLICATE_METHOD(klass.name + "." + method.name));

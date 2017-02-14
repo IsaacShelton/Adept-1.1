@@ -16,9 +16,12 @@
 					<Add option="-std=c++11" />
 					<Add option="-pg" />
 					<Add option="-g" />
+					<Add option="-DADEPT_DEBUG_32" />
 				</Compiler>
 				<Linker>
 					<Add option="-pg -lgmon" />
+					<Add library="C:\Program Files (x86)\CodeBlocks\MinGW\lib\boost\libboost_filesystem-mgw47-mt-d-1_60.a" />
+					<Add library="C:\Program Files (x86)\CodeBlocks\MinGW\lib\boost\libboost_system-mgw47-mt-d-1_60.a" />
 				</Linker>
 			</Target>
 			<Target title="Release 32-bit">
@@ -30,9 +33,12 @@
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-std=c++11" />
+					<Add option="-DADEPT_RELEASE_32" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="C:\Program Files (x86)\CodeBlocks\MinGW\lib\boost\libboost_filesystem-mgw47-mt-1_60.a" />
+					<Add library="C:\Program Files (x86)\CodeBlocks\MinGW\lib\boost\libboost_system-mgw47-mt-1_60.a" />
 				</Linker>
 			</Target>
 			<Target title="Debug 64-bit">
@@ -45,9 +51,12 @@
 					<Add option="-std=c++11" />
 					<Add option="-pg" />
 					<Add option="-g" />
+					<Add option="-DADEPT_DEBUG_64" />
 				</Compiler>
 				<Linker>
 					<Add option="-pg -lgmon" />
+					<Add library="C:\Users\isaac\OpenSource\boost_1_60_0_mingw64_x86\boost_1_60_0\stage\lib\libboost_filesystem-mgw53-mt-d-1_60.a" />
+					<Add library="C:\Users\isaac\OpenSource\boost_1_60_0_mingw64_x86\boost_1_60_0\stage\lib\libboost_system-mgw53-mt-d-1_60.a" />
 				</Linker>
 			</Target>
 			<Target title="Release 64-bit">
@@ -60,9 +69,12 @@
 					<Add option="-O3" />
 					<Add option="-std=c++11" />
 					<Add option="-Wextra" />
+					<Add option="-DADEPT_RELEASE_64" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="C:\Users\isaac\OpenSource\boost_1_60_0_mingw64_x86\boost_1_60_0\stage\lib\libboost_filesystem-mgw53-mt-1_60.a" />
+					<Add library="C:\Users\isaac\OpenSource\boost_1_60_0_mingw64_x86\boost_1_60_0\stage\lib\libboost_system-mgw53-mt-1_60.a" />
 				</Linker>
 			</Target>
 		</Build>
@@ -70,20 +82,23 @@
 			<Add option="-Os" />
 			<Add option="-std=c++11" />
 			<Add option="-w" />
-			<Add option="-fno-exceptions -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -fno-rtti -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS" />
+			<Add option="-Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -fno-rtti -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS" />
 			<Add option="-fpermissive" />
 			<Add option="-DNDEBUG" />
 			<Add directory="C:/LLVM/include" />
+			<Add directory="C:/Users/isaac/OpenSource/boost_1_60_0_mingw64_x86/boost_1_60_0" />
 		</Compiler>
 		<Linker>
 			<Add option="-LC:\LLVM/lib" />
 			<Add option="-lLLVMLibDriver -lLLVMOption -lLLVMLineEditor -lLLVMPasses -lLLVMOrcJIT -lLLVMCoverage -lLLVMTableGen -lLLVMMCJIT -lLLVMXCoreDisassembler -lLLVMXCoreCodeGen -lLLVMXCoreDesc -lLLVMXCoreInfo -lLLVMXCoreAsmPrinter -lLLVMX86Disassembler -lLLVMX86AsmParser -lLLVMX86CodeGen -lLLVMX86Desc -lLLVMX86Info -lLLVMX86AsmPrinter -lLLVMX86Utils -lLLVMSystemZDisassembler -lLLVMSystemZCodeGen -lLLVMSystemZAsmParser -lLLVMSystemZDesc -lLLVMSystemZInfo -lLLVMSystemZAsmPrinter -lLLVMSparcDisassembler -lLLVMSparcCodeGen -lLLVMSparcAsmParser -lLLVMSparcDesc -lLLVMSparcInfo -lLLVMSparcAsmPrinter -lLLVMPowerPCDisassembler -lLLVMPowerPCCodeGen -lLLVMPowerPCAsmParser -lLLVMPowerPCDesc -lLLVMPowerPCInfo -lLLVMPowerPCAsmPrinter -lLLVMNVPTXCodeGen -lLLVMNVPTXDesc -lLLVMNVPTXInfo -lLLVMNVPTXAsmPrinter -lLLVMMSP430CodeGen -lLLVMMSP430Desc -lLLVMMSP430Info -lLLVMMSP430AsmPrinter -lLLVMMipsDisassembler -lLLVMMipsCodeGen -lLLVMMipsAsmParser -lLLVMMipsDesc -lLLVMMipsInfo -lLLVMMipsAsmPrinter -lLLVMHexagonDisassembler -lLLVMHexagonCodeGen -lLLVMHexagonAsmParser -lLLVMHexagonDesc -lLLVMHexagonInfo -lLLVMBPFCodeGen -lLLVMBPFDesc -lLLVMBPFInfo -lLLVMBPFAsmPrinter -lLLVMARMDisassembler -lLLVMARMCodeGen -lLLVMARMAsmParser -lLLVMARMDesc -lLLVMARMInfo -lLLVMARMAsmPrinter -lLLVMAMDGPUDisassembler -lLLVMAMDGPUCodeGen -lLLVMAMDGPUAsmParser -lLLVMAMDGPUDesc -lLLVMAMDGPUInfo -lLLVMAMDGPUAsmPrinter -lLLVMAMDGPUUtils -lLLVMAArch64Disassembler -lLLVMMCDisassembler -lLLVMAArch64CodeGen -lLLVMGlobalISel -lLLVMSelectionDAG -lLLVMAsmPrinter -lLLVMAArch64AsmParser -lLLVMAArch64Desc -lLLVMAArch64Info -lLLVMAArch64AsmPrinter -lLLVMAArch64Utils -lLLVMLTO -lLLVMObjCARCOpts -lLLVMipo -lLLVMVectorize -lLLVMLinker -lLLVMIRReader -lLLVMInterpreter -lLLVMExecutionEngine -lLLVMRuntimeDyld -lLLVMMIRParser -lLLVMCodeGen -lLLVMTarget -lLLVMScalarOpts -lLLVMInstCombine -lLLVMInstrumentation -lLLVMTransformUtils -lLLVMBitWriter -lLLVMAnalysis -lLLVMProfileData -lLLVMAsmParser -lLLVMSymbolize -lLLVMDebugInfoPDB -lLLVMDebugInfoCodeView -lLLVMDebugInfoDWARF -lLLVMObject -lLLVMMCParser -lLLVMMC -lLLVMBitReader -lLLVMCore -lLLVMObjectYAML -lLLVMSupport" />
 			<Add option="-lpsapi -lshell32 -lole32 -luuid" />
 		</Linker>
+		<Unit filename="include/adept.h" />
 		<Unit filename="include/asmcontext.h" />
 		<Unit filename="include/assemble.h" />
 		<Unit filename="include/attribute.h" />
 		<Unit filename="include/build.h" />
+		<Unit filename="include/cache.h" />
 		<Unit filename="include/clock.h" />
 		<Unit filename="include/config.h" />
 		<Unit filename="include/die.h" />
@@ -91,6 +106,7 @@
 		<Unit filename="include/errors.h" />
 		<Unit filename="include/expression.h" />
 		<Unit filename="include/finalize.h" />
+		<Unit filename="include/info.h" />
 		<Unit filename="include/jit.h" />
 		<Unit filename="include/lexer.h" />
 		<Unit filename="include/mangling.h" />
@@ -102,10 +118,12 @@
 		<Unit filename="include/threads.h" />
 		<Unit filename="include/tokens.h" />
 		<Unit filename="include/type.h" />
+		<Unit filename="src/adept.cpp" />
 		<Unit filename="src/asmcontext.cpp" />
 		<Unit filename="src/assemble.cpp" />
 		<Unit filename="src/attribute.cpp" />
 		<Unit filename="src/build.cpp" />
+		<Unit filename="src/cache.cpp" />
 		<Unit filename="src/clock.cpp" />
 		<Unit filename="src/config.cpp" />
 		<Unit filename="src/die.cpp" />

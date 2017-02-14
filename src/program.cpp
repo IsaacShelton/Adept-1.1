@@ -102,12 +102,11 @@ std::string External::toString(){
     return prefix + "def " + name + "(" + arg_str + ") " + return_type;
 }
 
-ModuleDependency::ModuleDependency(std::string mod_name, std::string mod_bc, std::string mod_obj, Program* mod_program, Configuration* mod_config){
-    name = mod_name;
-    target_bc = mod_bc;
-    target_obj = mod_obj;
-    program = mod_program;
-    config = mod_config;
+ModuleDependency::ModuleDependency(const std::string& filename, const std::string& target_bc, const std::string& target_obj, Configuration* config){
+    this->filename = filename;
+    this->target_bc = target_bc;
+    this->target_obj = target_obj;
+    this->config = config;
 }
 
 Constant::Constant(){}
@@ -201,6 +200,9 @@ bool Program::function_typename_is_stdcall(const std::string& type_name){
     return false;
 }
 
+Program::Program(CacheManager* parent_manager){
+    this->parent_manager = parent_manager;
+}
 Program::~Program(){
     for(Constant& constant : constants){
         delete constant.value;
@@ -299,6 +301,10 @@ int Program::import_merge(Program& other, bool public_import){
             *target = new_class;
             target->is_public = public_import;
             target->is_imported = true;
+
+            for(size_t i = 0; i != target->methods.size(); i++){
+                target->methods[i].parent_class_offset = classes.size();
+            }
         }
     }
 

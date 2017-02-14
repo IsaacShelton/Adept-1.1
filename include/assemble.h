@@ -21,7 +21,7 @@ int assemble_class(AssembleContext&, Configuration&, Program&, Class&);
 int assemble_class_body(AssembleContext&, Configuration&, Program&, Class&);
 int assemble_function(AssembleContext&, Configuration&, Program&, Function&);
 int assemble_function_body(AssembleContext&, Configuration&, Program&, Function&);
-int assemble_method(AssembleContext&, Configuration&, Program&, Class&, Function&);
+int assemble_method(AssembleContext&, Configuration&, Program&, Class&, Function&, bool);
 int assemble_method_body(AssembleContext&, Configuration&, Program&, Class&, Function&);
 int assemble_external(AssembleContext*, const Configuration*, const Program*, const External*);
 int assemble_global(AssembleContext*, const Configuration*, const Program*, Global*);

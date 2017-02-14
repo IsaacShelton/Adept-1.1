@@ -7,7 +7,7 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
-int finalize(Configuration& config, Program& program, AssembleContext& context, ErrorHandler& errors){
+int finalize(AssembleContext& context, Configuration& config, Program& program, ErrorHandler& errors){
     if(config.time and !config.silent){
         config.clock.print_since_start("DONE", filename_name(config.filename));
         config.clock.remember();

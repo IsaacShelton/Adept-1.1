@@ -25,7 +25,7 @@
 #define UNDECLARED_CONST(a)     ("Undeclared constant '$" + std::string(a) + "'")
 
 // Expected
-#define EXPECTED_NAME_OF_TYPE        ("Expected name of type")
+#define EXPECTED_NAME_OF_TYPE        ("Expected typename")
 #define EXPECTED_DEFINITION          ("Expected definition of a function or type")
 
 // Unexpected
