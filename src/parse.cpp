@@ -1156,7 +1156,7 @@ int parse_expression(Configuration& config, TokenList& tokens, Program& program,
     // ^
 
     if(parse_expression_primary(config, tokens, program, i, expression, errors) != 0) return 1;
-    if(parse_expression_operator_right(config, tokens, program, i, 0, expression, errors) != 0) return 1;
+    if(parse_expression_operator_right(config, tokens, program, i, 0, expression, false, errors) != 0) return 1;
     return 0;
 }
 int parse_expression_primary(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
@@ -1330,6 +1330,10 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 return 1;
             }
 
+            if(tokens[i].id == TOKENID_MEMBER){
+                if(parse_expression_operator_right(config, tokens, program, i, 0, &mutable_expression, true, errors) != 0) return 1;
+            }
+
             *expression = new AddrWordExp( mutable_expression, errors );
         }
         return 0;
@@ -1412,7 +1416,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         return 1;
     }
 }
-int parse_expression_operator_right(Configuration& config, TokenList& tokens, Program& program, size_t& i, int precedence, PlainExp** left, ErrorHandler& errors) {
+int parse_expression_operator_right(Configuration& config, TokenList& tokens, Program& program, size_t& i, int precedence, PlainExp** left, bool keep_mutable, ErrorHandler& errors) {
     while(i != tokens.size()) {
         int token_precedence = tokens[i].getPrecedence();
         int operation;
@@ -1435,6 +1439,12 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
 
             if(tokens[i].id == TOKENID_OPEN){
                 // Member Call Expression - 'expression.method()'
+
+                if(keep_mutable){
+                    // If we want to keep the expression mutable, reverse our progress
+                    i -= 2;
+                    return 0;
+                }
 
                 std::vector<PlainExp*> args;
                 next_index(i, tokens.size());
@@ -1464,6 +1474,8 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
             }
         }
         else if(operation == TOKENID_WORD){
+            if(keep_mutable) return 0;
+
             PlainExp* right;
             std::string name = tokens[i].getString();
 
@@ -1472,7 +1484,7 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
 
             int next_precedence = tokens[i].getPrecedence();
             if (token_precedence < next_precedence) {
-                if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right, errors) != 0) return 1;
+                if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right, false, errors) != 0) return 1;
             }
 
             std::vector<PlainExp*> args(2);
@@ -1495,13 +1507,15 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
             next_index(i, tokens.size());
         }
         else {
+            if(keep_mutable) return 0;
+
             PlainExp* right;
             next_index(i, tokens.size());
             if(parse_expression_primary(config, tokens, program, i, &right, errors) != 0) return 1;
 
             int next_precedence = tokens[i].getPrecedence();
             if (token_precedence < next_precedence) {
-                if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right, errors) != 0) return 1;
+                if(parse_expression_operator_right(config, tokens, program, i, token_precedence + 1, &right, false, errors) != 0) return 1;
             }
 
             *left = new OperatorExp(operation, *left, right, errors);
