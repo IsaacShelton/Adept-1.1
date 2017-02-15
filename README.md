@@ -280,5 +280,25 @@ public def main() int {
     delete data
     return 0
 }
+```
 
+### Constant data arrays
+```
+private import "adept/terminal.adept"
+
+public def main() int {
+    integer_list *int = {
+        10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+    }
+    
+    i usize = 0ui
+    while i != 11ui {
+        println(integer_list[i])
+        i = i + 1ui
+    }
+    
+    // Don't delete the data pointed to by
+    //   'integer_list' because it is constant
+    return 0
+}
 ```

@@ -192,21 +192,25 @@ int assemble(AssembleContext& context, Configuration& config, Program& program, 
     if(threads_int_result(futures) != 0) return 1;
 
     // Assemble the skeleton of each class
+    // ASYNC: Maybe parallelize this?
     for(size_t i = 0; i != program.classes.size(); i++){
         if(assemble_class(context, config, program, program.classes[i]) != 0) return 1;
     }
 
     // Assemble the skeleton of each function
+    // ASYNC: Maybe parallelize this?
     for(size_t i = 0; i != program.functions.size(); i++){
         if(assemble_function(context, config, program, program.functions[i]) != 0) return 1;
     }
 
     // Assemble the bodies of each class
+    // ASYNC: Maybe parallelize this?
     for(size_t i = 0; i != program.classes.size(); i++){
         if(assemble_class_body(context, config, program, program.classes[i]) != 0) return 1;
     }
 
     // Assemble the bodies of each function
+    // ASYNC: Maybe parallelize this?
     for(size_t i = 0; i != program.functions.size(); i++){
         if(assemble_function_body(context, config, program, program.functions[i]) != 0) return 1;
     }

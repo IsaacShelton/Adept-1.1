@@ -169,6 +169,7 @@ class Program {
     static bool is_function_typename(const std::string&);
     static bool is_pointer_typename(const std::string&);
     static bool is_array_typename(const std::string&);
+    static bool is_integer_typename(const std::string&);
     static bool function_typename_is_stdcall(const std::string&);
 
     Program(CacheManager*);

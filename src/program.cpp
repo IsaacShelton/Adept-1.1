@@ -188,6 +188,18 @@ bool Program::is_array_typename(const std::string& type_name){
     if(type_name[0] == '[' and type_name[1] == ']') return true;
     return false;
 }
+bool Program::is_integer_typename(const std::string& type_name){
+    if(type_name == "int")    return true;
+    if(type_name == "uint")   return true;
+    if(type_name == "long")   return true;
+    if(type_name == "ulong")  return true;
+    if(type_name == "short")  return true;
+    if(type_name == "ushort") return true;
+    if(type_name == "byte")   return true;
+    if(type_name == "ubyte")  return true;
+
+    return false;
+}
 bool Program::function_typename_is_stdcall(const std::string& type_name){
     // Function Pointer Type Layout ( [] = optional ):
     // "[stdcall] def(type, type, type) type"

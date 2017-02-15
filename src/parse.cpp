@@ -1165,6 +1165,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         errors.line++;
     }
 
+    // TODO: Clean up code inside each case (probally refactor into different functions)
     switch (tokens[i].id) {
     case TOKENID_WORD:
         next_index(i, tokens.size());
@@ -1409,6 +1410,37 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
             next_index(i, tokens.size());
             if(parse_expression_primary(config, tokens, program, i, &not_expresion, errors) != 0) return 1;
             *expression = new NotExp(not_expresion, errors);
+        }
+    case TOKENID_BEGIN:
+        {
+            std::vector<PlainExp*> elements;
+            next_index(i, tokens.size());
+
+            while(tokens[i].id == TOKENID_NEWLINE){
+                next_index(i, tokens.size());
+                errors.line++;
+            }
+
+            while(tokens[i].id != TOKENID_END){
+                PlainExp* element;
+                if(parse_expression(config, tokens, program, i, &element, errors) != 0) return 1;
+                elements.push_back(element);
+
+                while(tokens[i].id == TOKENID_NEWLINE){
+                    next_index(i, tokens.size());
+                    errors.line++;
+                }
+
+                if(tokens[i].id == TOKENID_NEXT) next_index(i, tokens.size());
+
+                while(tokens[i].id == TOKENID_NEWLINE){
+                    next_index(i, tokens.size());
+                    errors.line++;
+                }
+            }
+
+            next_index(i, tokens.size());
+            *expression = new ArrayDataExpression(elements, errors);
         }
         return 0;
     default:

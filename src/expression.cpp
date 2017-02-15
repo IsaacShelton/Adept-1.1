@@ -47,7 +47,6 @@ llvm::Value* PlainExp::assemble_immutable(Program& program, Function& func, Asse
     if(this->is_mutable){
         val = context.builder.CreateLoad(val, "loadtmp");
     }
-
     return val;
 }
 
@@ -56,6 +55,7 @@ OperatorExp::OperatorExp(ErrorHandler& err){
     left = NULL;
     right = NULL;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 OperatorExp::OperatorExp(const OperatorExp& other) : PlainExp(other) {
@@ -63,12 +63,14 @@ OperatorExp::OperatorExp(const OperatorExp& other) : PlainExp(other) {
     left = other.left->clone();
     right = other.right->clone();
     is_mutable = false;
+    is_constant = false;
 }
 OperatorExp::OperatorExp(uint16_t o, PlainExp* l, PlainExp* r, ErrorHandler& err){
     operation = o;
     left = l;
     right = r;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 OperatorExp::~OperatorExp(){
@@ -257,16 +259,19 @@ PlainExp* OperatorExp::clone(){
 
 BoolExp::BoolExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 BoolExp::BoolExp(bool val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 BoolExp::BoolExp(const BoolExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 BoolExp::~BoolExp(){}
 llvm::Value* BoolExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -282,16 +287,19 @@ PlainExp* BoolExp::clone(){
 
 ByteExp::ByteExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 ByteExp::ByteExp(int8_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 ByteExp::ByteExp(const ByteExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 ByteExp::~ByteExp(){}
 llvm::Value* ByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -307,16 +315,19 @@ PlainExp* ByteExp::clone(){
 
 ShortExp::ShortExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 ShortExp::ShortExp(int16_t val, ErrorHandler& err){
-    is_mutable = false;
     value = val;
+    is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 ShortExp::ShortExp(const ShortExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 ShortExp::~ShortExp(){}
 llvm::Value* ShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -332,16 +343,19 @@ PlainExp* ShortExp::clone(){
 
 IntegerExp::IntegerExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 IntegerExp::IntegerExp(int32_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 IntegerExp::IntegerExp(const IntegerExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 IntegerExp::~IntegerExp(){}
 llvm::Value* IntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -357,16 +371,19 @@ PlainExp* IntegerExp::clone(){
 
 LongExp::LongExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 LongExp::LongExp(int64_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 LongExp::LongExp(const LongExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 LongExp::~LongExp(){}
 llvm::Value* LongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -382,16 +399,19 @@ PlainExp* LongExp::clone(){
 
 UnsignedByteExp::UnsignedByteExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedByteExp::UnsignedByteExp(uint8_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedByteExp::UnsignedByteExp(const UnsignedByteExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 UnsignedByteExp::~UnsignedByteExp(){}
 llvm::Value* UnsignedByteExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -407,16 +427,19 @@ PlainExp* UnsignedByteExp::clone(){
 
 UnsignedShortExp::UnsignedShortExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedShortExp::UnsignedShortExp(uint16_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedShortExp::UnsignedShortExp(const UnsignedShortExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 UnsignedShortExp::~UnsignedShortExp(){}
 llvm::Value* UnsignedShortExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -432,16 +455,19 @@ PlainExp* UnsignedShortExp::clone(){
 
 UnsignedIntegerExp::UnsignedIntegerExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedIntegerExp::UnsignedIntegerExp(uint32_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedIntegerExp::UnsignedIntegerExp(const UnsignedIntegerExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 UnsignedIntegerExp::~UnsignedIntegerExp(){}
 llvm::Value* UnsignedIntegerExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -457,16 +483,19 @@ PlainExp* UnsignedIntegerExp::clone(){
 
 UnsignedLongExp::UnsignedLongExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedLongExp::UnsignedLongExp(uint64_t val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 UnsignedLongExp::UnsignedLongExp(const UnsignedLongExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 UnsignedLongExp::~UnsignedLongExp(){}
 llvm::Value* UnsignedLongExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -482,16 +511,19 @@ PlainExp* UnsignedLongExp::clone(){
 
 FloatExp::FloatExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 FloatExp::FloatExp(float val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 FloatExp::FloatExp(const FloatExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 FloatExp::~FloatExp(){}
 llvm::Value* FloatExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -507,16 +539,19 @@ PlainExp* FloatExp::clone(){
 
 DoubleExp::DoubleExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 DoubleExp::DoubleExp(double val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 DoubleExp::DoubleExp(const DoubleExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 DoubleExp::~DoubleExp(){}
 llvm::Value* DoubleExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -532,16 +567,19 @@ PlainExp* DoubleExp::clone(){
 
 StringExp::StringExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 StringExp::StringExp(const std::string& val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 StringExp::StringExp(const StringExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = false;
+    is_constant = true;
 }
 StringExp::~StringExp(){}
 llvm::Value* StringExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -571,16 +609,19 @@ PlainExp* StringExp::clone(){
 
 WordExp::WordExp(ErrorHandler& err){
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 WordExp::WordExp(const std::string& val, ErrorHandler& err){
     value = val;
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 WordExp::WordExp(const WordExp& other) : PlainExp(other) {
     value = other.value;
     is_mutable = true;
+    is_constant = false;
 }
 WordExp::~WordExp(){}
 llvm::Value* WordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -609,16 +650,19 @@ PlainExp* WordExp::clone(){
 
 AddrWordExp::AddrWordExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 AddrWordExp::AddrWordExp(PlainExp* val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 AddrWordExp::AddrWordExp(const AddrWordExp& other) : PlainExp(other) {
     value = other.value->clone();
     is_mutable = false;
+    is_constant = false;
 }
 AddrWordExp::~AddrWordExp(){}
 llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -638,16 +682,19 @@ PlainExp* AddrWordExp::clone(){
 
 LoadExp::LoadExp(ErrorHandler& err){
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 LoadExp::LoadExp(PlainExp* val, ErrorHandler& err){
     value = val;
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 LoadExp::LoadExp(const LoadExp& other) : PlainExp(other) {
     value = other.value->clone();
     is_mutable = true;
+    is_constant = false;
 }
 LoadExp::~LoadExp(){
     delete value;
@@ -674,18 +721,21 @@ PlainExp* LoadExp::clone(){
 
 IndexLoadExp::IndexLoadExp(ErrorHandler& err){
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 IndexLoadExp::IndexLoadExp(PlainExp* val, PlainExp* idx, ErrorHandler& err){
     value = val;
     index = idx;
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 IndexLoadExp::IndexLoadExp(const IndexLoadExp& other) : PlainExp(other) {
     value = other.value->clone();
     index = other.index->clone();
     is_mutable = true;
+    is_constant = false;
 }
 IndexLoadExp::~IndexLoadExp(){
     delete value;
@@ -732,8 +782,11 @@ llvm::Value* IndexLoadExp::assemble_lowlevel_array(Program& program, Function& f
     llvm::Value* index_value = index->assemble_immutable(program, func, context, &index_typename);
     if(index_value == NULL) return NULL;
 
-    if(index_typename != "int"){
-        errors.panic("Expected 'int' type when using []");
+    // Resolve the typename if its an alias
+    program.resolve_if_alias(index_typename);
+
+    if(!Program::is_integer_typename(index_typename)){
+        errors.panic("Expected integer type when using []");
         return NULL;
     }
 
@@ -773,8 +826,11 @@ llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& 
     llvm::Value* index_value = index->assemble_immutable(program, func, context, &index_typename);
     if(index_value == NULL) return NULL;
 
-    if(index_typename != "int"){
-        errors.panic("Expected 'int' type when using []");
+    // Resolve the typename if its an alias
+    program.resolve_if_alias(index_typename);
+
+    if(!Program::is_integer_typename(index_typename)){
+        errors.panic("Expected integer type when using []");
         return NULL;
     }
 
@@ -789,17 +845,20 @@ llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& 
 
 CallExp::CallExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 CallExp::CallExp(const CallExp& other) : PlainExp(other) {
     name = other.name;
     for(PlainExp* e : other.args) args.push_back( e->clone() );
     is_mutable = false;
+    is_constant = false;
 }
 CallExp::CallExp(std::string n, const std::vector<PlainExp*>& a, ErrorHandler& err){
     name = n;
     args = a;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 CallExp::~CallExp(){
@@ -967,17 +1026,20 @@ PlainExp* CallExp::clone(){
 MemberExp::MemberExp(ErrorHandler& err){
     errors = err;
     is_mutable = true;
+    is_constant = false;
 }
 MemberExp::MemberExp(PlainExp* v, const std::string& m, ErrorHandler& err){
     value = v;
     member = m;
     is_mutable = true;
+    is_constant = false;
     errors = err;
 }
 MemberExp::MemberExp(const MemberExp& other) : PlainExp(other) {
     value = other.value->clone();
     member = other.member;
     is_mutable = true;
+    is_constant = false;
 }
 MemberExp::~MemberExp(){
     delete value;
@@ -1130,6 +1192,7 @@ llvm::Value* MemberExp::assemble_array(Program& program, Function& func, Assembl
 
 MemberCallExp::MemberCallExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 MemberCallExp::MemberCallExp(PlainExp* obj, const std::string& n, const std::vector<PlainExp*>& a, ErrorHandler& err){
@@ -1137,6 +1200,7 @@ MemberCallExp::MemberCallExp(PlainExp* obj, const std::string& n, const std::vec
     name = n;
     args = a;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 MemberCallExp::MemberCallExp(const MemberCallExp& other) : PlainExp(other) {
@@ -1144,6 +1208,7 @@ MemberCallExp::MemberCallExp(const MemberCallExp& other) : PlainExp(other) {
     name = other.name;
     args = other.args;
     is_mutable = false;
+    is_constant = false;
 }
 MemberCallExp::~MemberCallExp(){
     delete object;
@@ -1259,10 +1324,12 @@ PlainExp* MemberCallExp::clone(){
 
 NullExp::NullExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 NullExp::NullExp(const NullExp& other) : PlainExp(other) {
     is_mutable = false;
+    is_constant = true;
 }
 NullExp::~NullExp(){}
 llvm::Value* NullExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -1278,16 +1345,19 @@ PlainExp* NullExp::clone(){
 
 NotExp::NotExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 NotExp::NotExp(PlainExp* val, ErrorHandler& err){
     value = val;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 NotExp::NotExp(const NotExp& other) : PlainExp(other) {
     value = other.value->clone();
     is_mutable = false;
+    is_constant = false;
 }
 NotExp::~NotExp(){
     delete value;
@@ -1358,12 +1428,14 @@ PlainExp* NotExp::clone(){
 
 CastExp::CastExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 CastExp::CastExp(PlainExp* val, std::string tgt_type, ErrorHandler& err){
     value = val;
     target_typename = tgt_type;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 CastExp::~CastExp(){
@@ -1692,18 +1764,21 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssembleCont
 
 FuncptrExp::FuncptrExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 FuncptrExp::FuncptrExp(const std::string& function_name, const std::vector<std::string>& function_arguments, ErrorHandler& err){
     this->function_name = function_name;
     this->function_arguments = function_arguments;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 FuncptrExp::FuncptrExp(const FuncptrExp& other) : PlainExp(other) {
     this->function_name = other.function_name;
     this->function_arguments = other.function_arguments;
     is_mutable = false;
+    is_constant = false;
 }
 FuncptrExp::~FuncptrExp(){}
 llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -1743,16 +1818,19 @@ PlainExp* FuncptrExp::clone(){
 
 SizeofExp::SizeofExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
 SizeofExp::SizeofExp(const std::string& type_name, ErrorHandler& err){
     this->type_name = type_name;
     is_mutable = false;
+    is_constant = true;
     errors = err;
 }
-SizeofExp::SizeofExp(const SizeofExp& other) : PlainExp(other){
+SizeofExp::SizeofExp(const SizeofExp& other) : PlainExp(other) {
     this->type_name = other.type_name;
     is_mutable = false;
+    is_constant = true;
 }
 SizeofExp::~SizeofExp(){}
 llvm::Value* SizeofExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -1779,6 +1857,7 @@ PlainExp* SizeofExp::clone(){
 
 AllocExp::AllocExp(ErrorHandler& err){
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 AllocExp::AllocExp(const std::string& type_name, ErrorHandler& err){
@@ -1786,6 +1865,7 @@ AllocExp::AllocExp(const std::string& type_name, ErrorHandler& err){
     this->amount = 1;
     this->element_amount = 0;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 AllocExp::AllocExp(const std::string& type_name, size_t amount, ErrorHandler& err){
@@ -1793,6 +1873,7 @@ AllocExp::AllocExp(const std::string& type_name, size_t amount, ErrorHandler& er
     this->amount = amount;
     this->element_amount = 0;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
 AllocExp::AllocExp(const std::string& type_name, size_t amount, size_t element_amount, ErrorHandler& err){
@@ -1800,13 +1881,15 @@ AllocExp::AllocExp(const std::string& type_name, size_t amount, size_t element_a
     this->amount = amount;
     this->element_amount = element_amount;
     is_mutable = false;
+    is_constant = false;
     errors = err;
 }
-AllocExp::AllocExp(const AllocExp& other) : PlainExp(other){
+AllocExp::AllocExp(const AllocExp& other) : PlainExp(other) {
     this->type_name = other.type_name;
     this->amount = other.amount;
     this->element_amount = other.element_amount;
     is_mutable = false;
+    is_constant = false;
 }
 AllocExp::~AllocExp(){}
 llvm::Value* AllocExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
@@ -1902,4 +1985,97 @@ llvm::Value* AllocExp::assemble_elements(Program& program, Function& func, Assem
 
     std::vector<llvm::Value*> ctor_args = { heap_memory, llvm::ConstantInt::get(context.context, llvm::APInt(32, element_amount, false)) };
     return context.builder.CreateCall(program.llvm_array_ctor, ctor_args, "calltmp");
+}
+
+ArrayDataExpression::ArrayDataExpression(ErrorHandler& err){
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+ArrayDataExpression::ArrayDataExpression(const std::vector<PlainExp*>& elements, ErrorHandler& err){
+    this->elements = elements;
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+ArrayDataExpression::ArrayDataExpression(const ArrayDataExpression& other) : PlainExp(other) {
+    this->elements.resize(other.elements.size());
+    is_mutable = false;
+    is_constant = true;
+
+    for(size_t i = 0; i != other.elements.size(); i++){
+        this->elements[i] = other.elements[i]->clone();
+    }
+}
+ArrayDataExpression::~ArrayDataExpression(){
+    for(size_t i = 0; i != this->elements.size(); i++){
+        delete this->elements[i];
+    }
+}
+llvm::Value* ArrayDataExpression::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
+    llvm::Type* global_llvm_type;
+    llvm::GlobalVariable* global_data;
+
+    llvm::Type* element_type = program.llvm_array_type;
+    std::vector<llvm::Constant*> values;
+    std::string element_typename;
+
+    if(elements.size() == 0){
+        errors.panic("Array data constant must have at least one element");
+        return NULL;
+    }
+
+    for(size_t i = 0; i != elements.size(); i++){
+        llvm::Value* val;
+        std::string val_typename;
+
+        val = elements[i]->assemble_immutable(program, func, context, &val_typename);
+        if(val == NULL) return NULL;
+
+        if(!elements[i]->is_constant){
+            errors.panic("Can't create constant data array from non-constant values");
+            return NULL;
+        }
+
+        if(i == 0){
+            // Make a note that this should be the type for each constant expression
+            element_typename = val_typename;
+
+            // Get the llvm type for the typename
+            if(program.find_type(val_typename, &element_type) != 0){
+                errors.panic(UNDECLARED_TYPE(val_typename));
+                return NULL;
+            }
+        } else if(assemble_merge_types_oneway(context, program, val_typename, element_typename, &val, element_type, NULL) != 0){
+            // Type doesn't match previous types
+            errors.panic(INCOMPATIBLE_TYPES(val_typename, element_typename));
+            return NULL;
+        }
+
+        llvm::Constant* constant_value = static_cast<llvm::Constant*>(val);
+        values.push_back(constant_value);
+    }
+
+    llvm::ArrayType* array_type = llvm::ArrayType::get(element_type, values.size());
+    llvm::Constant* constant = llvm::ConstantArray::get(array_type, values);
+
+    global_data = new llvm::GlobalVariable(*(context.module.get()), array_type, true,
+                                           llvm::GlobalVariable::LinkageTypes::InternalLinkage, constant, ".constdata");
+
+    if(expr_type != NULL) *expr_type = "ptr";
+    return global_data;
+}
+std::string ArrayDataExpression::toString(){
+    std::string data_contents = "{";
+
+    for(size_t i = 0; i != this->elements.size(); i++){
+        data_contents += this->elements[i]->toString();
+        if(i + 1 != this->elements.size()) data_contents += ", ";
+    }
+
+    data_contents += "}";
+    return data_contents;
+}
+PlainExp* ArrayDataExpression::clone(){
+    return new ArrayDataExpression(*this);
 }

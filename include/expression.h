@@ -19,6 +19,9 @@ class PlainExp {
     // Indicates whether or not this value can be modified
     bool is_mutable;
 
+    // Indicates whether or not this is a constant value
+    bool is_constant;
+
     // Filename & line in case of error
     ErrorHandler errors;
 
@@ -404,6 +407,19 @@ class AllocExp : public PlainExp {
     private:
     llvm::Value* assemble_plain(Program&, Function&, AssembleContext&, std::string*);
     llvm::Value* assemble_elements(Program&, Function&, AssembleContext&, std::string*);
+};
+
+class ArrayDataExpression : public PlainExp {
+    public:
+    std::vector<PlainExp*> elements;
+
+    ArrayDataExpression(ErrorHandler&);
+    ArrayDataExpression(const std::vector<PlainExp*>&, ErrorHandler&);
+    ArrayDataExpression(const ArrayDataExpression&);
+    ~ArrayDataExpression();
+    llvm::Value* assemble(Program&, Function&, AssembleContext&, std::string*);
+    std::string toString();
+    PlainExp* clone();
 };
 
 #endif // EXPRESSION_H_INCLUDED
