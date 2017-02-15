@@ -221,6 +221,11 @@ Program::~Program(){
     }
 }
 int Program::import_merge(Program& other, bool public_import){
+    // TODO: Clean up importing system, currently there are holes
+    //   and edge cases that do not work. Importing things like
+    //   functions that have the same names or have the same name as
+    //   an external most likely will do something weird.
+
     // Merge Dependencies
     for(const ModuleDependency& new_dependency : other.imports){
         bool already_exists = false;
@@ -245,10 +250,14 @@ int Program::import_merge(Program& other, bool public_import){
 
         for(const Function& func : functions){
             if(new_func.name == func.name){
-                if(func.is_public){
-                    die(DUPLICATE_FUNC(new_func.name));
-                }
+                die(DUPLICATE_FUNC(new_func.name));
+                already_exists = true;
+                break;
+            }
+        }
 
+        for(const External& external : externs){
+            if(new_func.name == external.name){
                 already_exists = true;
                 break;
             }

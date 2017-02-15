@@ -1181,8 +1181,8 @@ llvm::Value* MemberExp::assemble_array(Program& program, Function& func, Assembl
 
     // Prepare GEP Indices
     std::vector<llvm::Value*> indices(2);
-    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
-    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
+    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, false));
+    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
     indices[1] = member_index;
 
     // Create GEP
@@ -2062,7 +2062,8 @@ llvm::Value* ArrayDataExpression::assemble(Program& program, Function& func, Ass
     global_data = new llvm::GlobalVariable(*(context.module.get()), array_type, true,
                                            llvm::GlobalVariable::LinkageTypes::InternalLinkage, constant, ".constdata");
 
-    if(expr_type != NULL) *expr_type = "ptr";
+    global_data = context.builder.CreateBitCast(global_data, element_type->getPointerTo(), "casttmp");
+    if(expr_type != NULL) *expr_type = "*" + element_typename;
     return global_data;
 }
 std::string ArrayDataExpression::toString(){

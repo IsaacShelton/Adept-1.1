@@ -254,6 +254,7 @@ int Token::getPrecedence(){
         return 4;
     // High Precedence
     case TOKENID_MEMBER:
+    case TOKENID_BRACKET_OPEN:
         return 5;
     // No Precedence
     default:
