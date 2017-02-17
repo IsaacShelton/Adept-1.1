@@ -1101,6 +1101,7 @@ int parse_block_word_member(Configuration& config, TokenList& tokens, Program& p
     // word.<unknown syntax follows>
     //     ^
 
+    size_t starting_i = i;
     next_index(i, tokens.size());
 
     if(tokens[i].id != TOKENID_WORD){
@@ -1115,6 +1116,36 @@ int parse_block_word_member(Configuration& config, TokenList& tokens, Program& p
     case TOKENID_OPEN:
         if(parse_block_member_call(config, tokens, program, statements, i, new WordExp(name, errors), second_word, errors) != 0) return 1;
         break;
+    case TOKENID_MEMBER:
+        {
+            PlainExp* expression = new MemberExp(new WordExp(name, errors), second_word, errors);
+            next_index(i, tokens.size());
+
+            if(tokens[i].id != TOKENID_WORD){
+                errors.panic("Expected word after '.' operator");
+                return 1;
+            }
+
+            std::string potential_method_name = tokens[i].getString();
+            next_index(i, tokens.size());
+
+            while(true){
+                if(tokens[i].id == TOKENID_MEMBER){
+                    next_index(i, tokens.size());
+                    expression = new MemberExp(expression, potential_method_name, errors);
+                    potential_method_name = tokens[i].getString();
+                    next_index(i, tokens.size());
+                } else break;
+            }
+
+            if(tokens[i].id == TOKENID_OPEN){
+                if(parse_block_member_call(config, tokens, program, statements, i, expression, potential_method_name, errors) != 0) return 1;
+            } else {
+                i = starting_i;
+                if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
+            }
+            break;
+        }
     default:
         i -= 2;
         if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
@@ -1189,19 +1220,20 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 *expression = new NullExp(errors);
             } else if(keyword == "cast"){
                 std::string target_typename;
+                PlainExp* cast_expr;
 
                 if(parse_type(config, tokens, program, i, target_typename, errors) != 0) return 1;
                 next_index(i, tokens.size());
 
-                if(tokens[i].id != TOKENID_OPEN){
-                    errors.panic("Expected '(' after target cast type");
-                    return 1;
+                if(tokens[i].id == TOKENID_OPEN){
+                    next_index(i, tokens.size());
+                    if(parse_expression(config, tokens, program, i, &cast_expr, errors) != 0) return 1;
+                    next_index(i, tokens.size());
+                }
+                else {
+                    if(parse_expression_primary(config, tokens, program, i, &cast_expr, errors) != 0) return 1;
                 }
 
-                PlainExp* cast_expr;
-                next_index(i, tokens.size());
-                if(parse_expression(config, tokens, program, i, &cast_expr, errors) != 0) return 1;
-                next_index(i, tokens.size());
                 *expression = new CastExp(cast_expr, target_typename, errors);
             } else if(keyword == "funcptr"){
                 std::string function_name;

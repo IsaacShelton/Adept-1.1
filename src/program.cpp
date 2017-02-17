@@ -5,6 +5,7 @@
 #include "../include/errors.h"
 #include "../include/program.h"
 #include "../include/assemble.h"
+#include "../include/mangling.h"
 
 int Structure::find_index(std::string member_name, int* index){
     for(size_t i = 0; i != members.size(); i++){
@@ -247,9 +248,10 @@ int Program::import_merge(Program& other, bool public_import){
         // If the function is private, skip over it
         if(!new_func.is_public) continue;
         bool already_exists = false;
+        std::string new_final_name = mangle(other, new_func);
 
         for(const Function& func : functions){
-            if(new_func.name == func.name){
+            if(new_final_name == mangle(other, func)){
                 die(DUPLICATE_FUNC(new_func.name));
                 already_exists = true;
                 break;
@@ -257,7 +259,7 @@ int Program::import_merge(Program& other, bool public_import){
         }
 
         for(const External& external : externs){
-            if(new_func.name == external.name){
+            if( new_final_name == (external.is_mangled ? mangle(external.name, external.arguments) : external.name) ){
                 already_exists = true;
                 break;
             }
@@ -334,9 +336,10 @@ int Program::import_merge(Program& other, bool public_import){
         // If the external is private, skip over it
         if(!new_external.is_public) continue;
         bool already_exists = false;
+        std::string new_external_final_name = (new_external.is_mangled) ? mangle(new_external.name, new_external.arguments) : new_external.name;
 
         for(const External& external : externs){
-            if(new_external.name == external.name){
+            if( new_external_final_name == (external.is_mangled ? mangle(external.name, external.arguments) : external.name) ){
                 already_exists = true;
                 break;
             }
@@ -654,6 +657,10 @@ int Program::generate_types(AssembleContext& context){
     types.push_back( Type("long", llvm::Type::getInt64Ty(context.context)) );
     types.push_back( Type("ulong", llvm::Type::getInt64Ty(context.context)) );
 
+    // Create a struct type for arrays
+    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
+    llvm_array_type = llvm::StructType::create(elements, ".arr");
+
     // Fill in llvm structures from structure data
     for(size_t i = 0; i != structures.size(); i++){
         Structure& struct_data = structures[i];
@@ -689,10 +696,6 @@ int Program::generate_types(AssembleContext& context){
 
         static_cast<llvm::StructType*>(types[classes_start_index+i].type)->setBody(members);
     }
-
-    // Create a struct type for arrays
-    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
-    llvm_array_type = llvm::StructType::create(elements, ".arr");
 
     // Create a constructor for arrays
     std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };

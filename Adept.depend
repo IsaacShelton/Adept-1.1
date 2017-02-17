@@ -54,7 +54,7 @@
 	"statement.h"
 	"asmcontext.h"
 
-1487200303 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1487289817 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	<boost/filesystem.hpp>
@@ -1236,13 +1236,14 @@
 	"asmcontext.h"
 	"cache.h"
 
-1487200759 source:c:\users\isaac\google drive\adept\src\program.cpp
+1487287321 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	"../include/die.h"
 	"../include/errors.h"
 	"../include/program.h"
 	"../include/assemble.h"
+	"../include/mangling.h"
 
 1482702106 c:\users\isaac\google drive\adept\include\clock.h
 	<chrono>
@@ -1302,7 +1303,7 @@
 	"program.h"
 	"asmcontext.h"
 
-1487200704 source:c:\users\isaac\google drive\adept\src\adept.cpp
+1487281852 source:c:\users\isaac\google drive\adept\src\adept.cpp
 	<string>
 	<vector>
 	<iostream>
@@ -1394,7 +1395,7 @@
 	"config.h"
 	"program.h"
 
-1487029513 source:c:\users\isaac\google drive\adept\src\build.cpp
+1487282184 source:c:\users\isaac\google drive\adept\src\build.cpp
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
