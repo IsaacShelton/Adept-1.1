@@ -850,7 +850,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         break;
     case TOKENID_ASSIGN:
         // Variable Assign
-        if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
+        if(parse_block_word_expression(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
         break;
     case TOKENID_MEMBER:
         if(parse_block_word_member(config, tokens, program, statements, i, name, errors) != 0) return 1;
@@ -861,7 +861,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
             if(parse_block_variable_declaration(config, tokens, program, statements, --i, name, errors) != 0) return 1;
         }
         else {
-            if(parse_block_assign(config, tokens, program, statements, --i, name, 0, errors) != 0) return 1;
+            if(parse_block_word_expression(config, tokens, program, statements, --i, name, 0, errors) != 0) return 1;
         }
         break;
     default:
@@ -921,9 +921,9 @@ int parse_block_call(Configuration& config, TokenList& tokens, Program& program,
     next_index(i, tokens.size());
     return 0;
 }
-int parse_block_assign(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, int loads, ErrorHandler& errors){
-    // name = 10 * 3 / 4   |   name[i] = 10 * 3 / 4   |   name.member = 10 * 3 / 4
-    //      ^                      ^                          ^
+int parse_block_word_expression(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, int loads, ErrorHandler& errors){
+    // name = 10 * 3 / 4   |   name[i] = 10 * 3 / 4   |   name.member = 10 * 3 / 4   |   name.member.call()
+    //      ^                      ^                          ^                              ^
 
     PlainExp* expression;
     PlainExp* location = new WordExp(name, errors);
@@ -958,8 +958,17 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
                     return 1;
                 }
 
-                location = new MemberExp(location, tokens[i].getString(), errors);
+                std::string word = tokens[i].getString();
                 next_index(i, tokens.size());
+
+                if(tokens[i].id == TOKENID_OPEN){
+                    if(parse_block_member_call(config, tokens, program, statements, i, location, word, errors) != 0) return 1;
+                    return 0;
+                }
+                else {
+                    location = new MemberExp(location, word, errors);
+                }
+
                 break;
             }
         default:
@@ -967,6 +976,8 @@ int parse_block_assign(Configuration& config, TokenList& tokens, Program& progra
             return 1;
         }
     }
+
+    // If no method call was found, assume this is an assignment statement
 
     if(tokens[i].id != TOKENID_ASSIGN){
         errors.panic("Expected '=' after mutable expression");
@@ -999,7 +1010,7 @@ int parse_block_dereference(Configuration& config, TokenList& tokens, Program& p
     name = tokens[i].getString();
     next_index(i, tokens.size());
 
-    if(parse_block_assign(config, tokens, program, statements, i, name, deref_count, errors) != 0) return 1;
+    if(parse_block_word_expression(config, tokens, program, statements, i, name, deref_count, errors) != 0) return 1;
     return 0;
 }
 int parse_block_conditional(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, uint16_t conditional_type, ErrorHandler& errors){
@@ -1116,39 +1127,9 @@ int parse_block_word_member(Configuration& config, TokenList& tokens, Program& p
     case TOKENID_OPEN:
         if(parse_block_member_call(config, tokens, program, statements, i, new WordExp(name, errors), second_word, errors) != 0) return 1;
         break;
-    case TOKENID_MEMBER:
-        {
-            PlainExp* expression = new MemberExp(new WordExp(name, errors), second_word, errors);
-            next_index(i, tokens.size());
-
-            if(tokens[i].id != TOKENID_WORD){
-                errors.panic("Expected word after '.' operator");
-                return 1;
-            }
-
-            std::string potential_method_name = tokens[i].getString();
-            next_index(i, tokens.size());
-
-            while(true){
-                if(tokens[i].id == TOKENID_MEMBER){
-                    next_index(i, tokens.size());
-                    expression = new MemberExp(expression, potential_method_name, errors);
-                    potential_method_name = tokens[i].getString();
-                    next_index(i, tokens.size());
-                } else break;
-            }
-
-            if(tokens[i].id == TOKENID_OPEN){
-                if(parse_block_member_call(config, tokens, program, statements, i, expression, potential_method_name, errors) != 0) return 1;
-            } else {
-                i = starting_i;
-                if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
-            }
-            break;
-        }
     default:
         i -= 2;
-        if(parse_block_assign(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
+        if(parse_block_word_expression(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
     }
 
     return 0;
@@ -1443,6 +1424,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
             if(parse_expression_primary(config, tokens, program, i, &not_expresion, errors) != 0) return 1;
             *expression = new NotExp(not_expresion, errors);
         }
+        return 0;
     case TOKENID_BEGIN:
         {
             std::vector<PlainExp*> elements;

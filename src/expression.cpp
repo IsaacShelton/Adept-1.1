@@ -1364,7 +1364,7 @@ NotExp::~NotExp(){
 }
 llvm::Value* NotExp::assemble(Program& program, Function& func, AssembleContext& context, std::string* expr_type){
     std::string type_name;
-    llvm::Value* llvm_value = value->assemble(program, func, context, &type_name);
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
     if(expr_type != NULL) *expr_type = "bool";
 
