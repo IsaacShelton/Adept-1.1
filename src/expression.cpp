@@ -159,6 +159,18 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
         case TOKENID_INEQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateFCmpONE(left_value, right_value, "cmptmp");
+        case TOKENID_LESS:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateFCmpOLT(left_value, right_value, "cmptmp");
+        case TOKENID_GREATER:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateFCmpOGT(left_value, right_value, "cmptmp");
+        case TOKENID_LESSEQ:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateFCmpOLE(left_value, right_value, "cmptmp");
+        case TOKENID_GREATEREQ:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateFCmpOGE(left_value, right_value, "cmptmp");
         default:
             std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
             return NULL;
