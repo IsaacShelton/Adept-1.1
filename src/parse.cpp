@@ -805,13 +805,49 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
         }
     }
     else if(keyword == "if"){
-        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_IF, errors) != 0) return 1;
+        next_index(i, tokens.size());
+
+        if(tokens[i].id == TOKENID_KEYWORD){
+            std::string next_keyword = tokens[i].getString();
+
+            if(next_keyword == "while"){
+                // if-while-else
+                if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_IFWHILEELSE, errors) != 0) return 1;
+            } else if(next_keyword == "until"){
+                // if-until-else doesn't exist
+                errors.panic("if-until-else loops don't exist, did you mean to use an unless-until-else loop?");
+                return 1;
+            } else {
+                // Plain if or if-else
+                if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_IF, errors) != 0) return 1;
+            }
+        } else {
+            if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_IF, errors) != 0) return 1;
+        }
     }
     else if(keyword == "while"){
         if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_WHILE, errors) != 0) return 1;
     }
     else if(keyword == "unless"){
-        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNLESS, errors) != 0) return 1;
+        next_index(i, tokens.size());
+
+        if(tokens[i].id == TOKENID_KEYWORD){
+            std::string next_keyword = tokens[i].getString();
+
+            if(next_keyword == "until"){
+                // unless-until-else
+                if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNLESSUNTILELSE, errors) != 0) return 1;
+            } else if(next_keyword == "while"){
+                // unless-while-else doesn't exist
+                errors.panic("unless-while-else loops don't exist, did you mean to use an if-while-else loop?");
+                return 1;
+            } else {
+                // Plain unless or unless-else
+                if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_UNLESS, errors) != 0) return 1;
+            }
+        } else {
+            if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_UNLESS, errors) != 0) return 1;
+        }
     }
     else if(keyword == "until"){
         if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
@@ -1146,6 +1182,12 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
             case STATEMENTID_UNLESS:
                 statements.push_back( new UnlessElseStatement(expression, conditional_statements, else_statements, errors) );
                 break;
+            case STATEMENTID_IFWHILEELSE:
+                statements.push_back( new IfWhileElseStatement(expression, conditional_statements, else_statements, errors) );
+                break;
+            case STATEMENTID_UNLESSUNTILELSE:
+                statements.push_back( new UnlessUntilElseStatement(expression, conditional_statements, else_statements, errors) );
+                break;
             default:
                 errors.panic("Conditional doesn't support 'else' keyword");
                 return 1;
@@ -1171,7 +1213,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
         statements.push_back( new UntilStatement(expression, conditional_statements, errors) );
         break;
     default:
-        errors.panic("Invalid conditional type");
+        errors.panic("Conditional requires 'else' keyword");
         return 1;
     }
 

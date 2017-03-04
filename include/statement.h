@@ -10,18 +10,28 @@
 #include "expression.h"
 
 // Only used to indicate statement types
-#define STATEMENTID_NONE         0
-#define STATEMENTID_DECLARE      1
-#define STATEMENTID_DECLAREAS    2
-#define STATEMENTID_RETURN       3
-#define STATEMENTID_ASSIGN       4
-#define STATEMENTID_CALL         5
-#define STATEMENTID_IF           6
-#define STATEMENTID_WHILE        7
-#define STATEMENTID_UNLESS       8
-#define STATEMENTID_UNTIL        9
-#define STATEMENTID_IFELSE       10
-#define STATEMENTID_UNLESSELSE   11
+#define STATEMENTID_NONE            0
+#define STATEMENTID_DECLARE         1
+#define STATEMENTID_DECLAREAS       2
+#define STATEMENTID_MULTIDECLARE    3
+#define STATEMENTID_DECLAREAS       4
+#define STATEMENTID_RETURN          5
+#define STATEMENTID_ASSIGN          6
+#define STATEMENTID_ASSIGNADD       7
+#define STATEMENTID_ASSIGNSUB       8
+#define STATEMENTID_ASSIGNMUL       9
+#define STATEMENTID_ASSIGNDIV       10
+#define STATEMENTID_ASSIGNMOD       11
+#define STATEMENTID_CALL            12
+#define STATEMENTID_IF              13
+#define STATEMENTID_WHILE           14
+#define STATEMENTID_UNLESS          15
+#define STATEMENTID_UNTIL           16
+#define STATEMENTID_IFELSE          17
+#define STATEMENTID_UNLESSELSE      18
+#define STATEMENTID_IFWHILEELSE     19
+#define STATEMENTID_UNLESSUNTILELSE 20
+#define STATEMENTID_DEALLOC         21
 
 class Statement;
 typedef std::vector<Statement*> StatementList;
@@ -329,6 +339,40 @@ class UnlessElseStatement : public Statement {
     UnlessElseStatement(PlainExp*, const StatementList&, const StatementList&, ErrorHandler&);
     UnlessElseStatement(const UnlessElseStatement&);
     ~UnlessElseStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
+class IfWhileElseStatement : public Statement {
+    public:
+    PlainExp* condition;
+    StatementList positive_statements;
+    StatementList negative_statements;
+
+    IfWhileElseStatement(ErrorHandler&);
+    IfWhileElseStatement(PlainExp*, const StatementList&, const StatementList&, ErrorHandler&);
+    IfWhileElseStatement(const IfWhileElseStatement&);
+    ~IfWhileElseStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
+class UnlessUntilElseStatement : public Statement {
+    public:
+    PlainExp* condition;
+    StatementList positive_statements;
+    StatementList negative_statements;
+
+    UnlessUntilElseStatement(ErrorHandler&);
+    UnlessUntilElseStatement(PlainExp*, const StatementList&, const StatementList&, ErrorHandler&);
+    UnlessUntilElseStatement(const UnlessUntilElseStatement&);
+    ~UnlessUntilElseStatement();
     int assemble(Program&, Function&, AssembleContext&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();

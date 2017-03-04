@@ -1818,6 +1818,276 @@ bool UnlessElseStatement::isConditional(){
     return true;
 }
 
+IfWhileElseStatement::IfWhileElseStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+IfWhileElseStatement::IfWhileElseStatement(PlainExp* condition, const StatementList& positive_statements, const StatementList& negative_statements, ErrorHandler& errors){
+    this->condition = condition;
+    this->positive_statements = positive_statements;
+    this->negative_statements = negative_statements;
+    this->errors = errors;
+}
+IfWhileElseStatement::IfWhileElseStatement(const IfWhileElseStatement& other) : Statement(other) {
+    this->condition = other.condition->clone();
+    this->positive_statements.resize(other.positive_statements.size());
+    this->negative_statements.resize(other.negative_statements.size());
+    this->errors = errors;
+
+    for(size_t i = 0; i != this->positive_statements.size(); i++){
+        this->positive_statements[i] = other.positive_statements[i]->clone();
+    }
+
+    for(size_t i = 0; i != this->negative_statements.size(); i++){
+        this->negative_statements[i] = other.negative_statements[i]->clone();
+    }
+}
+IfWhileElseStatement::~IfWhileElseStatement(){
+    delete condition;
+
+    for(Statement* statement : positive_statements){
+        delete statement;
+    }
+
+    for(Statement* statement : negative_statements){
+        delete statement;
+    }
+}
+int IfWhileElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
+    std::string expr_typename;
+    llvm::Value* expr_value;
+    bool terminated;
+
+    llvm::BasicBlock* iftest_block = llvm::BasicBlock::Create(context.context, "iftest", llvm_function);
+    llvm::BasicBlock* whiletest_block = llvm::BasicBlock::Create(context.context, "whiletest", llvm_function);
+    llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+    llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+    llvm::BasicBlock* else_block = llvm::BasicBlock::Create(context.context, "else", llvm_function);
+
+    // IF TEST BLOCK
+    context.builder.CreateBr(iftest_block);
+    context.builder.SetInsertPoint(iftest_block);
+
+    expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
+    if(expr_value == NULL) return 1;
+
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
+    if(expr_typename != "bool"){
+        errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+        return 1;
+    }
+
+    context.builder.CreateCondBr(expr_value, true_block, else_block);
+
+    // WHILE TEST BLOCK
+    context.builder.SetInsertPoint(whiletest_block);
+    expr_value = this->condition->assemble_immutable(program, func, context, NULL);
+    if(expr_value == NULL) return 1; // This should never occur
+    context.builder.CreateCondBr(expr_value, true_block, false_block);
+
+    // TRUE BLOCK
+    context.builder.SetInsertPoint(true_block);
+    terminated = false;
+
+    for(size_t s = 0; s != this->positive_statements.size(); s++){
+        if(this->positive_statements[s]->isTerminator()) terminated = true;
+
+        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+            return 1;
+        }
+
+        if(terminated) break;
+    }
+
+    if(!terminated) context.builder.CreateBr(whiletest_block);
+
+    // ELSE BLOCK
+    context.builder.SetInsertPoint(else_block);
+
+    terminated = false;
+    for(size_t s = 0; s != this->negative_statements.size(); s++){
+        if(this->negative_statements[s]->isTerminator()) terminated = true;
+
+        if(this->negative_statements[s]->assemble(program, func, context) != 0){
+            return 1;
+        }
+
+        if(terminated) break;
+    }
+
+    if(!terminated) context.builder.CreateBr(false_block);
+
+    // FALSE BLOCK
+    context.builder.SetInsertPoint(false_block);
+    return 0;
+}
+std::string IfWhileElseStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += "if while " + this->condition->toString() + "{\n";
+    for(size_t s = 0; s != this->positive_statements.size(); s++){
+        result += this->positive_statements[s]->toString(indent+1, false) + "\n";
+    }
+
+    for(unsigned int i = 0; i != indent; i++) result += "    ";
+    result += "} else {\n";
+    for(size_t s = 0; s != this->negative_statements.size(); s++){
+        result += this->negative_statements[s]->toString(indent+1, false) + "\n";
+    }
+
+    for(unsigned int i = 0; i != indent; i++) result += "    ";
+    result += "}";
+    return result;
+}
+Statement* IfWhileElseStatement::clone(){
+    return new IfWhileElseStatement(*this);
+}
+bool IfWhileElseStatement::isTerminator(){
+    return false;
+}
+bool IfWhileElseStatement::isConditional(){
+    return true;
+}
+
+UnlessUntilElseStatement::UnlessUntilElseStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+UnlessUntilElseStatement::UnlessUntilElseStatement(PlainExp* condition, const StatementList& positive_statements, const StatementList& negative_statements, ErrorHandler& errors){
+    this->condition = condition;
+    this->positive_statements = positive_statements;
+    this->negative_statements = negative_statements;
+    this->errors = errors;
+}
+UnlessUntilElseStatement::UnlessUntilElseStatement(const UnlessUntilElseStatement& other) : Statement(other) {
+    this->condition = other.condition->clone();
+    this->positive_statements.resize(other.positive_statements.size());
+    this->negative_statements.resize(other.negative_statements.size());
+    this->errors = errors;
+
+    for(size_t i = 0; i != this->positive_statements.size(); i++){
+        this->positive_statements[i] = other.positive_statements[i]->clone();
+    }
+
+    for(size_t i = 0; i != this->negative_statements.size(); i++){
+        this->negative_statements[i] = other.negative_statements[i]->clone();
+    }
+}
+UnlessUntilElseStatement::~UnlessUntilElseStatement(){
+    delete condition;
+
+    for(Statement* statement : positive_statements){
+        delete statement;
+    }
+
+    for(Statement* statement : negative_statements){
+        delete statement;
+    }
+}
+int UnlessUntilElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
+    std::string expr_typename;
+    llvm::Value* expr_value;
+    bool terminated;
+
+    llvm::BasicBlock* unlesstest_block = llvm::BasicBlock::Create(context.context, "unlesstest", llvm_function);
+    llvm::BasicBlock* untiltest_block = llvm::BasicBlock::Create(context.context, "untiltest", llvm_function);
+    llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+    llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+    llvm::BasicBlock* else_block = llvm::BasicBlock::Create(context.context, "else", llvm_function);
+
+    // IF TEST BLOCK
+    context.builder.CreateBr(unlesstest_block);
+    context.builder.SetInsertPoint(unlesstest_block);
+
+    expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
+    if(expr_value == NULL) return 1;
+
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
+    if(expr_typename != "bool"){
+        errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+        return 1;
+    }
+
+    context.builder.CreateCondBr(expr_value, else_block, true_block);
+
+    // UNTIL TEST BLOCK
+    context.builder.SetInsertPoint(untiltest_block);
+    expr_value = this->condition->assemble_immutable(program, func, context, NULL);
+    if(expr_value == NULL) return 1; // This should never occur
+    context.builder.CreateCondBr(expr_value, false_block, true_block);
+
+    // TRUE BLOCK
+    context.builder.SetInsertPoint(true_block);
+    terminated = false;
+
+    for(size_t s = 0; s != this->positive_statements.size(); s++){
+        if(this->positive_statements[s]->isTerminator()) terminated = true;
+
+        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+            return 1;
+        }
+
+        if(terminated) break;
+    }
+
+    if(!terminated) context.builder.CreateBr(untiltest_block);
+
+    // ELSE BLOCK
+    context.builder.SetInsertPoint(else_block);
+
+    terminated = false;
+    for(size_t s = 0; s != this->negative_statements.size(); s++){
+        if(this->negative_statements[s]->isTerminator()) terminated = true;
+
+        if(this->negative_statements[s]->assemble(program, func, context) != 0){
+            return 1;
+        }
+
+        if(terminated) break;
+    }
+
+    if(!terminated) context.builder.CreateBr(false_block);
+
+    // FALSE BLOCK
+    context.builder.SetInsertPoint(false_block);
+    return 0;
+}
+std::string UnlessUntilElseStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += "unless until " + this->condition->toString() + "{\n";
+    for(size_t s = 0; s != this->positive_statements.size(); s++){
+        result += this->positive_statements[s]->toString(indent+1, false) + "\n";
+    }
+
+    for(unsigned int i = 0; i != indent; i++) result += "    ";
+    result += "} else {\n";
+    for(size_t s = 0; s != this->negative_statements.size(); s++){
+        result += this->negative_statements[s]->toString(indent+1, false) + "\n";
+    }
+
+    for(unsigned int i = 0; i != indent; i++) result += "    ";
+    result += "}";
+    return result;
+}
+Statement* UnlessUntilElseStatement::clone(){
+    return new UnlessUntilElseStatement(*this);
+}
+bool UnlessUntilElseStatement::isTerminator(){
+    return false;
+}
+bool UnlessUntilElseStatement::isConditional(){
+    return true;
+}
+
 DeallocStatement::DeallocStatement(ErrorHandler& errors){
     this->errors = errors;
 }
