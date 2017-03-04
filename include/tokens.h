@@ -134,10 +134,12 @@ struct Token {
 
     // Debugging
     std::string toString();
+    std::string syntax();
 };
 
 typedef std::vector<Token> TokenList;
 
+std::string get_tokenid_syntax(uint16_t);
 void free_tokens(TokenList& tokens);
 
 #endif // TOKENS_H_INCLUDED

@@ -277,6 +277,284 @@ int Token::getPrecedence(){
     }
 }
 
+std::string Token::syntax(){
+    switch(id){
+    // Literals
+    case TOKENID_NONE:
+        return "none";
+        break;
+    case TOKENID_STRING:
+        return "\"" + this->getString() + "\"";
+        break;
+    case TOKENID_BYTE:
+        return to_str(this->getByte()) + "sb";
+        break;
+    case TOKENID_SHORT:
+        return to_str(this->getShort()) + "ss";
+        break;
+    case TOKENID_INT:
+        return to_str(this->getInt());
+        break;
+    case TOKENID_LONG:
+        return to_str(this->getShort()) + "sl";
+        break;
+    case TOKENID_UBYTE:
+        return to_str(this->getUByte()) + "ub";
+        break;
+    case TOKENID_USHORT:
+        return to_str(this->getUShort()) + "us";
+        break;
+    case TOKENID_UINT:
+        return to_str(this->getUInt()) + "u";
+        break;
+    case TOKENID_ULONG:
+        return to_str(this->getULong()) + "ul";
+        break;
+    case TOKENID_CONSTANT:
+        return "$" + getString();
+        break;
+    // Control Flow
+    case TOKENID_WORD:
+        return getString();
+        break;
+    case TOKENID_KEYWORD:
+        return getString();
+        break;
+    case TOKENID_OPEN:
+        return "(";
+        break;
+    case TOKENID_CLOSE:
+        return ")";
+        break;
+    case TOKENID_BEGIN:
+        return "{";
+        break;
+    case TOKENID_END:
+        return "}";
+        break;
+    case TOKENID_NEWLINE:
+        return "<newline>";
+        break;
+    case TOKENID_MEMBER:
+        return ".";
+        break;
+    case TOKENID_BRACKET_OPEN:
+        return "[";
+        break;
+    case TOKENID_BRACKET_CLOSE:
+        return "]";
+        break;
+    // Operators
+    case TOKENID_ADD:
+        return "+";
+        break;
+    case TOKENID_SUBTRACT:
+        return "-";
+        break;
+    case TOKENID_MULTIPLY:
+        return "*";
+        break;
+    case TOKENID_DIVIDE:
+        return "/";
+        break;
+    case TOKENID_ASSIGN:
+        return "=";
+        break;
+    case TOKENID_ASSIGNADD:
+        return "+=";
+        break;
+    case TOKENID_ASSIGNSUB:
+        return "-=";
+        break;
+    case TOKENID_ASSIGNMUL:
+        return "*=";
+        break;
+    case TOKENID_ASSIGNDIV:
+        return "/=";
+        break;
+    case TOKENID_ASSIGNMOD:
+        return "%=";
+        break;
+    case TOKENID_NEXT:
+        return ",";
+        break;
+    case TOKENID_ADDRESS:
+        return "&";
+        break;
+    case TOKENID_EQUALITY:
+        return "==";
+        break;
+    case TOKENID_INEQUALITY:
+        return "!=";
+        break;
+    case TOKENID_NOT:
+        return "!";
+        break;
+    case TOKENID_AND:
+        return "and";
+        break;
+    case TOKENID_OR:
+        return "or";
+        break;
+    case TOKENID_MODULUS:
+        return "%";
+        break;
+    case TOKENID_LESS:
+        return "<";
+        break;
+    case TOKENID_GREATER:
+        return ">";
+        break;
+    case TOKENID_LESSEQ:
+        return "<=";
+        break;
+    case TOKENID_GREATEREQ:
+        return ">=";
+        break;
+    }
+
+    return "";
+}
+
+std::string get_tokenid_syntax(uint16_t id){
+    switch(id){
+    // Literals
+    case TOKENID_NONE:
+        return "";
+        break;
+    case TOKENID_STRING:
+        return "\"\"";
+        break;
+    case TOKENID_BYTE:
+        return "<byte>";
+        break;
+    case TOKENID_SHORT:
+        return "<short>";
+        break;
+    case TOKENID_INT:
+        return "<int>";
+        break;
+    case TOKENID_LONG:
+        return "<long>";
+        break;
+    case TOKENID_UBYTE:
+        return "<ubyte>";
+        break;
+    case TOKENID_USHORT:
+        return "<ushort>";
+        break;
+    case TOKENID_UINT:
+        return "<uint>";
+        break;
+    case TOKENID_ULONG:
+        return "<ulong>";
+        break;
+    case TOKENID_CONSTANT:
+        return "$";
+        break;
+    // Control Flow
+    case TOKENID_WORD:
+        return "<word>";
+        break;
+    case TOKENID_KEYWORD:
+        return "<keyword>";
+        break;
+    case TOKENID_OPEN:
+        return "(";
+        break;
+    case TOKENID_CLOSE:
+        return ")";
+        break;
+    case TOKENID_BEGIN:
+        return "{";
+        break;
+    case TOKENID_END:
+        return "}";
+        break;
+    case TOKENID_NEWLINE:
+        return "<newline>";
+        break;
+    case TOKENID_MEMBER:
+        return ".";
+        break;
+    case TOKENID_BRACKET_OPEN:
+        return "[";
+        break;
+    case TOKENID_BRACKET_CLOSE:
+        return "]";
+        break;
+    // Operators
+    case TOKENID_ADD:
+        return "+";
+        break;
+    case TOKENID_SUBTRACT:
+        return "-";
+        break;
+    case TOKENID_MULTIPLY:
+        return "*";
+        break;
+    case TOKENID_DIVIDE:
+        return "/";
+        break;
+    case TOKENID_ASSIGN:
+        return "=";
+        break;
+    case TOKENID_ASSIGNADD:
+        return "+=";
+        break;
+    case TOKENID_ASSIGNSUB:
+        return "-=";
+        break;
+    case TOKENID_ASSIGNMUL:
+        return "*=";
+        break;
+    case TOKENID_ASSIGNDIV:
+        return "/=";
+        break;
+    case TOKENID_ASSIGNMOD:
+        return "%=";
+        break;
+    case TOKENID_NEXT:
+        return ",";
+        break;
+    case TOKENID_ADDRESS:
+        return "&";
+        break;
+    case TOKENID_EQUALITY:
+        return "==";
+        break;
+    case TOKENID_INEQUALITY:
+        return "!=";
+        break;
+    case TOKENID_NOT:
+        return "!";
+        break;
+    case TOKENID_AND:
+        return "and";
+        break;
+    case TOKENID_OR:
+        return "or";
+        break;
+    case TOKENID_MODULUS:
+        return "%";
+        break;
+    case TOKENID_LESS:
+        return "<";
+        break;
+    case TOKENID_GREATER:
+        return ">";
+        break;
+    case TOKENID_LESSEQ:
+        return "<=";
+        break;
+    case TOKENID_GREATEREQ:
+        return ">=";
+        break;
+    }
+
+    return "";
+}
+
 void free_tokens(TokenList& tokens){
     for(Token& token : tokens){
         token.free();

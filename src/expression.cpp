@@ -137,7 +137,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             }
             return context.builder.CreateOr(left_value, right_value, "ortmp");
         default:
-            std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
+            errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
             return NULL;
         }
     }
@@ -172,7 +172,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateFCmpOGE(left_value, right_value, "cmptmp");
         default:
-            std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
+            errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
             return NULL;
         }
     }
@@ -222,12 +222,12 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssembleCon
             if(expr_type != NULL) *expr_type = "bool";
             return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
         default:
-            std::cerr << "Unknown Operation #" << operation << " in expression" << std::endl;
+            errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
             return NULL;
         }
     }
     else {
-        std::cerr << "Invalid use of operator '" << operation << "' on type '" << type_name << "'" << std::endl;
+        errors.panic("Invalid use of operator '" + get_tokenid_syntax(operation) + "' on type '" + type_name + "'");
         return NULL;
     }
 }

@@ -781,7 +781,7 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
             if(parse_block_dereference(config, tokens, program, statements, i, errors) != 0) return -1;
             break;
         default:
-            errors.panic("Expected Statement, got token #" + to_str(tokens[i].id));
+            errors.panic("Expected statement, received '" + tokens[i].syntax() + "'");
             return 1;
         }
     }
@@ -870,7 +870,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         }
         break;
     default:
-        errors.panic( UNEXPECTED_OPERATOR(tokens[i].toString()) );
+        errors.panic( UNEXPECTED_OPERATOR(tokens[i].syntax()) );
         return 1;
     }
 
@@ -1457,7 +1457,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
             if(parse_expression(config, tokens, program, i, expression, errors) != 0) return 1;
 
             if (tokens[i].id != TOKENID_CLOSE){
-                errors.panic("Expected ')' after expression instead of " + tokens[i].toString());
+                errors.panic("Expected ')' after expression, received '" + tokens[i].syntax() + "'");
                 return 1;
             }
             next_index(i, tokens.size()); // eat )
@@ -1504,7 +1504,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         }
         return 0;
     default:
-        errors.panic("Unknown token in expression: " + tokens[i].toString());
+        errors.panic("Unexpected operator in expression: '" + tokens[i].syntax() + "'");
         return 1;
     }
 }

@@ -284,19 +284,27 @@ int Program::import_merge(Program& other, bool public_import){
 
         for(const Structure& structure : structures){
             if(new_structure.name == structure.name){
-                if(structure.is_public){
-                    die(DUPLICATE_STRUCT(new_structure.name));
-                }
-
                 already_exists = true;
                 break;
             }
         }
 
+        // TODO: Clean up this code:
         if(!already_exists){
-            Structure target = new_structure;
-            target.is_public = public_import;
-            structures.push_back( std::move(target) );
+            // Also check for name conflicts with classes
+            for(const Class& klass : classes){
+                if(new_structure.name == klass.name){
+                    die("Imported structure '" + new_structure.name + "' has the same name as a local class");
+                    already_exists = true;
+                    break;
+                }
+            }
+
+            if(!already_exists){
+                Structure target = new_structure;
+                target.is_public = public_import;
+                structures.push_back( std::move(target) );
+            }
         }
     }
 
@@ -314,6 +322,15 @@ int Program::import_merge(Program& other, bool public_import){
         }
 
         if(!already_exists){
+            // Also check for name conflicts with structures
+            for(const Structure& structure : structures){
+                if(new_class.name == structure.name){
+                    die("Imported class '" + new_class.name + "' has the same name as a local structure");
+                    already_exists = true;
+                    break;
+                }
+            }
+
             classes.resize(classes.size() + 1);
             Class* target = &classes[classes.size()-1];
 

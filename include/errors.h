@@ -31,7 +31,7 @@
 // Unexpected
 #define UNEXPECTED_KEYWORD(a)        ("Unexpected keyword '" + std::string(a) + "'")
 #define UNEXPECTED_KEYWORD_INEXPR(a) ("Unexpected keyword '" + std::string(a) + "' in expression")
-#define UNEXPECTED_OPERATOR(a)       ("Unexpected operator: "  + std::string(a))
+#define UNEXPECTED_OPERATOR(a)       ("Unexpected operator '"  + std::string(a) + "'")
 
 // Duplicate
 #define DUPLICATE_FUNC(a)    ("Duplicate function definition '" + std::string(a) + "'")
