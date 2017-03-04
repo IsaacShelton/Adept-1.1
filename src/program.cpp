@@ -308,10 +308,6 @@ int Program::import_merge(Program& other, bool public_import){
 
         for(const Class& klass : classes){
             if(new_class.name == klass.name){
-                if(klass.is_public){
-                    die( DUPLICATE_CLASS(new_class.name) );
-                }
-
                 already_exists = true;
                 break;
             }

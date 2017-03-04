@@ -101,6 +101,81 @@ class AssignStatement : public Statement {
     bool isTerminator();
 };
 
+class AdditionAssignStatement : public Statement {
+    public:
+    PlainExp* location;
+    PlainExp* value;
+
+    AdditionAssignStatement(ErrorHandler&);
+    AdditionAssignStatement(PlainExp*, PlainExp*, ErrorHandler&);
+    AdditionAssignStatement(const AdditionAssignStatement&);
+    ~AdditionAssignStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
+class SubtractionAssignStatement : public Statement {
+    public:
+    PlainExp* location;
+    PlainExp* value;
+
+    SubtractionAssignStatement(ErrorHandler&);
+    SubtractionAssignStatement(PlainExp*, PlainExp*, ErrorHandler&);
+    SubtractionAssignStatement(const SubtractionAssignStatement&);
+    ~SubtractionAssignStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
+class MultiplicationAssignStatement : public Statement {
+    public:
+    PlainExp* location;
+    PlainExp* value;
+
+    MultiplicationAssignStatement(ErrorHandler&);
+    MultiplicationAssignStatement(PlainExp*, PlainExp*, ErrorHandler&);
+    MultiplicationAssignStatement(const MultiplicationAssignStatement&);
+    ~MultiplicationAssignStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
+class DivisionAssignStatement : public Statement {
+    public:
+    PlainExp* location;
+    PlainExp* value;
+
+    DivisionAssignStatement(ErrorHandler&);
+    DivisionAssignStatement(PlainExp*, PlainExp*, ErrorHandler&);
+    DivisionAssignStatement(const DivisionAssignStatement&);
+    ~DivisionAssignStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
+class ModulusAssignStatement : public Statement {
+    public:
+    PlainExp* location;
+    PlainExp* value;
+
+    ModulusAssignStatement(ErrorHandler&);
+    ModulusAssignStatement(PlainExp*, PlainExp*, ErrorHandler&);
+    ModulusAssignStatement(const ModulusAssignStatement&);
+    ~ModulusAssignStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
 class CallStatement : public Statement {
     public:
     std::string name;

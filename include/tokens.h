@@ -30,24 +30,29 @@
 #define TOKEN_MEMBER        Token(27)
 #define TOKEN_BRACKET_OPEN  Token(28)
 #define TOKEN_BRACKET_CLOSE Token(29)
-// 40-59 : Operators (17 / 20 Used)
+// 40-69 : Operators (22 / 30 Used)
 #define TOKEN_ADD           Token(40)
 #define TOKEN_SUBTRACT      Token(41)
 #define TOKEN_MULTIPLY      Token(42)
 #define TOKEN_DIVIDE        Token(43)
 #define TOKEN_ASSIGN        Token(44)
-#define TOKEN_NEXT          Token(45)
-#define TOKEN_ADDRESS       Token(46)
-#define TOKEN_EQUALITY      Token(47)
-#define TOKEN_INEQUALITY    Token(48)
-#define TOKEN_NOT           Token(49)
-#define TOKEN_AND           Token(50)
-#define TOKEN_OR            Token(51)
-#define TOKEN_MODULUS       Token(52)
-#define TOKEN_LESS          Token(53)
-#define TOKEN_GREATER       Token(54)
-#define TOKEN_LESSEQ        Token(55)
-#define TOKEN_GREATEREQ     Token(56)
+#define TOKEN_ASSIGNADD     Token(45)
+#define TOKEN_ASSIGNSUB     Token(46)
+#define TOKEN_ASSIGNMUL     Token(47)
+#define TOKEN_ASSIGNDIV     Token(48)
+#define TOKEN_ASSIGNMOD     Token(49)
+#define TOKEN_NEXT          Token(50)
+#define TOKEN_ADDRESS       Token(51)
+#define TOKEN_EQUALITY      Token(52)
+#define TOKEN_INEQUALITY    Token(53)
+#define TOKEN_NOT           Token(54)
+#define TOKEN_AND           Token(55)
+#define TOKEN_OR            Token(56)
+#define TOKEN_MODULUS       Token(57)
+#define TOKEN_LESS          Token(58)
+#define TOKEN_GREATER       Token(59)
+#define TOKEN_LESSEQ        Token(60)
+#define TOKEN_GREATEREQ     Token(61)
 
 // Indices : Literals 0-19
 #define TOKENID_NONE          0
@@ -74,24 +79,29 @@
 #define TOKENID_MEMBER        27
 #define TOKENID_BRACKET_OPEN  28
 #define TOKENID_BRACKET_CLOSE 29
-// Indices : Operators 40-59
+// Indices : Operators 40-69
 #define TOKENID_ADD           40
 #define TOKENID_SUBTRACT      41
 #define TOKENID_MULTIPLY      42
 #define TOKENID_DIVIDE        43
 #define TOKENID_ASSIGN        44
-#define TOKENID_NEXT          45
-#define TOKENID_ADDRESS       46
-#define TOKENID_EQUALITY      47
-#define TOKENID_INEQUALITY    48
-#define TOKENID_NOT           49
-#define TOKENID_AND           50
-#define TOKENID_OR            51
-#define TOKENID_MODULUS       52
-#define TOKENID_LESS          53
-#define TOKENID_GREATER       54
-#define TOKENID_LESSEQ        55
-#define TOKENID_GREATEREQ     56
+#define TOKENID_ASSIGNADD     45
+#define TOKENID_ASSIGNSUB     46
+#define TOKENID_ASSIGNMUL     47
+#define TOKENID_ASSIGNDIV     48
+#define TOKENID_ASSIGNMOD     49
+#define TOKENID_NEXT          50
+#define TOKENID_ADDRESS       51
+#define TOKENID_EQUALITY      52
+#define TOKENID_INEQUALITY    53
+#define TOKENID_NOT           54
+#define TOKENID_AND           55
+#define TOKENID_OR            56
+#define TOKENID_MODULUS       57
+#define TOKENID_LESS          58
+#define TOKENID_GREATER       59
+#define TOKENID_LESSEQ        60
+#define TOKENID_GREATEREQ     61
 
 struct Token {
     uint16_t id;

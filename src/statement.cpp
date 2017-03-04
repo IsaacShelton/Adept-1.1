@@ -289,6 +289,471 @@ bool AssignStatement::isTerminator(){
     return false;
 }
 
+AdditionAssignStatement::AdditionAssignStatement(ErrorHandler& errors){
+    this->location = NULL;
+    this->value = NULL;
+    this->errors = errors;
+}
+AdditionAssignStatement::AdditionAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
+    this->location = location;
+    this->value = value;
+    this->errors = errors;
+}
+AdditionAssignStatement::AdditionAssignStatement(const AdditionAssignStatement& other) : Statement(other) {
+    this->location = other.location->clone();
+    this->value = other.value->clone();
+}
+AdditionAssignStatement::~AdditionAssignStatement(){
+    delete this->location;
+    delete this->value;
+}
+int AdditionAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* store_value;
+    llvm::Value* store_location;
+    llvm::Value* llvm_value;
+    llvm::Type* location_llvm_type;
+    std::string location_typename;
+    std::string expression_typename;
+
+    if(!location->is_mutable){
+        errors.panic("Can't assign immutable expression to a value");
+        return 1;
+    }
+
+    store_location = this->location->assemble(program, func, context, &location_typename);
+    if(store_location == NULL) return 1;
+
+    // Find LLVM type for the storage location
+    if(program.find_type(location_typename, &location_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(location_typename) );
+        return 1;
+    }
+
+    llvm_value = this->value->assemble_immutable(program, func, context, &expression_typename);
+    if(llvm_value == NULL) return 1;
+
+    // Merge expression type into required type if possible
+    if(assemble_merge_types_oneway(context, program, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
+        return 1;
+    }
+
+    store_value = context.builder.CreateLoad(store_location);
+    assert(location_typename.length() != 0);
+
+    // Perform the addition
+    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
+       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
+       or location_typename == "ubyte" or location_typename == "bool"){
+        llvm_value = context.builder.CreateAdd(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "float" or location_typename == "double"){
+        llvm_value = context.builder.CreateFAdd(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "ptr" or location_typename[0] == '*'){
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* added_value = context.builder.CreateAdd(left_int, right_int, "addtmp");
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+    }
+    else {
+        errors.panic("The '+=' operator can't be used on type '" + location_typename + "'");
+        return 1;
+    }
+
+    // Store the final value
+    context.builder.CreateStore(llvm_value, store_location);
+    return 0;
+}
+std::string AdditionAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += this->location->toString() + " += " + this->value->toString();
+    return result;
+}
+Statement* AdditionAssignStatement::clone(){
+    return new AdditionAssignStatement(*this);
+}
+bool AdditionAssignStatement::isTerminator(){
+    return false;
+}
+
+SubtractionAssignStatement::SubtractionAssignStatement(ErrorHandler& errors){
+    this->location = NULL;
+    this->value = NULL;
+    this->errors = errors;
+}
+SubtractionAssignStatement::SubtractionAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
+    this->location = location;
+    this->value = value;
+    this->errors = errors;
+}
+SubtractionAssignStatement::SubtractionAssignStatement(const SubtractionAssignStatement& other) : Statement(other) {
+    this->location = other.location->clone();
+    this->value = other.value->clone();
+}
+SubtractionAssignStatement::~SubtractionAssignStatement(){
+    delete this->location;
+    delete this->value;
+}
+int SubtractionAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* store_value;
+    llvm::Value* store_location;
+    llvm::Value* llvm_value;
+    llvm::Type* location_llvm_type;
+    std::string location_typename;
+    std::string expression_typename;
+
+    if(!location->is_mutable){
+        errors.panic("Can't assign immutable expression to a value");
+        return 1;
+    }
+
+    store_location = this->location->assemble(program, func, context, &location_typename);
+    if(store_location == NULL) return 1;
+
+    // Find LLVM type for the storage location
+    if(program.find_type(location_typename, &location_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(location_typename) );
+        return 1;
+    }
+
+    llvm_value = this->value->assemble_immutable(program, func, context, &expression_typename);
+    if(llvm_value == NULL) return 1;
+
+    // Merge expression type into required type if possible
+    if(assemble_merge_types_oneway(context, program, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
+        return 1;
+    }
+
+    store_value = context.builder.CreateLoad(store_location);
+    assert(location_typename.length() != 0);
+
+    // Perform the subtraction
+    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
+       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
+       or location_typename == "ubyte" or location_typename == "bool"){
+        llvm_value = context.builder.CreateSub(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "float" or location_typename == "double"){
+        llvm_value = context.builder.CreateFSub(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "ptr" or location_typename[0] == '*'){
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* added_value = context.builder.CreateSub(left_int, right_int, "addtmp");
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+    }
+    else {
+        errors.panic("The '-=' operator can't be used on type '" + location_typename + "'");
+        return 1;
+    }
+
+    // Store the final value
+    context.builder.CreateStore(llvm_value, store_location);
+    return 0;
+}
+std::string SubtractionAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += this->location->toString() + " -= " + this->value->toString();
+    return result;
+}
+Statement* SubtractionAssignStatement::clone(){
+    return new SubtractionAssignStatement(*this);
+}
+bool SubtractionAssignStatement::isTerminator(){
+    return false;
+}
+
+MultiplicationAssignStatement::MultiplicationAssignStatement(ErrorHandler& errors){
+    this->location = NULL;
+    this->value = NULL;
+    this->errors = errors;
+}
+MultiplicationAssignStatement::MultiplicationAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
+    this->location = location;
+    this->value = value;
+    this->errors = errors;
+}
+MultiplicationAssignStatement::MultiplicationAssignStatement(const MultiplicationAssignStatement& other) : Statement(other) {
+    this->location = other.location->clone();
+    this->value = other.value->clone();
+}
+MultiplicationAssignStatement::~MultiplicationAssignStatement(){
+    delete this->location;
+    delete this->value;
+}
+int MultiplicationAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* store_value;
+    llvm::Value* store_location;
+    llvm::Value* llvm_value;
+    llvm::Type* location_llvm_type;
+    std::string location_typename;
+    std::string expression_typename;
+
+    if(!location->is_mutable){
+        errors.panic("Can't assign immutable expression to a value");
+        return 1;
+    }
+
+    store_location = this->location->assemble(program, func, context, &location_typename);
+    if(store_location == NULL) return 1;
+
+    // Find LLVM type for the storage location
+    if(program.find_type(location_typename, &location_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(location_typename) );
+        return 1;
+    }
+
+    llvm_value = this->value->assemble_immutable(program, func, context, &expression_typename);
+    if(llvm_value == NULL) return 1;
+
+    // Merge expression type into required type if possible
+    if(assemble_merge_types_oneway(context, program, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
+        return 1;
+    }
+
+    store_value = context.builder.CreateLoad(store_location);
+    assert(location_typename.length() != 0);
+
+    // Perform the multiplication
+    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
+       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
+       or location_typename == "ubyte" or location_typename == "bool"){
+        llvm_value = context.builder.CreateMul(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "float" or location_typename == "double"){
+        llvm_value = context.builder.CreateFMul(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "ptr" or location_typename[0] == '*'){
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* added_value = context.builder.CreateMul(left_int, right_int, "addtmp");
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+    }
+    else {
+        errors.panic("The '*=' operator can't be used on type '" + location_typename + "'");
+        return 1;
+    }
+
+    // Store the final value
+    context.builder.CreateStore(llvm_value, store_location);
+    return 0;
+}
+std::string MultiplicationAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += this->location->toString() + " *= " + this->value->toString();
+    return result;
+}
+Statement* MultiplicationAssignStatement::clone(){
+    return new MultiplicationAssignStatement(*this);
+}
+bool MultiplicationAssignStatement::isTerminator(){
+    return false;
+}
+
+DivisionAssignStatement::DivisionAssignStatement(ErrorHandler& errors){
+    this->location = NULL;
+    this->value = NULL;
+    this->errors = errors;
+}
+DivisionAssignStatement::DivisionAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
+    this->location = location;
+    this->value = value;
+    this->errors = errors;
+}
+DivisionAssignStatement::DivisionAssignStatement(const DivisionAssignStatement& other) : Statement(other) {
+    this->location = other.location->clone();
+    this->value = other.value->clone();
+}
+DivisionAssignStatement::~DivisionAssignStatement(){
+    delete this->location;
+    delete this->value;
+}
+int DivisionAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* store_value;
+    llvm::Value* store_location;
+    llvm::Value* llvm_value;
+    llvm::Type* location_llvm_type;
+    std::string location_typename;
+    std::string expression_typename;
+
+    if(!location->is_mutable){
+        errors.panic("Can't assign immutable expression to a value");
+        return 1;
+    }
+
+    store_location = this->location->assemble(program, func, context, &location_typename);
+    if(store_location == NULL) return 1;
+
+    // Find LLVM type for the storage location
+    if(program.find_type(location_typename, &location_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(location_typename) );
+        return 1;
+    }
+
+    llvm_value = this->value->assemble_immutable(program, func, context, &expression_typename);
+    if(llvm_value == NULL) return 1;
+
+    // Merge expression type into required type if possible
+    if(assemble_merge_types_oneway(context, program, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
+        return 1;
+    }
+
+    store_value = context.builder.CreateLoad(store_location);
+    assert(location_typename.length() != 0);
+
+    // Perform the division
+    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
+       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
+       or location_typename == "ubyte" or location_typename == "bool"){
+        llvm_value = context.builder.CreateSDiv(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "float" or location_typename == "double"){
+        llvm_value = context.builder.CreateFDiv(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "ptr" or location_typename[0] == '*'){
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* added_value = context.builder.CreateSDiv(left_int, right_int, "addtmp");
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+    }
+    else {
+        errors.panic("The '/=' operator can't be used on type '" + location_typename + "'");
+        return 1;
+    }
+
+    // Store the final value
+    context.builder.CreateStore(llvm_value, store_location);
+    return 0;
+}
+std::string DivisionAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += this->location->toString() + " /= " + this->value->toString();
+    return result;
+}
+Statement* DivisionAssignStatement::clone(){
+    return new DivisionAssignStatement(*this);
+}
+bool DivisionAssignStatement::isTerminator(){
+    return false;
+}
+
+ModulusAssignStatement::ModulusAssignStatement(ErrorHandler& errors){
+    this->location = NULL;
+    this->value = NULL;
+    this->errors = errors;
+}
+ModulusAssignStatement::ModulusAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
+    this->location = location;
+    this->value = value;
+    this->errors = errors;
+}
+ModulusAssignStatement::ModulusAssignStatement(const ModulusAssignStatement& other) : Statement(other) {
+    this->location = other.location->clone();
+    this->value = other.value->clone();
+}
+ModulusAssignStatement::~ModulusAssignStatement(){
+    delete this->location;
+    delete this->value;
+}
+int ModulusAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* store_value;
+    llvm::Value* store_location;
+    llvm::Value* llvm_value;
+    llvm::Type* location_llvm_type;
+    std::string location_typename;
+    std::string expression_typename;
+
+    if(!location->is_mutable){
+        errors.panic("Can't assign immutable expression to a value");
+        return 1;
+    }
+
+    store_location = this->location->assemble(program, func, context, &location_typename);
+    if(store_location == NULL) return 1;
+
+    // Find LLVM type for the storage location
+    if(program.find_type(location_typename, &location_llvm_type) != 0){
+        errors.panic( UNDECLARED_TYPE(location_typename) );
+        return 1;
+    }
+
+    llvm_value = this->value->assemble_immutable(program, func, context, &expression_typename);
+    if(llvm_value == NULL) return 1;
+
+    // Merge expression type into required type if possible
+    if(assemble_merge_types_oneway(context, program, expression_typename, location_typename, &llvm_value, location_llvm_type, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
+        return 1;
+    }
+
+    store_value = context.builder.CreateLoad(store_location);
+    assert(location_typename.length() != 0);
+
+    // Perform the modulus operation
+    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
+       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
+       or location_typename == "ubyte" or location_typename == "bool"){
+        llvm_value = context.builder.CreateSRem(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "float" or location_typename == "double"){
+        llvm_value = context.builder.CreateFRem(store_value, llvm_value, "addtmp");
+    }
+    else if(location_typename == "ptr" or location_typename[0] == '*'){
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
+        llvm::Value* added_value = context.builder.CreateSRem(left_int, right_int, "addtmp");
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+    }
+    else {
+        errors.panic("The '%=' operator can't be used on type '" + location_typename + "'");
+        return 1;
+    }
+
+    // Store the final value
+    context.builder.CreateStore(llvm_value, store_location);
+    return 0;
+}
+std::string ModulusAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += this->location->toString() + " %= " + this->value->toString();
+    return result;
+}
+Statement* ModulusAssignStatement::clone(){
+    return new ModulusAssignStatement(*this);
+}
+bool ModulusAssignStatement::isTerminator(){
+    return false;
+}
+
 CallStatement::CallStatement(ErrorHandler& errors){
     this->errors = errors;
 }

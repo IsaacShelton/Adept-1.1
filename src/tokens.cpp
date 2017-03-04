@@ -190,6 +190,21 @@ std::string Token::toString(){
     case TOKENID_ASSIGN:
         str = "assign";
         break;
+    case TOKENID_ASSIGNADD:
+        str = "addition assign";
+        break;
+    case TOKENID_ASSIGNSUB:
+        str = "subtraction assign";
+        break;
+    case TOKENID_ASSIGNMUL:
+        str = "multiplication assign";
+        break;
+    case TOKENID_ASSIGNDIV:
+        str = "division assign";
+        break;
+    case TOKENID_ASSIGNMOD:
+        str = "modulus assign";
+        break;
     case TOKENID_NEXT:
         str = "next";
         break;

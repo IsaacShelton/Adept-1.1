@@ -82,7 +82,9 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
             else { tokens.push_back(TOKEN_NOT); }
             break;
         case '+':
-            tokens.push_back(TOKEN_ADD); i++;
+            next_index(i, code.size());
+            if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNADD); i++; }
+            else { tokens.push_back(TOKENID_ADD); }
             break;
         case '-':
             next_index(i, code_size);
@@ -92,10 +94,13 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 if(tokenize_number(true, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
                 i++;
             }
+            else if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNSUB); i++; }
             else { tokens.push_back(TOKEN_SUBTRACT); }
             break;
         case '*':
-            tokens.push_back(TOKEN_MULTIPLY); i++;
+            next_index(i, code.size());
+            if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNMUL); i++; }
+            else { tokens.push_back(TOKENID_MULTIPLY); }
             break;
         case '/':
             next_index(i, code.size());
@@ -105,11 +110,13 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 errors.line++;
                 i++;
             }
+            else if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNDIV); i++; }
             else { tokens.push_back(TOKEN_DIVIDE); }
             break;
         case '%':
-            tokens.push_back(TOKEN_MODULUS);
             next_index(i, code.size());
+            if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNMOD); i++; }
+            else { tokens.push_back(TOKENID_MODULUS); }
             break;
         case '.':
             tokens.push_back(TOKEN_MEMBER); i++;

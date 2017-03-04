@@ -849,6 +849,11 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         if(parse_block_call(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
     case TOKENID_ASSIGN:
+    case TOKENID_ASSIGNADD:
+    case TOKENID_ASSIGNSUB:
+    case TOKENID_ASSIGNMUL:
+    case TOKENID_ASSIGNDIV:
+    case TOKENID_ASSIGNMOD:
         // Variable Assign
         if(parse_block_word_expression(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
         break;
@@ -922,8 +927,10 @@ int parse_block_call(Configuration& config, TokenList& tokens, Program& program,
     return 0;
 }
 int parse_block_word_expression(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, int loads, ErrorHandler& errors){
-    // name = 10 * 3 / 4   |   name[i] = 10 * 3 / 4   |   name.member = 10 * 3 / 4   |   name.member.call()
+    // name += 10 * 3 / 4   |   name[i] = 10 * 3 / 4   |   name.member *= 10 * 3 / 4   |   name.member.call()
     //      ^                      ^                          ^                              ^
+
+    // NOTE: This function also parses assignment related things
 
     PlainExp* expression;
     PlainExp* location = new WordExp(name, errors);
@@ -978,16 +985,51 @@ int parse_block_word_expression(Configuration& config, TokenList& tokens, Progra
     }
 
     // If no method call was found, assume this is an assignment statement
+    uint16_t assignment_token = tokens[i].id;
 
-    if(tokens[i].id != TOKENID_ASSIGN){
-        errors.panic("Expected '=' after mutable expression");
+    // Ensure assignment operator is valid
+    switch(assignment_token){
+    case TOKENID_ASSIGN:
+    case TOKENID_ASSIGNADD:
+    case TOKENID_ASSIGNSUB:
+    case TOKENID_ASSIGNMUL:
+    case TOKENID_ASSIGNDIV:
+    case TOKENID_ASSIGNMOD:
+        break;
+    default:
+        errors.panic("Expected assignment after mutable expression");
         return 1;
     }
 
+    // Parse the expression that will be used by the operator
     next_index(i, tokens.size());
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
 
-    statements.push_back( new AssignStatement(location, expression, errors) );
+    // Create the assignment operator variant
+    switch(assignment_token){
+    case TOKENID_ASSIGN:
+        statements.push_back( new AssignStatement(location, expression, errors) );
+        break;
+    case TOKENID_ASSIGNADD:
+        statements.push_back( new AdditionAssignStatement(location, expression, errors) );
+        break;
+    case TOKENID_ASSIGNSUB:
+        statements.push_back( new SubtractionAssignStatement(location, expression, errors) );
+        break;
+    case TOKENID_ASSIGNMUL:
+        statements.push_back( new MultiplicationAssignStatement(location, expression, errors) );
+        break;
+    case TOKENID_ASSIGNDIV:
+        statements.push_back( new DivisionAssignStatement(location, expression, errors) );
+        break;
+    case TOKENID_ASSIGNMOD:
+        statements.push_back( new ModulusAssignStatement(location, expression, errors) );
+        break;
+    default:
+        errors.panic(SUICIDE); // This should never occur
+        return 1;
+    }
+
     return 0;
 }
 int parse_block_dereference(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
@@ -1213,6 +1255,10 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 }
                 else {
                     if(parse_expression_primary(config, tokens, program, i, &cast_expr, errors) != 0) return 1;
+
+                    if(tokens[i].id == TOKENID_MEMBER){
+                        if(parse_expression_operator_right(config, tokens, program, i, 0, &cast_expr, true, errors) != 0) return 1;
+                    }
                 }
 
                 *expression = new CastExp(cast_expr, target_typename, errors);
@@ -1473,6 +1519,7 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
         if(operation == TOKENID_CLOSE or operation == TOKENID_NEWLINE or operation == TOKENID_NEXT
            or operation == TOKENID_BRACKET_CLOSE or operation == TOKENID_BEGIN or operation == TOKENID_END) return 0;
 
+        // TODO: Clean up this messy code:
         if(operation == TOKENID_MEMBER){
             next_index(i, tokens.size());
             if(tokens[i].id != TOKENID_WORD){
