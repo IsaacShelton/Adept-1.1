@@ -174,7 +174,7 @@ class Program {
 
     Program(CacheManager*);
     ~Program();
-    int import_merge(Program&, bool);
+    int import_merge(Program&, bool, ErrorHandler& errors);
 
     bool resolve_if_alias(std::string&) const;
     bool resolve_once_if_alias(std::string&) const;

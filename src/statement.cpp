@@ -111,14 +111,14 @@ DeclareAssignStatement::~DeclareAssignStatement(){
 }
 int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
     std::string expression_type;
-    llvm::Type* llvm_type;
+    llvm::Type* variable_llvmtype;
 
     if(func.find_variable(this->variable_name, NULL) == 0){
         errors.panic(DUPLICATE_VARIBLE(this->variable_name));
         return 1;
     }
 
-    if(program.find_type(this->variable_type, &llvm_type) != 0){
+    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
     }
@@ -126,7 +126,7 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleC
     llvm::Value* llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
     if(llvm_value == NULL) return 1;
 
-    if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, llvm_type, NULL) != 0){
+    if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, variable_llvmtype, NULL) != 0){
         errors.panic( INCOMPATIBLE_TYPES(expression_type, this->variable_type) );
         return 1;
     }
@@ -135,7 +135,7 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleC
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
     context.builder.SetInsertPoint(func.asm_func.entry);
-    allocation_instance = context.builder.CreateAlloca(llvm_type, 0, this->variable_name.c_str());
+    allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
 
     context.builder.SetInsertPoint(previous_block);
     context.builder.CreateStore(llvm_value, allocation_instance);
@@ -157,6 +157,154 @@ Statement* DeclareAssignStatement::clone(){
     return new DeclareAssignStatement(*this);
 }
 bool DeclareAssignStatement::isTerminator(){
+    return false;
+}
+
+MultiDeclareStatement::MultiDeclareStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+MultiDeclareStatement::MultiDeclareStatement(const std::vector<std::string>& variable_names, const std::string& variable_type, ErrorHandler& errors){
+    this->variable_names = variable_names;
+    this->variable_type = variable_type;
+    this->errors = errors;
+}
+MultiDeclareStatement::MultiDeclareStatement(const MultiDeclareStatement& other) : Statement(other) {
+    this->variable_names = other.variable_names;
+    this->variable_type = other.variable_type;
+}
+MultiDeclareStatement::~MultiDeclareStatement(){}
+int MultiDeclareStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    std::string variable_name;
+    llvm::Type* variable_llvmtype;
+    llvm::AllocaInst* allocation_instance;
+    llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
+
+    // Set block insertion point
+    context.builder.SetInsertPoint(func.asm_func.entry);
+
+    // Get the llvm type for the variables
+    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
+        errors.panic( UNDECLARED_TYPE(this->variable_type) );
+        return 1;
+    }
+
+    for(size_t i = 0; i != this->variable_names.size(); i++){
+        variable_name = this->variable_names[i];
+
+        if(func.find_variable(variable_name, NULL) == 0){
+            errors.panic(DUPLICATE_VARIBLE(variable_name));
+            return 1;
+        }
+
+        allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, variable_name.c_str());
+        func.variables.push_back( Variable{variable_name, this->variable_type, allocation_instance} );
+    }
+
+    // Reset block insertion point
+    context.builder.SetInsertPoint(previous_block);
+    return 0;
+}
+std::string MultiDeclareStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    for(size_t i = 0; i != variable_names.size(); i++){
+        result += variable_names[i];
+        if(i + 1 != variable_names.size()) result += ", ";
+    }
+
+    result += " " + variable_type;
+    return result;
+}
+Statement* MultiDeclareStatement::clone(){
+    return new MultiDeclareStatement(*this);
+}
+bool MultiDeclareStatement::isTerminator(){
+    return false;
+}
+
+MultiDeclareAssignStatement::MultiDeclareAssignStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+MultiDeclareAssignStatement::MultiDeclareAssignStatement(const std::vector<std::string>& variable_names, const std::string& variable_type, PlainExp* variable_value, ErrorHandler& errors){
+    this->variable_names = variable_names;
+    this->variable_type = variable_type;
+    this->variable_value = variable_value;
+    this->errors = errors;
+}
+MultiDeclareAssignStatement::MultiDeclareAssignStatement(const MultiDeclareAssignStatement& other) : Statement(other) {
+    this->variable_names = other.variable_names;
+    this->variable_type = other.variable_type;
+    this->variable_value = other.variable_value->clone();
+}
+MultiDeclareAssignStatement::~MultiDeclareAssignStatement(){
+    delete this->variable_value;
+}
+int MultiDeclareAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+    llvm::Value* llvm_value;
+    std::string variable_name;
+    std::string expression_type;
+    llvm::Type* variable_llvmtype;
+    llvm::AllocaInst* allocation_instance;
+    llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
+
+    // Get the llvm type for the variables
+    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
+        errors.panic( UNDECLARED_TYPE(this->variable_type) );
+        return 1;
+    }
+
+    // Assemble the value
+    llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
+    if(llvm_value == NULL) return 1;
+
+    // Merge the value to fit the variable type
+    if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, variable_llvmtype, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_type, this->variable_type) );
+        return 1;
+    }
+
+    for(size_t i = 0; i != this->variable_names.size(); i++){
+        variable_name = this->variable_names[i];
+
+        if(func.find_variable(variable_name, NULL) == 0){
+            errors.panic(DUPLICATE_VARIBLE(variable_name));
+            return 1;
+        }
+
+        context.builder.SetInsertPoint(func.asm_func.entry);
+        allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, variable_name.c_str());
+
+        context.builder.SetInsertPoint(previous_block);
+        context.builder.CreateStore(llvm_value, allocation_instance);
+
+        func.variables.push_back( Variable{variable_name, this->variable_type, allocation_instance} );
+    }
+
+    return 0;
+}
+std::string MultiDeclareAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    for(size_t i = 0; i != variable_names.size(); i++){
+        result += variable_names[i];
+        if(i + 1 != variable_names.size()) result += ", ";
+    }
+
+    result += " " + variable_type + " = " + this->variable_value->toString();
+    return result;
+}
+Statement* MultiDeclareAssignStatement::clone(){
+    return new MultiDeclareAssignStatement(*this);
+}
+bool MultiDeclareAssignStatement::isTerminator(){
     return false;
 }
 

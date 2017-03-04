@@ -555,7 +555,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
     // Import the declarations
-    if(program.import_merge(*import_program, attr_info.is_public) != 0) return 1;
+    if(program.import_merge(*import_program, attr_info.is_public, errors) != 0) return 1;
 
     // Exit if native dependency already exists
     for(size_t i = 0; i != program.imports.size(); i++){
@@ -841,6 +841,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     case TOKENID_WORD:
     case TOKENID_MULTIPLY:
     case TOKENID_KEYWORD:
+    case TOKENID_NEXT:
         // Variable Definition
         if(parse_block_variable_declaration(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
@@ -877,23 +878,49 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     return 0;
 }
 int parse_block_variable_declaration(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
-    // name str = "Hello World"
+    // name str = "Hello World"   |   name, another_name str = "Greetings World"
     //       ^
 
     std::string type;
+    std::vector<std::string> multiple_names;
+
+    if(tokens[i].id == TOKENID_NEXT){
+        multiple_names = { name };
+
+        while(tokens[i].id == TOKENID_NEXT){
+            next_index(i, tokens.size());
+
+            if(tokens[i].id != TOKENID_WORD){
+                errors.panic("Expected variable name after ',' in variable declaration");
+                return 1;
+            }
+
+            multiple_names.push_back(tokens[i].getString());
+            next_index(i, tokens.size());
+        }
+    }
 
     if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
     next_index(i, tokens.size());
 
     if(tokens[i].id == TOKENID_ASSIGN){
         PlainExp* expression;
-        next_index(i, tokens.size());
 
+        next_index(i, tokens.size());
         if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-        statements.push_back( new DeclareAssignStatement(name, type, expression, errors) );
+
+        if(multiple_names.size() == 0){
+            statements.push_back( new DeclareAssignStatement(name, type, expression, errors) );
+        } else {
+            statements.push_back( new MultiDeclareAssignStatement(multiple_names, type, expression, errors) );
+        }
     }
     else {
-        statements.push_back( new DeclareStatement(name, type, errors) );
+        if(multiple_names.size() == 0){
+            statements.push_back( new DeclareStatement(name, type, errors) );
+        } else {
+            statements.push_back( new MultiDeclareStatement(multiple_names, type, errors) );
+        }
     }
     return 0;
 }

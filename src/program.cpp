@@ -221,7 +221,7 @@ Program::~Program(){
         delete constant.value;
     }
 }
-int Program::import_merge(Program& other, bool public_import){
+int Program::import_merge(Program& other, bool public_import, ErrorHandler& errors){
     // TODO: Clean up importing system, currently there are holes
     //   and edge cases that do not work. Importing things like
     //   functions that have the same names or have the same name as
@@ -252,7 +252,7 @@ int Program::import_merge(Program& other, bool public_import){
 
         for(const Function& func : functions){
             if(new_final_name == mangle(other, func)){
-                die(DUPLICATE_FUNC(new_func.name));
+                errors.panic(DUPLICATE_FUNC(new_func.name));
                 already_exists = true;
                 break;
             }
@@ -294,7 +294,7 @@ int Program::import_merge(Program& other, bool public_import){
             // Also check for name conflicts with classes
             for(const Class& klass : classes){
                 if(new_structure.name == klass.name){
-                    die("Imported structure '" + new_structure.name + "' has the same name as a local class");
+                    errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local class");
                     already_exists = true;
                     break;
                 }
@@ -325,7 +325,7 @@ int Program::import_merge(Program& other, bool public_import){
             // Also check for name conflicts with structures
             for(const Structure& structure : structures){
                 if(new_class.name == structure.name){
-                    die("Imported class '" + new_class.name + "' has the same name as a local structure");
+                    errors.panic("Imported class '" + new_class.name + "' has the same name as a local structure");
                     already_exists = true;
                     break;
                 }

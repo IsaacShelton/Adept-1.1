@@ -72,6 +72,37 @@ class DeclareAssignStatement : public Statement {
     bool isTerminator();
 };
 
+class MultiDeclareStatement : public Statement {
+    public:
+    std::vector<std::string> variable_names;
+    std::string variable_type; // Same for each variable
+
+    MultiDeclareStatement(ErrorHandler&);
+    MultiDeclareStatement(const std::vector<std::string>&, const std::string&, ErrorHandler&);
+    MultiDeclareStatement(const MultiDeclareStatement&);
+    ~MultiDeclareStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
+class MultiDeclareAssignStatement : public Statement {
+    public:
+    std::vector<std::string> variable_names;
+    std::string variable_type; // Same for each variable
+    PlainExp* variable_value; // Same for each variable
+
+    MultiDeclareAssignStatement(ErrorHandler&);
+    MultiDeclareAssignStatement(const std::vector<std::string>&, const std::string&, PlainExp*, ErrorHandler&);
+    MultiDeclareAssignStatement(const MultiDeclareAssignStatement&);
+    ~MultiDeclareAssignStatement();
+    int assemble(Program&, Function&, AssembleContext&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+};
+
 class ReturnStatement : public Statement {
     public:
     PlainExp* return_value;
