@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../include/config.h"
 #include "../include/errors.h"
+#include "../include/strings.h"
 
 int configure(Configuration& config, std::string filename, ErrorHandler& errors){
     // Default Config
@@ -15,6 +16,7 @@ int configure(Configuration& config, std::string filename, ErrorHandler& errors)
     config.time = false;
     config.optimization = 0;
     config.load_dyn = false;
+    config.add_build_api = ("build.adept" == filename_name(filename));
 
     char* username = getenv("USERNAME");
     if(username == NULL) {
@@ -38,6 +40,7 @@ int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors
     config.time = false;
     config.optimization = 0;
     config.load_dyn = true;
+    config.add_build_api = ("build.adept" == filename_name(argv[1]));
 
     for(int i = 2; i != argc; i++){
         if(strcmp(argv[i], "--jit") == 0){

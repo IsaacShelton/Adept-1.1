@@ -4,6 +4,7 @@
 #include <boost/filesystem.hpp>
 #include "../include/die.h"
 #include "../include/type.h"
+#include "../include/build.h"
 #include "../include/parse.h"
 #include "../include/lexer.h"
 #include "../include/errors.h"
@@ -14,6 +15,11 @@
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
     // Generate standard type aliases
     program.generate_type_aliases();
+
+    if(config.add_build_api){
+        // Add build script api if its a build script
+        build_add_api(&program);
+    }
 
     for(size_t i = 0; i != tokens->size(); i++){
         if(parse_token(config, *tokens, program, i, errors) != 0) return 1;
@@ -141,6 +147,20 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
     std::string name = tokens[i].getString();
     std::vector<Field> members;
 
+    // Make sure that is hasn't been already declared
+    for(size_t i = 0; i != program.structures.size(); i++){
+        if(name == program.structures[i].name){
+            errors.panic(DUPLICATE_STRUCT(name));
+            return 1;
+        }
+    }
+    for(size_t i = 0; i != program.classes.size(); i++){
+        if(name == program.classes[i].name){
+            errors.panic(DUPLICATE_DEFINITION(name));
+            return 1;
+        }
+    }
+
     next_index(i, tokens.size());
     uint16_t token = tokens[i].id;
 
@@ -187,6 +207,22 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     // class class_name { ... }
     //           ^
 
+    std::string name = tokens[i].getString();
+
+    // Make sure that is hasn't been already declared
+    for(size_t i = 0; i != program.classes.size(); i++){
+        if(name == program.classes[i].name){
+            errors.panic(DUPLICATE_CLASS(name));
+            return 1;
+        }
+    }
+    for(size_t i = 0; i != program.structures.size(); i++){
+        if(name == program.structures[i].name){
+            errors.panic(DUPLICATE_DEFINITION(name));
+            return 1;
+        }
+    }
+
     // Allocate a new class in 'program.classes'
     std::vector<Class>* classes = &program.classes;
     classes->resize(classes->size()+1);
@@ -196,7 +232,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     size_t class_offset_plus_one = classes->size();
 
     // Fill in the class data
-    klass->name = tokens[i].getString();
+    klass->name = name;
     klass->is_public = attr_info.is_public;
     klass->is_imported = false;
 
@@ -504,7 +540,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     std::string name = tokens[i].getString();
-    TokenList* import_tokens = new TokenList;
+    TokenList* import_tokens;
     Configuration* import_config = new Configuration(config);
     Program* import_program;
     std::string target_bc;
@@ -530,19 +566,33 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     }
     else {
         errors.panic( UNKNOWN_MODULE(name) );
+        delete import_config;
         return 1;
     }
 
     // Get the full filename of the source file that we want to compile
     std::string source_filename = absolute(path(name), current_path()).string();
+    source_filename = string_replace_all(source_filename, "\\", "/");
 
     ErrorHandler error_handler(errors_name);
     import_config->filename = source_filename;
     import_program = program.parent_manager->newProgram(source_filename);
 
     if(import_program != NULL){
-        if( tokenize(*import_config, source_filename, import_tokens, error_handler) != 0 ) return 1;
-        if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ) return 1;
+        import_tokens = new TokenList;
+
+        if( tokenize(*import_config, source_filename, import_tokens, error_handler) != 0 ){
+            delete import_tokens;
+            delete import_config;
+            return 1;
+        }
+
+        if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ){
+            delete import_tokens;
+            delete import_config;
+            return 1;
+        }
+
         free_tokens(*import_tokens);
         delete import_tokens;
     }
@@ -555,14 +605,21 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
     // Import the declarations
-    if(program.import_merge(*import_program, attr_info.is_public, errors) != 0) return 1;
+    if(program.import_merge(*import_program, attr_info.is_public, errors) != 0){
+        delete import_config;
+        return 1;
+    }
 
     // Exit if native dependency already exists
     for(size_t i = 0; i != program.imports.size(); i++){
-        if(program.imports[i].target_obj == target_obj) return 0;
+        if(program.imports[i].target_obj == target_obj){
+            delete import_config;
+            return 0;
+        }
     }
 
-    program.imports.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config) );
+    bool is_nothing = (import_program->functions.size() == 0 and import_program->classes.size() == 0 and import_program->globals.size() == 0);
+    program.imports.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config, is_nothing) );
     return 0;
 }
 int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -589,6 +646,7 @@ int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t
         return 1;
     }
 
+    name = string_replace_all(name, "\\", "/");
     program.extra_libs.push_back(name);
     return 0;
 }
@@ -615,8 +673,17 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
     //       ^
 
     std::string type;
+    std::vector<Global>* globals = &program.globals;
     if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
     next_index(i, tokens.size());
+
+    // Make sure that is hasn't been already declared
+    for(size_t i = 0; i != globals->size(); i++){
+        if(name == (*globals)[i].name){
+            errors.panic(DUPLICATE_GLOBAL(name));
+            return 1;
+        }
+    }
 
     if(tokens[i].id == TOKENID_ASSIGN){
         errors.panic("Global variables can't be initialized outside of a procedure");
@@ -627,7 +694,6 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
         i--;
 
         // Append the global to the list of globals
-        std::vector<Global>* globals = &program.globals;
         globals->resize(globals->size() + 1);
         Global* global = &( (*globals)[globals->size()-1] );
         global->name = name;

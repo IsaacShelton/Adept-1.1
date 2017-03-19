@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include "../include/cache.h"
 
 Program* CacheManager::newProgram(const std::string& filename){
@@ -29,6 +30,13 @@ Program* CacheManager::getProgram(const std::string& filename){
     }
 
     return NULL;
+}
+
+void CacheManager::print(){
+    // Print all cache entries
+    for(size_t i = 0; i != cache.size(); i++){
+        std::cout << cache[i].filename << std::endl;
+    }
 }
 
 void CacheManager::free(){

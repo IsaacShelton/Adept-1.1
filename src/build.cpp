@@ -34,86 +34,168 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
-FILE* fstdout(){ return stdout; }
-FILE* fstderr(){ return stderr; }
-FILE* fstdin(){ return stdin; }
-int* ferrno(){ return _errno(); }
+CacheManager* current_global_cache_manager; // So build scripts can access program cache
 
-Program* adept_current_program;
-Configuration* adept_current_config;
-BuildConfig adept_default_build_config;
+// Functions to get standard streams
+extern "C" FILE* fstdout(){ return stdout; }
+extern "C" FILE* fstderr(){ return stderr; }
+extern "C" FILE* fstdin(){ return stdin; }
+extern "C" int* ferrno(){ return _errno(); }
 
+// Function to add the symbols for the build script API so scripts can access them
 void build_add_symbols(){
     llvm::sys::DynamicLibrary::AddSymbol("fstdout", (void*) fstdout);
     llvm::sys::DynamicLibrary::AddSymbol("fstderr", (void*) fstderr);
     llvm::sys::DynamicLibrary::AddSymbol("fstdin", (void*) fstdin);
     llvm::sys::DynamicLibrary::AddSymbol("ferrno", (void*) ferrno);
 
-    llvm::sys::DynamicLibrary::AddSymbol("adept\\config", (void*) adept_config);
-    llvm::sys::DynamicLibrary::AddSymbol("adept\\compile", (void*) adept_compile);
-    llvm::sys::DynamicLibrary::AddSymbol("adept\\loadLibrary", (void*) adept_loadLibrary);
-    llvm::sys::DynamicLibrary::AddSymbol("adept\\dependency\\add", (void*) adept_dependency_add);
-    llvm::sys::DynamicLibrary::AddSymbol("adept\\dependency\\addForced", (void*) adept_dependency_addForced);
-    llvm::sys::DynamicLibrary::AddSymbol("adept\\dependency\\exists", (void*) adept_dependency_exists);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.create", (void*) buildscript_AdeptConfig_create);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.free", (void*) buildscript_AdeptConfig_free);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.defaults", (void*) buildscript_AdeptConfig_defaults);
+
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.setTiming@bool", (void*) buildscript_AdeptConfig_setTiming);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.setSilent@bool", (void*) buildscript_AdeptConfig_setSilent);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.setJIT@bool", (void*) buildscript_AdeptConfig_setJIT);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.setOptimization@ubyte", (void*) buildscript_AdeptConfig_setOptimization);
+
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.isTiming", (void*) buildscript_AdeptConfig_isTiming);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.isSilent", (void*) buildscript_AdeptConfig_isSilent);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.isJIT", (void*) buildscript_AdeptConfig_isJIT);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.getOptimization", (void*) buildscript_AdeptConfig_getOptimization);
+
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.compile@*ubyte", (void*) buildscript_AdeptConfig_compile);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.loadLibrary@*ubyte", (void*) buildscript_AdeptConfig_loadLibrary);
+    llvm::sys::DynamicLibrary::AddSymbol("AdeptConfig.addLinkerOption@*ubyte", (void*) buildscript_AdeptConfig_addLinkerOption);
 }
 
-void build_transfer_config(Configuration* config, BuildConfig* build_config){
-    config->time = build_config->time;
-    config->silent = build_config->silent;
-    config->optimization = build_config->optimization;
-    config->jit = build_config->jit;
-    config->load_dyn = build_config->jit;
+// Function to create api in syntax tree
+void build_add_api(Program* program){
+    program->classes.resize(program->classes.size() + 1);
+    Class* klass = &program->classes[program->classes.size()-1];
+
+    klass->name = "AdeptConfig";
+    klass->is_public = false;
+    klass->is_imported = true;
+    klass->members.push_back( ClassField{"", "ptr", false, false} );
+
+    klass->methods.resize(14);
+    klass->methods[0] = Function("create", {}, "void", true);
+    klass->methods[1] = Function("free", {}, "void", true);
+    klass->methods[2] = Function("defaults", {}, "void", true);
+
+    klass->methods[3] = Function("setTiming", { Field{"", "bool"} }, "void", true);
+    klass->methods[4] = Function("setSilent", { Field{"", "bool"} }, "void", true);
+    klass->methods[5] = Function("setJIT", { Field{"", "bool"} }, "void", true);
+    klass->methods[6] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true);
+
+    klass->methods[7] = Function("isTiming", {}, "bool", true);
+    klass->methods[8] = Function("isSilent", {}, "bool", true);
+    klass->methods[9] = Function("isJIT", {}, "bool", true);
+    klass->methods[10] = Function("getOptimization", {}, "ubyte", true);
+
+    klass->methods[11] = Function("compile", { Field{"", "*ubyte"} }, "int", true);
+    klass->methods[12] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true);
+    klass->methods[13] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true);
 }
 
-extern "C" BuildConfig adept_config(){
-    return adept_default_build_config;
+extern "C" {
+
+void buildscript_AdeptConfig_create(AdeptConfig* config){
+    (*config) = new Configuration();
+}
+void buildscript_AdeptConfig_free(AdeptConfig* config){
+    delete (*config);
+}
+void buildscript_AdeptConfig_defaults(AdeptConfig* config){
+    Configuration* raw_config = *config;
+
+    raw_config->jit = false;
+    raw_config->obj = false;
+    raw_config->bytecode = false;
+    raw_config->link = true;
+    raw_config->silent = false;
+    raw_config->time = false;
+    raw_config->optimization = 0;
+    raw_config->load_dyn = true;
+
+    char* username = getenv("USERNAME");
+    if(username == NULL) {
+        fail( FAILED_TO_GET_USERNAME );
+    }
+
+    raw_config->username = username;
 }
 
-extern "C" int adept_compile(const char* file, BuildConfig* build_config) {
-    // Function for adept build scripts to invoke adept
+void buildscript_AdeptConfig_setTiming(AdeptConfig* config, bool whether){
+    (*config)->time = whether;
+}
+void buildscript_AdeptConfig_setSilent(AdeptConfig* config, bool whether){
+    (*config)->silent = whether;
+}
+void buildscript_AdeptConfig_setJIT(AdeptConfig* config, bool whether){
+    (*config)->jit = whether;
+}
+void buildscript_AdeptConfig_setOptimization(AdeptConfig* config, char value){
+    (*config)->optimization = value;
+}
 
+bool buildscript_AdeptConfig_isTiming(AdeptConfig* config){
+    return (*config)->time;
+}
+bool buildscript_AdeptConfig_isSilent(AdeptConfig* config){
+    return (*config)->silent;
+}
+bool buildscript_AdeptConfig_isJIT(AdeptConfig* config){
+    return (*config)->jit;
+}
+char buildscript_AdeptConfig_getOptimization(AdeptConfig* config){
+    return (*config)->optimization;
+}
+
+int buildscript_AdeptConfig_compile(AdeptConfig* config, const char* filename){
     using namespace boost::filesystem;
 
-    // Get the full filename of the source file that we want to compile
-    std::string source_filename = absolute(path(file), current_path()).string();
+    Configuration* raw_config = *config;
+    std::string source_filename = absolute(path(filename), current_path()).string();
+    source_filename = string_replace_all(source_filename, "\\", "/");
+    raw_config->filename = filename_name(source_filename);
 
-    Configuration config;
-    AssembleContext context;
-    ErrorHandler errors(filename_name(source_filename));
+    AssemblyData context;
+    ErrorHandler errors(raw_config->filename);
     TokenList* tokens = new TokenList;
-    Program* program = adept_current_program->parent_manager->newProgram(source_filename);
+    Program* program = current_global_cache_manager->newProgram(source_filename);
 
-    // Setup a configuration for the file
-    if(configure(config, source_filename, errors) != 0) return 1;
-    if(build_config != NULL) build_transfer_config(&config, build_config);
+    // Start clock
+    std::cout << std::fixed;
+    raw_config->clock.start();
 
+    // Compiler Frontend
     if(program != NULL){
-        // Compiler Frontend
-        if( tokenize(config, source_filename, tokens, errors) != 0 ) return 1;
-        if( parse(config, tokens, *program, errors) != 0 ) return 1;
+        if( tokenize(*raw_config, source_filename, tokens, errors) != 0 ) return 1;
+        if( parse(*raw_config, tokens, *program, errors) != 0 ) return 1;
         free_tokens(*tokens); // Free data held by tokens
         delete tokens; // Free the token list itself
     }
     else {
-        program = adept_current_program->parent_manager->getProgram(source_filename);
+        // A program with the same filename already exists
+        program = current_global_cache_manager->getProgram(source_filename);
     }
 
     // Compiler Backend
-    if( assemble(context, config, *program, errors) != 0 ) return 1;
-    if( finalize(context, config, *program, errors) != 0 ) return 1;
+    if( assemble(context, *raw_config, *program, errors) != 0 ) return 1;
+    if( finalize(context, *raw_config, *program, errors) != 0 ) return 1;
 
     // Output divider if needed
-    if(config.time and !config.silent){
+    if(raw_config->time and !raw_config->silent){
         printf("-------------------------------------------------\n");
     }
 
     return 0;
 }
-
-extern "C" bool adept_loadLibrary(const char* file){
-    std::string name = file;
-    std::string local_file = filename_path(adept_current_config->filename) + name;
-    std::string public_file = "C:/Users/" + adept_current_config->username + "/.adept/lib/" + name;
+bool buildscript_AdeptConfig_loadLibrary(AdeptConfig* config, const char* filename){
+    std::string name = filename;
+    std::string local_file = filename_path((*config)->filename) + name;
+    std::string public_file = "C:/Users/" + (*config)->username + "/.adept/lib/" + name;
 
     if( access(local_file.c_str(), F_OK) != -1 ){
         name = local_file;
@@ -121,73 +203,15 @@ extern "C" bool adept_loadLibrary(const char* file){
     else if( access(public_file.c_str(), F_OK) != -1 ){
         name = public_file;
     }
-    else if( access(file, F_OK) == -1 ){
+    else if( access(filename, F_OK) == -1 ){
         // File doesn't exist globally either
-        fail( UNKNOWN_MODULE(file) );
+        fail( UNKNOWN_MODULE(filename) );
     }
 
     return llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str());
 }
-
-extern "C" void adept_dependency_add(const char* name){
-    std::string local_file = filename_path(adept_current_config->filename) + name;
-    std::string public_file = "C:/Users/" + adept_current_config->username + "/.adept/lib/" + name;
-
-    if( access(local_file.c_str(), F_OK) != -1 ){
-        name = local_file.c_str();
-    }
-    else if( access(public_file.c_str(), F_OK) != -1 ){
-        name = public_file.c_str();
-    }
-    else {
-        fail( UNKNOWN_MODULE(name) );
-    }
-
-    if( !adept_dependency_exists(name) ){
-        adept_current_program->extra_libs.push_back(name);
-    }
+void buildscript_AdeptConfig_addLinkerOption(AdeptConfig* config, const char* option){
+    (*config)->extra_options += std::string(option) + " ";
 }
 
-extern "C" void adept_dependency_addForced(const char* name){
-    std::string local_file = filename_path(adept_current_config->filename) + name;
-    std::string public_file = "C:/Users/" + adept_current_config->username + "/.adept/lib/" + name;
-
-    if( access(local_file.c_str(), F_OK) != -1 ){
-        name = local_file.c_str();
-    }
-    else if( access(public_file.c_str(), F_OK) != -1 ){
-        name = public_file.c_str();
-    }
-    else {
-        fail( UNKNOWN_MODULE(name) );
-    }
-
-    adept_current_program->extra_libs.push_back(name);
-}
-
-extern "C" bool adept_dependency_exists(const char* name){
-    std::string dependency = name;
-    bool exists = false;
-
-    std::string local_file = filename_path(adept_current_config->filename) + name;
-    std::string public_file = "C:/Users/" + adept_current_config->username + "/.adept/lib/" + name;
-
-    if( access(local_file.c_str(), F_OK) != -1 ){
-        dependency = local_file;
-    }
-    else if( access(public_file.c_str(), F_OK) != -1 ){
-        dependency = public_file;
-    }
-    else {
-        fail( UNKNOWN_MODULE(name) );
-    }
-
-    for(size_t i = 0; i != adept_current_program->extra_libs.size(); i++){
-        if(adept_current_program->extra_libs[i] == dependency){
-            exists = true;
-            break;
-        }
-    }
-
-    return exists;
 }

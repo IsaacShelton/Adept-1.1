@@ -9,7 +9,7 @@
 #include "program.h"
 #include "attribute.h"
 #include "statement.h"
-#include "asmcontext.h"
+#include "asmdata.h"
 
 #define CONDITIONAL_IF     STATEMENTID_IF
 #define CONDITIONAL_UNLESS STATEMENTID_UNLESS

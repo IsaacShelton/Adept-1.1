@@ -54,10 +54,8 @@ std::string mangle_filename(const std::string& filename){
             mangled_name += "$!";
             break;
         case '/':
-            mangled_name += "$@";
-            break;
         case '\\':
-            mangled_name += "$#";
+            mangled_name += "$@";
             break;
         case '$':
             mangled_name += "$$";

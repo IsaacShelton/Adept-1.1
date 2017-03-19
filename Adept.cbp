@@ -43,10 +43,11 @@
 			</Target>
 			<Target title="Debug 64-bit">
 				<Option output="bin/Debug/adept" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="C:/Users/isaac/Desktop/adept/terminal" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />
-				<Option parameters="C:/Users/isaac/Desktop/adept/stress.adept" />
+				<Option parameters="build.adept" />
 				<Compiler>
 					<Add option="-std=c++11" />
 					<Add option="-pg" />
@@ -94,7 +95,8 @@
 			<Add option="-lpsapi -lshell32 -lole32 -luuid" />
 		</Linker>
 		<Unit filename="include/adept.h" />
-		<Unit filename="include/asmcontext.h" />
+		<Unit filename="include/asmdata.h" />
+		<Unit filename="include/asmtypes.h" />
 		<Unit filename="include/assemble.h" />
 		<Unit filename="include/attribute.h" />
 		<Unit filename="include/build.h" />
@@ -113,13 +115,15 @@
 		<Unit filename="include/native.h" />
 		<Unit filename="include/parse.h" />
 		<Unit filename="include/program.h" />
+		<Unit filename="include/search.h" />
 		<Unit filename="include/statement.h" />
 		<Unit filename="include/strings.h" />
 		<Unit filename="include/threads.h" />
 		<Unit filename="include/tokens.h" />
 		<Unit filename="include/type.h" />
 		<Unit filename="src/adept.cpp" />
-		<Unit filename="src/asmcontext.cpp" />
+		<Unit filename="src/asmdata.cpp" />
+		<Unit filename="src/asmtypes.cpp" />
 		<Unit filename="src/assemble.cpp" />
 		<Unit filename="src/attribute.cpp" />
 		<Unit filename="src/build.cpp" />
@@ -137,6 +141,7 @@
 		<Unit filename="src/native.cpp" />
 		<Unit filename="src/parse.cpp" />
 		<Unit filename="src/program.cpp" />
+		<Unit filename="src/search.cpp" />
 		<Unit filename="src/statement.cpp" />
 		<Unit filename="src/strings.cpp" />
 		<Unit filename="src/threads.cpp" />

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "../include/die.h"
 #include "../include/lexer.h"
+#include "../include/search.h"
 #include "../include/errors.h"
 #include "../include/strings.h"
 
@@ -18,7 +19,7 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
         return 1;
     }
 
-    tokens->reserve(10000000);
+    tokens->reserve(1024);
 
     std::string line;
     while( std::getline(adept, line) ){
@@ -33,6 +34,7 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
         config.clock.print_since("LEXER DONE", filename_name(config.filename));
         config.clock.remember();
     }
+
     return 0;
 }
 int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
@@ -155,39 +157,52 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
         case 95:
             {
                 std::string word;
+                prefix_char = code[i];
 
-                // Not perfect, but whatever
-                while( prefix_char != '(' and prefix_char != ')' and prefix_char != '.'
-                and prefix_char != ' ' and prefix_char != '\n' and prefix_char != '['
-                and prefix_char != ']' and prefix_char != '{' and prefix_char != '}'
-                and prefix_char != '+' and prefix_char != '-' and prefix_char != '*'
-                and prefix_char != '/' and prefix_char != '=' and prefix_char != '!'
-                and prefix_char != ',' and prefix_char != '%'){
+                while(true){
                     word += prefix_char;
                     next_index(i, code_size);
                     prefix_char = code[i];
+
+                    if(prefix_char == 95) continue;
+                    if(prefix_char >= 65 and prefix_char <= 90) continue;
+                    if(prefix_char >= 97 and prefix_char <= 122) continue;
+                    if(prefix_char >= 48 and prefix_char <= 57) continue;
+
+                    break;
                 }
 
-                // TODO: Clean up keyword selection
-                if(word == "return" or word == "def" or word == "type" or word == "foreign" or word == "import"
-                or word == "public" or word == "private" or word == "link" or word == "true" or word == "false"
-                or word == "null" or word == "if" or word == "while"  or word == "unless" or word == "until"
-                or word == "else" or word == "constant" or word == "dynamic" or word == "cast" or word == "class"
-                or word == "static" or word == "packed" or word == "funcptr" or word == "stdcall" or word == "sizeof"
-                or word == "new" or word == "delete"){
+                // NOTE: MUST be pre sorted alphabetically (used for string_search)
+                //         Make sure to update switch statement with correct indices after add or removing a type
+                const size_t keywords_size = 30;
+                const std::string keywords[keywords_size] = {
+                    "and", "cast", "class", "constant", "def", "delete", "dynamic", "else", "false", "foreign",
+                    "funcptr", "if", "import", "link", "new", "null", "or", "packed", "private", "public", "return",
+                    "sizeof", "static", "stdcall", "true", "type", "unless", "until", "while"
+                };
+
+                int keyword_index = string_search(keywords, keywords_size, word);
+
+                switch(keyword_index){
+                case -1:
+                    // Not a keyword, just an identifier
+                    tokens.push_back( TOKEN_WORD( new std::string(word) ) );
+                    break;
+                case 0:
+                    // 'and' keyword
+                    tokens.push_back( TOKEN_AND );
+                    break;
+                case 16:
+                    // 'or' keyword
+                    tokens.push_back( TOKEN_OR );
+                    break;
+                default:
+                    // It's a regular keyword
                     tokens.push_back( TOKEN_KEYWORD( new std::string(word) ) );
                 }
-                else if(word == "and"){
-                    tokens.push_back( TOKEN_AND );
-                }
-                else if(word == "or"){
-                    tokens.push_back( TOKEN_OR );
-                }
-                else {
-                    tokens.push_back( TOKEN_WORD( new std::string(word) ) );
-                }
+
+                break;
             }
-            break;
         case '"':
             {
                 std::string content;
@@ -199,7 +214,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 for(size_t j = 0; j != content.size(); j++){
                     if(content[j] == '\\'){
                         if(++j == content.size()){
-                            fail("Unexpected string termination");
+                            errors.panic("Unexpected string termination");
                             return 1;
                         }
 
@@ -217,7 +232,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                             escaped_content += "\\";
                             break;
                         default:
-                            fail("Unknown escape sequence '\\" + content.substr(j, j+1) + "'");
+                            errors.panic("Unknown escape sequence '\\" + content.substr(j, j+1) + "'");
                             return 1;
                         }
                     }
@@ -236,15 +251,22 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 next_index(i, code_size);
                 prefix_char = code[i];
 
-                while( prefix_char != '(' and prefix_char != ')' and prefix_char != '.'
-                and prefix_char != ' ' and prefix_char != '\n' and prefix_char != '['
-                and prefix_char != ']' and prefix_char != '{' and prefix_char != '}'
-                and prefix_char != '+' and prefix_char != '-' and prefix_char != '*'
-                and prefix_char != '/' and prefix_char != '=' and prefix_char != '!'
-                and prefix_char != ','){
+                if( prefix_char != 95 and !(prefix_char >= 65 and prefix_char <= 90) and !(prefix_char >= 97 and prefix_char <= 122) ){
+                    errors.panic("Expected identifier after '$' operator");
+                    return 1;
+                }
+
+                while(true){
                     word += prefix_char;
                     next_index(i, code_size);
                     prefix_char = code[i];
+
+                    if(prefix_char == 95) continue;
+                    if(prefix_char >= 65 and prefix_char <= 90) continue;
+                    if(prefix_char >= 97 and prefix_char <= 122) continue;
+                    if(prefix_char >= 48 and prefix_char <= 57) continue;
+
+                    break;
                 }
 
                 tokens.push_back( TOKEN_CONSTANT( new std::string(word) ) );
@@ -253,7 +275,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
         case 48: case 49: case 50:
         case 51: case 52: case 53:
         case 54: case 55: case 56:
-        case 57: // 0-9
+        case 57: // 0-9s
             {
                 if(tokenize_number(false, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
                 i++;

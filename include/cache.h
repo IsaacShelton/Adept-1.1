@@ -24,6 +24,9 @@ class CacheManager {
     //   if none exists, NULL will be returned
     Program* getProgram(const std::string&);
 
+    // Print all cache entries
+    void print();
+
     // Will free all cached programs
     void free();
 };

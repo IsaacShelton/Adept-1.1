@@ -6,9 +6,9 @@
 #include "../include/errors.h"
 #include "../include/config.h"
 #include "../include/tokens.h"
-#include "../include/asmcontext.h"
+#include "../include/asmdata.h"
 
-int finalize(AssembleContext& assemble, Configuration& config, Program& program, ErrorHandler& errors);
+int finalize(AssemblyData& assemble, Configuration& config, Program& program, ErrorHandler& errors);
 int shutdown();
 
 #endif // FINALIZE_H_INCLUDED

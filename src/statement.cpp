@@ -21,6 +21,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/FileSystem.h"
 
+#include "../include/die.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
 #include "../include/mangling.h"
@@ -51,15 +52,15 @@ DeclareStatement::DeclareStatement(const DeclareStatement& other) : Statement(ot
     this->variable_type = other.variable_type;
 }
 DeclareStatement::~DeclareStatement(){}
-int DeclareStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int DeclareStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Type* variable_llvmtype;
 
-    if(func.find_variable(this->variable_name, NULL) == 0){
+    if(context.current_function->findVariable(this->variable_name) != NULL){
         errors.panic(DUPLICATE_VARIBLE(this->variable_name));
         return 1;
     }
 
-    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
+    if(program.find_type(this->variable_type, context, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
     }
@@ -67,11 +68,11 @@ int DeclareStatement::assemble(Program& program, Function& func, AssembleContext
     llvm::AllocaInst* allocation_instance;
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
-    context.builder.SetInsertPoint(func.asm_func.entry);
+    context.builder.SetInsertPoint(context.current_function->entry);
     allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
     context.builder.SetInsertPoint(previous_block);
 
-    func.variables.push_back( Variable{this->variable_name, this->variable_type, allocation_instance} );
+    context.current_function->addVariable(this->variable_name, this->variable_type, allocation_instance);
     return 0;
 }
 std::string DeclareStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -109,16 +110,16 @@ DeclareAssignStatement::DeclareAssignStatement(const DeclareAssignStatement& oth
 DeclareAssignStatement::~DeclareAssignStatement(){
     delete this->variable_value;
 }
-int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int DeclareAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     std::string expression_type;
     llvm::Type* variable_llvmtype;
 
-    if(func.find_variable(this->variable_name, NULL) == 0){
+    if(context.current_function->findVariable(this->variable_name) != NULL){
         errors.panic(DUPLICATE_VARIBLE(this->variable_name));
         return 1;
     }
 
-    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
+    if(program.find_type(this->variable_type, context, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
     }
@@ -134,13 +135,13 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssembleC
     llvm::AllocaInst* allocation_instance;
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
-    context.builder.SetInsertPoint(func.asm_func.entry);
+    context.builder.SetInsertPoint(context.current_function->entry);
     allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
 
     context.builder.SetInsertPoint(previous_block);
     context.builder.CreateStore(llvm_value, allocation_instance);
 
-    func.variables.push_back( Variable{this->variable_name, this->variable_type, allocation_instance} );
+    context.current_function->addVariable(this->variable_name, this->variable_type, allocation_instance);
     return 0;
 }
 std::string DeclareAssignStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -173,17 +174,17 @@ MultiDeclareStatement::MultiDeclareStatement(const MultiDeclareStatement& other)
     this->variable_type = other.variable_type;
 }
 MultiDeclareStatement::~MultiDeclareStatement(){}
-int MultiDeclareStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int MultiDeclareStatement::assemble(Program& program, Function& func, AssemblyData& context){
     std::string variable_name;
     llvm::Type* variable_llvmtype;
     llvm::AllocaInst* allocation_instance;
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
     // Set block insertion point
-    context.builder.SetInsertPoint(func.asm_func.entry);
+    context.builder.SetInsertPoint(context.current_function->entry);
 
     // Get the llvm type for the variables
-    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
+    if(program.find_type(this->variable_type, context, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
     }
@@ -191,13 +192,13 @@ int MultiDeclareStatement::assemble(Program& program, Function& func, AssembleCo
     for(size_t i = 0; i != this->variable_names.size(); i++){
         variable_name = this->variable_names[i];
 
-        if(func.find_variable(variable_name, NULL) == 0){
+        if(context.current_function->findVariable(variable_name) != NULL){
             errors.panic(DUPLICATE_VARIBLE(variable_name));
             return 1;
         }
 
         allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, variable_name.c_str());
-        func.variables.push_back( Variable{variable_name, this->variable_type, allocation_instance} );
+        context.current_function->addVariable(variable_name, this->variable_type, allocation_instance);
     }
 
     // Reset block insertion point
@@ -243,7 +244,7 @@ MultiDeclareAssignStatement::MultiDeclareAssignStatement(const MultiDeclareAssig
 MultiDeclareAssignStatement::~MultiDeclareAssignStatement(){
     delete this->variable_value;
 }
-int MultiDeclareAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int MultiDeclareAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* llvm_value;
     std::string variable_name;
     std::string expression_type;
@@ -252,7 +253,7 @@ int MultiDeclareAssignStatement::assemble(Program& program, Function& func, Asse
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
     // Get the llvm type for the variables
-    if(program.find_type(this->variable_type, &variable_llvmtype) != 0){
+    if(program.find_type(this->variable_type, context, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
     }
@@ -270,18 +271,18 @@ int MultiDeclareAssignStatement::assemble(Program& program, Function& func, Asse
     for(size_t i = 0; i != this->variable_names.size(); i++){
         variable_name = this->variable_names[i];
 
-        if(func.find_variable(variable_name, NULL) == 0){
+        if(context.current_function->findVariable(variable_name) != NULL){
             errors.panic(DUPLICATE_VARIBLE(variable_name));
             return 1;
         }
 
-        context.builder.SetInsertPoint(func.asm_func.entry);
+        context.builder.SetInsertPoint(context.current_function->entry);
         allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, variable_name.c_str());
 
         context.builder.SetInsertPoint(previous_block);
         context.builder.CreateStore(llvm_value, allocation_instance);
 
-        func.variables.push_back( Variable{variable_name, this->variable_type, allocation_instance} );
+        context.current_function->addVariable(variable_name, this->variable_type, allocation_instance);
     }
 
     return 0;
@@ -326,22 +327,22 @@ ReturnStatement::ReturnStatement(const ReturnStatement& other) : Statement(other
 ReturnStatement::~ReturnStatement(){
     delete this->return_value;
 }
-int ReturnStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int ReturnStatement::assemble(Program& program, Function& func, AssemblyData& context){
     if(this->return_value != NULL){
         std::string expression_type;
         llvm::Value* llvm_value = this->return_value->assemble_immutable(program, func, context, &expression_type);
         if(llvm_value == NULL) return 1;
 
-        if(assemble_merge_types_oneway(context, program, expression_type, func.return_type, &llvm_value, func.asm_func.return_type, NULL) != 0){
+        if(assemble_merge_types_oneway(context, program, expression_type, func.return_type, &llvm_value, context.current_function->return_type, NULL) != 0){
             errors.panic( INCOMPATIBLE_TYPES(expression_type, func.return_type) );
             return 1;
         }
 
-        context.builder.CreateStore(llvm_value, func.asm_func.exitval);
-        context.builder.CreateBr(func.asm_func.quit);
+        context.builder.CreateStore(llvm_value, context.current_function->exitval);
+        context.builder.CreateBr(context.current_function->quit);
     }
     else {
-        context.builder.CreateBr(func.asm_func.quit);
+        context.builder.CreateBr(context.current_function->quit);
     }
     return 0;
 }
@@ -385,7 +386,7 @@ AssignStatement::~AssignStatement(){
     delete this->location;
     delete this->value;
 }
-int AssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int AssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* store_location;
     llvm::Value* llvm_value;
     llvm::Type* location_llvm_type;
@@ -401,7 +402,7 @@ int AssignStatement::assemble(Program& program, Function& func, AssembleContext&
     if(store_location == NULL) return 1;
 
     // Find LLVM type for the storage location
-    if(program.find_type(location_typename, &location_llvm_type) != 0){
+    if(program.find_type(location_typename, context, &location_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(location_typename) );
         return 1;
     }
@@ -455,7 +456,7 @@ AdditionAssignStatement::~AdditionAssignStatement(){
     delete this->location;
     delete this->value;
 }
-int AdditionAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int AdditionAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* store_value;
     llvm::Value* store_location;
     llvm::Value* llvm_value;
@@ -472,7 +473,7 @@ int AdditionAssignStatement::assemble(Program& program, Function& func, Assemble
     if(store_location == NULL) return 1;
 
     // Find LLVM type for the storage location
-    if(program.find_type(location_typename, &location_llvm_type) != 0){
+    if(program.find_type(location_typename, context, &location_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(location_typename) );
         return 1;
     }
@@ -485,6 +486,7 @@ int AdditionAssignStatement::assemble(Program& program, Function& func, Assemble
         errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
         return 1;
     }
+    program.resolve_once_if_alias(location_typename);
 
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
@@ -548,7 +550,7 @@ SubtractionAssignStatement::~SubtractionAssignStatement(){
     delete this->location;
     delete this->value;
 }
-int SubtractionAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int SubtractionAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* store_value;
     llvm::Value* store_location;
     llvm::Value* llvm_value;
@@ -565,7 +567,7 @@ int SubtractionAssignStatement::assemble(Program& program, Function& func, Assem
     if(store_location == NULL) return 1;
 
     // Find LLVM type for the storage location
-    if(program.find_type(location_typename, &location_llvm_type) != 0){
+    if(program.find_type(location_typename, context, &location_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(location_typename) );
         return 1;
     }
@@ -578,6 +580,7 @@ int SubtractionAssignStatement::assemble(Program& program, Function& func, Assem
         errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
         return 1;
     }
+    program.resolve_once_if_alias(location_typename);
 
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
@@ -641,7 +644,7 @@ MultiplicationAssignStatement::~MultiplicationAssignStatement(){
     delete this->location;
     delete this->value;
 }
-int MultiplicationAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int MultiplicationAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* store_value;
     llvm::Value* store_location;
     llvm::Value* llvm_value;
@@ -658,7 +661,7 @@ int MultiplicationAssignStatement::assemble(Program& program, Function& func, As
     if(store_location == NULL) return 1;
 
     // Find LLVM type for the storage location
-    if(program.find_type(location_typename, &location_llvm_type) != 0){
+    if(program.find_type(location_typename, context, &location_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(location_typename) );
         return 1;
     }
@@ -671,6 +674,7 @@ int MultiplicationAssignStatement::assemble(Program& program, Function& func, As
         errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
         return 1;
     }
+    program.resolve_once_if_alias(location_typename);
 
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
@@ -734,7 +738,7 @@ DivisionAssignStatement::~DivisionAssignStatement(){
     delete this->location;
     delete this->value;
 }
-int DivisionAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int DivisionAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* store_value;
     llvm::Value* store_location;
     llvm::Value* llvm_value;
@@ -751,7 +755,7 @@ int DivisionAssignStatement::assemble(Program& program, Function& func, Assemble
     if(store_location == NULL) return 1;
 
     // Find LLVM type for the storage location
-    if(program.find_type(location_typename, &location_llvm_type) != 0){
+    if(program.find_type(location_typename, context, &location_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(location_typename) );
         return 1;
     }
@@ -764,6 +768,7 @@ int DivisionAssignStatement::assemble(Program& program, Function& func, Assemble
         errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
         return 1;
     }
+    program.resolve_once_if_alias(location_typename);
 
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
@@ -827,7 +832,7 @@ ModulusAssignStatement::~ModulusAssignStatement(){
     delete this->location;
     delete this->value;
 }
-int ModulusAssignStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int ModulusAssignStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Value* store_value;
     llvm::Value* store_location;
     llvm::Value* llvm_value;
@@ -844,7 +849,7 @@ int ModulusAssignStatement::assemble(Program& program, Function& func, AssembleC
     if(store_location == NULL) return 1;
 
     // Find LLVM type for the storage location
-    if(program.find_type(location_typename, &location_llvm_type) != 0){
+    if(program.find_type(location_typename, context, &location_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(location_typename) );
         return 1;
     }
@@ -857,6 +862,7 @@ int ModulusAssignStatement::assemble(Program& program, Function& func, AssembleC
         errors.panic( INCOMPATIBLE_TYPES(expression_typename, location_typename) );
         return 1;
     }
+    program.resolve_once_if_alias(location_typename);
 
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
@@ -921,10 +927,11 @@ CallStatement::CallStatement(const CallStatement& other) : Statement(other) {
 CallStatement::~CallStatement(){
     for(PlainExp* arg : args) delete arg;
 }
-int CallStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int CallStatement::assemble(Program& program, Function& func, AssemblyData& context){
     External func_data;
-    Variable func_variable;
-    Global func_global;
+    AssembleVariable* func_variable;
+    Global global;
+    AssembleGlobal* func_global;
 
     llvm::Value* expr_value;
     std::string expr_typename;
@@ -937,7 +944,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
         expr_value = args[i]->assemble_immutable(program, func, context, &expr_typename);
         if(expr_value == NULL) return 1;
 
-        if(program.find_type(expr_typename, &expected_arg_type) != 0){
+        if(program.find_type(expr_typename, context, &expected_arg_type) != 0){
             errors.panic( UNDECLARED_TYPE(expr_typename) );
             return 1;
         }
@@ -965,7 +972,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
         }
 
         for(size_t i = 0; i != argument_values.size(); i++){
-            if(program.find_type(func_data.arguments[i], &expected_arg_type) != 0){
+            if(program.find_type(func_data.arguments[i], context, &expected_arg_type) != 0){
                 errors.panic( UNDECLARED_TYPE(func_data.arguments[i]) );
                 return 1;
             }
@@ -983,9 +990,10 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
         return 0;
     }
 
-    if(func.find_variable(name, &func_variable) == 0){
+    func_variable = context.current_function->findVariable(name);
+    if(func_variable != NULL){
         // Variable that could be function pointer exists
-        if(Program::is_function_typename(func_variable.type)){
+        if(Program::is_function_typename(func_variable->type)){
             // The variable is a function pointer
 
             std::string varfunc_return_typename;
@@ -993,7 +1001,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
             std::vector<std::string> varfunc_args;
             std::vector<llvm::Type*> varfunc_llvm_args;
 
-            if(program.extract_function_pointer_info(func_variable.type, varfunc_llvm_args, &varfunc_return_llvm_type, varfunc_args,
+            if(program.extract_function_pointer_info(func_variable->type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
                 varfunc_return_typename) != 0) return 1;
 
             if (varfunc_args.size() != args.size()){
@@ -1003,16 +1011,16 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
 
             for(size_t i = 0; i != argument_values.size(); i++){
                 if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
-                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable.type +
+                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable->type +
                          "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
                     return 1;
                 }
             }
 
-            llvm::Value* function_address = context.builder.CreateLoad(func_variable.variable);
+            llvm::Value* function_address = context.builder.CreateLoad(context.current_function->getVariableValue(func_variable->name));
             llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
 
-            if(Program::function_typename_is_stdcall(func_variable.type)){
+            if(Program::function_typename_is_stdcall(func_variable->type)){
                 call->setCallingConv(llvm::CallingConv::X86_StdCall);
             } else {
                 call->setCallingConv(llvm::CallingConv::C);
@@ -1021,8 +1029,8 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
         }
     }
 
-    if(program.find_global(name, &func_global) == 0){
-        if(Program::is_function_typename(func_global.type)){
+    if(program.find_global(name, &global) == 0){
+        if(Program::is_function_typename(global.type)){
             // The variable is a function pointer
 
             std::string varfunc_return_typename;
@@ -1030,7 +1038,7 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
             std::vector<std::string> varfunc_args;
             std::vector<llvm::Type*> varfunc_llvm_args;
 
-            if(program.extract_function_pointer_info(func_global.type, varfunc_llvm_args, &varfunc_return_llvm_type, varfunc_args,
+            if(program.extract_function_pointer_info(global.type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
                 varfunc_return_typename) != 0) return 1;
 
             if (varfunc_args.size() != args.size()){
@@ -1040,16 +1048,16 @@ int CallStatement::assemble(Program& program, Function& func, AssembleContext& c
 
             for(size_t i = 0; i != argument_values.size(); i++){
                 if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
-                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_global.type +
+                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + global.type +
                          "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
                     return 1;
                 }
             }
 
-            llvm::Value* function_address = context.builder.CreateLoad(func_global.variable);
+            llvm::Value* function_address = context.builder.CreateLoad(context.findGlobal(name)->variable);
             llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
 
-            if(Program::function_typename_is_stdcall(func_global.type)){
+            if(Program::function_typename_is_stdcall(global.type)){
                 call->setCallingConv(llvm::CallingConv::X86_StdCall);
             } else {
                 call->setCallingConv(llvm::CallingConv::C);
@@ -1105,7 +1113,7 @@ MemberCallStatement::MemberCallStatement(const MemberCallStatement& other) : Sta
 MemberCallStatement::~MemberCallStatement(){
     delete object;
 }
-int MemberCallStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData& context){
     External func_data;
     llvm::Value* expr_value;
     std::string expr_typename;
@@ -1117,6 +1125,8 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
     std::string object_typename;
     llvm::Value* object_value = object->assemble(program, func, context, &object_typename);
     llvm::Type* object_llvm_type;
+
+    if(object_value == NULL) return 1;
 
     if(Program::is_pointer_typename(object_typename)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
@@ -1132,7 +1142,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
     }
 
     // Get the llvm type for the object
-    if(program.find_type(object_typename, &object_llvm_type) != 0){
+    if(program.find_type(object_typename, context, &object_llvm_type) != 0){
         errors.panic( UNDECLARED_TYPE(object_typename) );
         return 1;
     }
@@ -1141,7 +1151,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
         expr_value = args[i]->assemble_immutable(program, func, context, &expr_typename);
         if(expr_value == NULL) return 1;
 
-        if(program.find_type(expr_typename, &expected_arg_type) != 0){
+        if(program.find_type(expr_typename, context, &expected_arg_type) != 0){
             errors.panic( UNDECLARED_TYPE(expr_typename) );
             return 1;
         }
@@ -1167,7 +1177,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
     std::string final_name = mangle(object_typename, name, func_data.arguments);
 
     llvm::Function* target = context.module->getFunction(final_name);
-    if (!target){
+    if(target == NULL){
         errors.panic_undeclared_method(object_typename, name, argument_types);
         return 1;
     }
@@ -1176,7 +1186,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
     argument_types.insert(argument_types.begin(), "*" + object_typename);
     argument_llvm_types.insert(argument_llvm_types.begin(), object_llvm_type->getPointerTo());
 
-    assert(func_data.arguments.size() == target->arg_size());
+    ensure(func_data.arguments.size() + 1 == target->arg_size());
 
     if (target->arg_size() != args.size()+1){
         // NOTE: This error should never appear
@@ -1185,7 +1195,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssembleCont
     }
 
     for(size_t i = 1; i != argument_values.size(); i++){
-        if(program.find_type(func_data.arguments[i-1], &expected_arg_type) != 0){
+        if(program.find_type(func_data.arguments[i-1], context, &expected_arg_type) != 0){
             errors.panic( UNDECLARED_TYPE(func_data.arguments[i-1]) );
             return 1;
         }
@@ -1248,7 +1258,7 @@ IfStatement::~IfStatement(){
         delete statement;
     }
 }
-int IfStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int IfStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -1333,7 +1343,7 @@ UnlessStatement::~UnlessStatement(){
         delete statement;
     }
 }
-int UnlessStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int UnlessStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -1418,7 +1428,7 @@ WhileStatement::~WhileStatement(){
         delete statement;
     }
 }
-int WhileStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int WhileStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
@@ -1507,7 +1517,7 @@ UntilStatement::~UntilStatement(){
         delete statement;
     }
 }
-int UntilStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int UntilStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
@@ -1604,7 +1614,7 @@ IfElseStatement::~IfElseStatement(){
         delete statement;
     }
 }
-int IfElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int IfElseStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -1727,7 +1737,7 @@ UnlessElseStatement::~UnlessElseStatement(){
         delete statement;
     }
 }
-int UnlessElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int UnlessElseStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
 
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
@@ -1852,7 +1862,7 @@ IfWhileElseStatement::~IfWhileElseStatement(){
         delete statement;
     }
 }
-int IfWhileElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int IfWhileElseStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
     std::string expr_typename;
     llvm::Value* expr_value;
@@ -1987,7 +1997,7 @@ UnlessUntilElseStatement::~UnlessUntilElseStatement(){
         delete statement;
     }
 }
-int UnlessUntilElseStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int UnlessUntilElseStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
     std::string expr_typename;
     llvm::Value* expr_value;
@@ -2102,7 +2112,7 @@ DeallocStatement::DeallocStatement(const DeallocStatement& other) : Statement(ot
 DeallocStatement::~DeallocStatement(){
     delete this->value;
 }
-int DeallocStatement::assemble(Program& program, Function& func, AssembleContext& context){
+int DeallocStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Type* llvm_type;
     std::string type_name;
     llvm::Value* pointer = value->assemble_immutable(program, func, context, &type_name);
@@ -2110,7 +2120,7 @@ int DeallocStatement::assemble(Program& program, Function& func, AssembleContext
     // Resolve typename if it's an alias
     program.resolve_if_alias(type_name);
 
-    if(program.find_type(type_name, &llvm_type) != 0){
+    if(program.find_type(type_name, context, &llvm_type) != 0){
         errors.panic(UNDECLARED_TYPE(type_name));
         return 1;
     }

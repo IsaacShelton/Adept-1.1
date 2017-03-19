@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <unistd.h>
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -16,13 +17,22 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/IRReader/IRReader.h"
+#include "llvm/ExecutionEngine/Interpreter.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetSubtargetInfo.h"
 
 #include "../include/die.h"
 #include "../include/jit.h"
+#include "../include/errors.h"
+#include "../include/strings.h"
 #include "../include/assemble.h"
 #include "../include/mangling.h"
 
@@ -31,70 +41,73 @@ void jit_init(){
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
 }
-int jit_run(AssembleContext& context, std::string func_name, std::string& result, std::vector<llvm::GenericValue> args){
+int jit_run(AssemblyData& context, std::string func_name, std::vector<ModuleDependency>& dependencies, std::string& result, std::vector<llvm::GenericValue> args){
+    std::string error_str;
+    llvm::Function* entry_point = context.module->getFunction(func_name.c_str());
     jit_init();
-    llvm::Function *entry_point = context.module->getFunction( func_name.c_str() );
+
     if(!entry_point) {
         std::cout << "Can't invoke function '" + func_name + "' because it does not exist" << std::endl;
         return 1;
     }
 
-    // Create execution environment
-    std::string error_str;
+    llvm::Triple triple(context.module->getTargetTriple());
+    if (triple.getTriple().empty()) triple.setTriple(llvm::sys::getDefaultTargetTriple());
+    context.module->setTargetTriple(triple.str());
+
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple.str(), error_str);
+
+    if(!target){
+        std::cerr << error_str << std::endl;
+        return 1;
+    }
+
+    llvm::SubtargetFeatures subtarget_features;
+    llvm::StringMap<bool> host_features;
+    if(llvm::sys::getHostCPUFeatures(host_features)){
+        for (auto &host_feature : host_features){
+            subtarget_features.AddFeature(host_feature.first(), host_feature.second);
+        }
+    }
+
+    std::string cpu = llvm::sys::getHostCPUName();
+    std::string features = subtarget_features.getString();
+    llvm::TargetOptions target_options;
+    std::unique_ptr<llvm::TargetMachine> target_machine(
+            target->createTargetMachine(triple.getTriple(), cpu, features, target_options, llvm::Reloc::Model::Static, llvm::CodeModel::Default, llvm::CodeGenOpt::Default));
+    ensure(target_machine && "Could not allocate target machine!");
+    context.module->setDataLayout(target_machine->createDataLayout());
+
+    // Create execution engine
     llvm::ExecutionEngine* execution_engine = llvm::EngineBuilder(std::move(context.module)).setErrorStr(&error_str).create();
 
-    if(execution_engine != 0) {
-        // Call main function
-        llvm::GenericValue return_value = execution_engine->runFunction(entry_point, args);
-
-        // Output results
-        result = return_value.IntVal.toString(10, true);
-    } else {
+    // Ensure execution engine was created successfully
+    if(!execution_engine){
         std::cerr << "Failed to construct ExecutionEngine: " << error_str << std::endl;
         return 1;
     }
 
-    return 0;
-}
-int jit_run(AssembleContext& context, std::string func_name, std::vector<ModuleDependency>& dependencies, ErrorHandler& errors, std::string& result, std::vector<llvm::GenericValue> args){
-    jit_init();
-    llvm::Function *entry_point = context.module->getFunction( func_name.c_str() );
-    if(!entry_point) {
-        std::cout << "Can't invoke function '" + func_name + "' because it does not exist" << std::endl;
-        return 1;
+    // Add all of the dependencies to the execution engine
+    for(size_t i = 0; i != dependencies.size(); i++){
+        ModuleDependency* dependency = &dependencies[i];
+
+        if(!dependency->is_nothing){
+            llvm::SMDiagnostic sm_diagnostic;
+            std::unique_ptr<llvm::Module> required_module = llvm::parseIRFile(dependency->target_bc, sm_diagnostic, context.context);
+
+            if (!required_module) {
+                sm_diagnostic.print("Failed to parse IR File: ", llvm::errs());
+                return false;
+            }
+
+            required_module->setModuleIdentifier(dependency->target_bc.c_str());
+            execution_engine->addModule(std::move(required_module));
+        }
     }
 
-    // Create execution environment
-    std::string error_str;
-    llvm::ExecutionEngine* execution_engine = llvm::EngineBuilder(std::move(context.module)).setErrorStr(&error_str).create();
+    execution_engine->finalizeObject();
+    llvm::GenericValue return_value = execution_engine->runFunction(entry_point, args);
 
-    if(execution_engine != 0) {
-        /*
-        if(dependencies.size() != 0){
-            fail("Only one module JIT is currently supported :\\");
-            return 1;
-        }
-
-        for(size_t i = 0; i != dependencies.size(); i++){
-            AssembleContext import_context(false);
-            ModuleDependency* dependency = &dependencies[i];
-
-            if(assemble(import_context, *dependency->config, *dependency->program, errors) != 0) return 1;
-            execution_engine->addModule(std::move(import_context.module));
-
-            delete dependency->config;
-        }
-        */
-
-        // Call main function
-        llvm::GenericValue return_value = execution_engine->runFunction(entry_point, args);
-
-        // Output results
-        result = return_value.IntVal.toString(10, true);
-    } else {
-        std::cerr << "Failed to construct ExecutionEngine: " << error_str << std::endl;
-        return 1;
-    }
-
+    result = return_value.IntVal.toString(10, true);
     return 0;
 }

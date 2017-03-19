@@ -1,40 +1,43 @@
 
+// (c) 2017 Isaac Shelton
+// API used by adept build scripts
+
 #ifndef BUILD_H_INCLUDED
 #define BUILD_H_INCLUDED
 
 #include "config.h"
 #include "program.h"
 
-struct BuildConfig {
-    const char* sourceFilename;
-    const char* programFilename;
-    const char* objectFilename;
-    const char* bytecodeFilename;
-    char optimization;
-    bool time;
-    bool silent;
-    bool jit;
-};
+// So build scripts can access program cache
+extern CacheManager* current_global_cache_manager;
 
-extern Program* adept_current_program;
-extern Configuration* adept_current_config;
-extern BuildConfig adept_default_build_config;
+// Underlying implementation of AdeptConfig is just a pointer
+typedef Configuration* AdeptConfig;
 
+// Register functions that build scripts can find
 void build_add_symbols();
-void build_transfer_config(Configuration*, BuildConfig*);
+void build_add_api(Program*);
 
-// Function to get pointer to build config
-extern "C" BuildConfig adept_config();
+extern "C" {
 
-// Functions for compiling code
-extern "C" int adept_compile(const char*, BuildConfig*);
+void buildscript_AdeptConfig_create(AdeptConfig*);
+void buildscript_AdeptConfig_free(AdeptConfig*);
+void buildscript_AdeptConfig_defaults(AdeptConfig*);
 
-// Functions for native integration
-extern "C" bool adept_loadLibrary(const char*);
+void buildscript_AdeptConfig_setTiming(AdeptConfig*, bool);
+void buildscript_AdeptConfig_setSilent(AdeptConfig*, bool);
+void buildscript_AdeptConfig_setJIT(AdeptConfig*, bool);
+void buildscript_AdeptConfig_setOptimization(AdeptConfig*, char);
 
-// Functions to deal with dependencies
-extern "C" void adept_dependency_add(const char*);
-extern "C" void adept_dependency_addForced(const char*);
-extern "C" bool adept_dependency_exists(const char*);
+bool buildscript_AdeptConfig_isTiming(AdeptConfig*);
+bool buildscript_AdeptConfig_isSilent(AdeptConfig*);
+bool buildscript_AdeptConfig_isJIT(AdeptConfig*);
+char buildscript_AdeptConfig_getOptimization(AdeptConfig*);
+
+int buildscript_AdeptConfig_compile(AdeptConfig*, const char*);
+bool buildscript_AdeptConfig_loadLibrary(AdeptConfig*, const char*);
+void buildscript_AdeptConfig_addLinkerOption(AdeptConfig*, const char*);
+
+}
 
 #endif // BUILD_H_INCLUDED

@@ -6,7 +6,7 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Target/TargetSubtargetInfo.h"
 
-#include "../include/asmcontext.h"
+#include "../include/asmdata.h"
 
 struct ModuleBuildOptions {
     bool skip = false;
@@ -27,6 +27,7 @@ struct ModuleBuildOptions {
     std::string stop_after;
 };
 
-int native_build_module(AssembleContext& context, std::string bitcode_filename, std::string output_filename, ModuleBuildOptions& options);
+int native_build_module(AssemblyData& context, std::string bitcode_filename, std::string output_filename, ModuleBuildOptions& options);
+bool nativeAddPass(llvm::legacy::PassManagerBase &PM, const char *argv0, llvm::StringRef pass_name, llvm::TargetPassConfig &TPC, ModuleBuildOptions& options);
 
 #endif // NATIVE_H_INCLUDED

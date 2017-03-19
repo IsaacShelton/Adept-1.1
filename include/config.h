@@ -6,18 +6,22 @@
 #include "errors.h"
 
 struct Configuration {
-    std::string username;
-    std::string filename;
-    Clock clock;
+    public:
+
     bool jit;
     bool obj;
     bool bytecode;
     bool link;
     bool load_dyn;
-
     bool silent;
     bool time;
     char optimization;
+    bool add_build_api;
+
+    Clock clock;
+    std::string username;
+    std::string filename;
+    std::string extra_options;
 };
 
 int configure(Configuration& config, std::string filename, ErrorHandler& errors);

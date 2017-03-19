@@ -62,7 +62,7 @@ static void DiagnosticHandler(const DiagnosticInfo &DI, void *Context) {
     errs() << "\n";
 }
 
-int native_build_module(AssembleContext& context, std::string bitcode_filename, std::string output_filename, ModuleBuildOptions& options) {
+int native_build_module(AssemblyData& context, std::string bitcode_filename, std::string output_filename, ModuleBuildOptions& options) {
     // Initialize targets first, so that --version shows registered targets.
     InitializeAllTargets();
     InitializeAllTargetMCs();
@@ -82,8 +82,7 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
     llvm::InitializeNativeTargetAsmPrinter();
 
     context.context.setDiscardValueNames(false); // Discard Names?
-
-    EnableDebugBuffering = true;
+    EnableDebugBuffering = false;
 
     bool has_error = false;
     context.context.setDiagnosticHandler(DiagnosticHandler, &has_error);
@@ -230,7 +229,7 @@ int native_build_module(AssembleContext& context, std::string bitcode_filename, 
             TPC.printAndVerify("");
 
             for (const std::string& run_pass : options.run_pass_names) {
-                if (addPass(PM, argv[0], run_pass, TPC, options)) return 1;
+                if (nativeAddPass(PM, argv[0], run_pass, TPC, options)) return 1;
             }
             PM.add( createPrintMIRPass(*output_stream) );
         } else {
@@ -368,7 +367,7 @@ static std::unique_ptr<tool_output_file> getOutputStream(const char *target_name
     return FDOut;
 }
 
-static bool addPass(PassManagerBase &PM, const char *argv0, StringRef pass_name, TargetPassConfig &TPC, ModuleBuildOptions& options) {
+bool nativeAddPass(PassManagerBase &PM, const char *argv0, StringRef pass_name, TargetPassConfig &TPC, ModuleBuildOptions& options) {
     if (pass_name == "none") return false;
 
     const PassRegistry* pass_registry = PassRegistry::getPassRegistry();

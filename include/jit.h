@@ -7,6 +7,7 @@
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -24,10 +25,9 @@
 
 #include <string>
 #include "program.h"
-#include "asmcontext.h"
+#include "asmdata.h"
 
 void jit_init();
-int jit_run(AssembleContext&, std::string, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
-int jit_run(AssembleContext&, std::string, std::vector<ModuleDependency>& dependencies, ErrorHandler& errors, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
+int jit_run(AssemblyData&, std::string, std::vector<ModuleDependency>& dependencies, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
 
 #endif // JIT_H_INCLUDED

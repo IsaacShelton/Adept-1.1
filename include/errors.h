@@ -34,12 +34,14 @@
 #define UNEXPECTED_OPERATOR(a)       ("Unexpected operator '"  + std::string(a) + "'")
 
 // Duplicate
-#define DUPLICATE_FUNC(a)    ("Duplicate function definition '" + std::string(a) + "'")
-#define DUPLICATE_METHOD(a)  ("Duplicate method definition '" + std::string(a) + "'")
-#define DUPLICATE_STRUCT(a)  ("Duplicate type definition '" + std::string(a) + "'")
-#define DUPLICATE_CLASS(a)  ("Duplicate class definition '" + std::string(a) + "'")
-#define DUPLICATE_MEMBER(a)  ("Duplicate member definition '" + std::string(a) + "'")
-#define DUPLICATE_VARIBLE(a) ("Duplicate variable definition '" + std::string(a) + "'")
+#define DUPLICATE_FUNC(a)       ("Duplicate definition of function '" + std::string(a) + "'")
+#define DUPLICATE_METHOD(a)     ("Duplicate definition of method '" + std::string(a) + "'")
+#define DUPLICATE_STRUCT(a)     ("Duplicate definition of structure '" + std::string(a) + "'")
+#define DUPLICATE_CLASS(a)      ("Duplicate definition of class '" + std::string(a) + "'")
+#define DUPLICATE_MEMBER(a)     ("Duplicate definition of member '" + std::string(a) + "'")
+#define DUPLICATE_VARIBLE(a)    ("Duplicate definition of variable '" + std::string(a) + "'")
+#define DUPLICATE_GLOBAL(a)     ("Duplicate definition of global variable '" + std::string(a) + "'")
+#define DUPLICATE_DEFINITION(a) ("Duplicate definition of '" + std::string(a) + "'")
 
 // Validation
 #define INCOMPATIBLE_TYPES_VAGUE ("Expression contains incompatible types")
