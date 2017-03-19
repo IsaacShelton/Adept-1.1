@@ -1,7 +1,8 @@
 # Adept
 ## A blazing fast low-level language
 Adept is designed for performace and simplicity.<br/>
-Generally it runs as fast or faster than C code.
+Generally it runs as fast or faster than C code.<br/>
+![adept_logo](https://github.com/IsaacShelton/Adept/blob/master/res/adept.png)<br/>
 
 # Examples
 
