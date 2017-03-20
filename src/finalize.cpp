@@ -17,7 +17,7 @@ int finalize(AssemblyData& context, Configuration& config, Program& program, Err
         std::string result;
 
         // Run just in time
-        if(jit_run(context, "main", program.imports, result) != 0) return 1;
+        if(jit_run(context, "main", program.dependencies, result) != 0) return 1;
 
         // Print Execution Time
         if(config.time and !config.silent){

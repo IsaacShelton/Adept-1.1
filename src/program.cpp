@@ -1,12 +1,22 @@
 
 #include <iostream>
 #include <algorithm>
+#include <boost/filesystem.hpp>
 #include "../include/die.h"
 #include "../include/errors.h"
+#include "../include/strings.h"
 #include "../include/program.h"
 #include "../include/assemble.h"
 #include "../include/mangling.h"
 
+Structure::Structure(){}
+Structure::Structure(const std::string& name, const std::vector<Field>& members, bool is_public, bool is_packed, OriginInfo* origin){
+    this->name = name;
+    this->members = members;
+    this->is_public = is_public;
+    this->is_packed = is_packed;
+    this->origin = origin;
+}
 int Structure::find_index(std::string member_name, int* index){
     for(size_t i = 0; i != members.size(); i++){
         if(members[i].name == member_name){
@@ -24,7 +34,7 @@ Function::Function(){
     this->is_stdcall = false;
     this->parent_class_offset = 0;
 }
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, bool is_public){
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, bool is_public, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
@@ -32,8 +42,9 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_static = false;
     this->is_stdcall = false;
     this->parent_class_offset = 0;
+    this->origin = origin;
 }
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public){
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
@@ -42,9 +53,10 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_static = false;
     this->is_stdcall = false;
     this->parent_class_offset = 0;
+    this->origin = origin;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public,
-                   bool is_static, bool is_stdcall){
+                   bool is_static, bool is_stdcall, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
@@ -53,6 +65,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_static = is_static;
     this->is_stdcall = is_stdcall;
     this->parent_class_offset = 0;
+    this->origin = origin;
 }
 Function::Function(const Function& other){
     name = other.name;
@@ -63,6 +76,7 @@ Function::Function(const Function& other){
     is_static = other.is_static;
     is_stdcall = other.is_stdcall;
     parent_class_offset = other.parent_class_offset;
+    origin = other.origin;
 
     for(size_t i = 0; i != other.statements.size(); i++){
         statements[i] = other.statements[i]->clone();
@@ -78,13 +92,15 @@ void Function::print_statements(){
 }
 
 External::External(){}
-External::External(const std::string& name, const std::vector<std::string>& arguments, const std::string& return_type, bool is_public, bool is_mangled, bool is_stdcall){
+External::External(const std::string& name, const std::vector<std::string>& arguments, const std::string& return_type, bool is_public,
+                   bool is_mangled, bool is_stdcall, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
     this->is_public = is_public;
     this->is_mangled = is_mangled;
     this->is_stdcall = is_stdcall;
+    this->origin = origin;
 }
 std::string External::toString(){
     std::string prefix = std::string(is_public ? "public " : "private ");
@@ -109,36 +125,46 @@ ModuleDependency::ModuleDependency(const std::string& filename, const std::strin
     this->is_nothing = is_nothing;
 }
 
+ImportDependency::ImportDependency(const std::string& filename, bool is_public){
+    this->filename = filename;
+    this->is_public = is_public;
+}
+
 Constant::Constant(){}
-Constant::Constant(const std::string& n, PlainExp* v, bool p){
-    name = n;
-    value = v;
-    is_public = p;
+Constant::Constant(const std::string& name, PlainExp* value, bool is_public, OriginInfo* origin){
+    this->name = name;
+    this->value = value;
+    this->is_public = is_public;
+    this->origin = origin;
 }
 
 Global::Global(){}
-Global::Global(const std::string& name, const std::string& type, bool is_public, ErrorHandler& errors){
+Global::Global(const std::string& name, const std::string& type, bool is_public, ErrorHandler& errors, OriginInfo* origin){
     this->name = name;
     this->type = type;
     this->is_public = is_public;
     this->is_imported = false;
     this->errors = errors;
+    this->origin = origin;
 }
 
 Class::Class(){
     this->is_public = false;
     this->is_imported = false;
+    this->origin = NULL;
 }
-Class::Class(const std::string& name, bool is_public, bool is_imported){
+Class::Class(const std::string& name, bool is_public, bool is_imported, OriginInfo* origin){
     this->name = name;
     this->is_public = is_public;
     this->is_imported = is_imported;
+    this->origin = origin;
 }
-Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public){
+Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public, OriginInfo* origin){
     this->name = name;
     this->members = members;
     this->is_public = is_public;
     this->is_imported = false;
+    this->origin = origin;
 }
 int Class::find_index(std::string member_name, int* index){
     for(size_t i = 0; i != members.size(); i++){
@@ -152,10 +178,11 @@ int Class::find_index(std::string member_name, int* index){
 }
 
 TypeAlias::TypeAlias(){}
-TypeAlias::TypeAlias(const std::string& alias, const std::string& binding, bool is_public){
+TypeAlias::TypeAlias(const std::string& alias, const std::string& binding, bool is_public, OriginInfo* origin){
     this->alias = alias;
     this->binding = binding;
     this->is_public = is_public;
+    this->origin = origin;
 }
 
 bool Program::is_function_typename(const std::string& type_name){
@@ -217,11 +244,12 @@ bool Program::function_typename_is_stdcall(const std::string& type_name){
     return false;
 }
 
-Program::Program(CacheManager* parent_manager){
+Program::Program(CacheManager* parent_manager, const std::string& filename){
     this->parent_manager = parent_manager;
+    this->origin_info.filename = filename;
 }
 Program::~Program(){
-    for(ModuleDependency& pkg : imports){
+    for(ModuleDependency& pkg : dependencies){
         delete pkg.config;
     }
 
@@ -229,12 +257,12 @@ Program::~Program(){
         delete constant.value;
     }
 }
-int Program::import_merge(Program& other, bool public_import, ErrorHandler& errors){
+int Program::import_merge(Configuration* config, Program& other, bool public_import, ErrorHandler& errors){
     // Merge Dependencies
-    for(const ModuleDependency& new_dependency : other.imports){
+    for(const ModuleDependency& new_dependency : other.dependencies){
         bool already_exists = false;
 
-        for(const ModuleDependency& dependency : imports){
+        for(const ModuleDependency& dependency : dependencies){
             if(new_dependency.target_obj == dependency.target_obj){
                 already_exists = true;
                 break;
@@ -244,73 +272,54 @@ int Program::import_merge(Program& other, bool public_import, ErrorHandler& erro
         if(!already_exists){
             ModuleDependency created_dependency = new_dependency;
             created_dependency.config = new Configuration(*new_dependency.config);
-            imports.push_back(created_dependency);
+            dependencies.push_back(created_dependency);
         }
     }
 
     // Merge Functions
     for(const Function& new_func : other.functions){
-        // If the function is private, skip over it
         if(!new_func.is_public) continue;
+        if(this->already_imported(new_func.origin)) continue;
         std::string new_final_name = mangle(other, new_func);
-        bool already_exists = false;
 
         for(const Function& func : functions){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_final_name == mangle(other, func)){
-                //errors.panic(DUPLICATE_FUNC(new_func.name));
-                //return 1;
+                errors.panic(DUPLICATE_FUNC(new_func.name));
+                return 1;
             }
         }
 
         for(const External& external : externs){
             if( new_final_name == (external.is_mangled ? mangle(external.name, external.arguments) : external.name) ){
-                //errors.panic(DUPLICATE_FUNC(new_func.name));
-                //return 1;
-
-                // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-                // TODO: Add information about where the other module got this
-                already_exists = true;
-                break;
+                errors.panic(DUPLICATE_FUNC(new_func.name));
+                return 1;
             }
         }
 
-        if(!already_exists){
-            std::vector<std::string> arg_typenames(new_func.arguments.size());
+        std::vector<std::string> arg_typenames(new_func.arguments.size());
 
-            for(size_t i = 0; i != new_func.arguments.size(); i++){
-                arg_typenames[i] = new_func.arguments[i].type;
-            }
-
-            externs.push_back( External(new_func.name, arg_typenames, new_func.return_type, public_import, true, new_func.is_stdcall) );
+        for(size_t i = 0; i != new_func.arguments.size(); i++){
+            arg_typenames[i] = new_func.arguments[i].type;
         }
+
+        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, true, new_func.is_stdcall, new_func.origin);
+        externs.push_back(created_external);
     }
 
     // Merge Structures
     for(const Structure& new_structure : other.structures){
-        // If the structure is private, skip over it
         if(!new_structure.is_public) continue;
+        if(this->already_imported(new_structure.origin)) continue;
 
         for(const Structure& structure : structures){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_structure.name == structure.name){
-                //errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local structure");
-                //return 1;
+                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local structure");
+                return 1;
             }
         }
 
         // Also check for name conflicts with classes
         for(const Class& klass : classes){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_structure.name == klass.name){
                 errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local class");
                 return 1;
@@ -319,13 +328,9 @@ int Program::import_merge(Program& other, bool public_import, ErrorHandler& erro
 
         // Also check for name conflicts with type aliases
         for(const TypeAlias& type_alias : type_aliases){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_structure.name == type_alias.alias){
-                //errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local type alias");
-                //return 1;
+                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local type alias");
+                return 1;
             }
         }
 
@@ -336,79 +341,59 @@ int Program::import_merge(Program& other, bool public_import, ErrorHandler& erro
 
     // Merge Classes
     for(const Class& new_class : other.classes){
-        // If the class is private, skip over it
         if(!new_class.is_public) continue;
-        bool already_exists = false;
+        if(this->already_imported(new_class.origin)) continue;
 
         for(const Class& klass : classes){
             if(new_class.name == klass.name){
-                //errors.panic("Imported class '" + new_class.name + "' has the same name as a local class");
-                //return 1;
-
-                // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-                // TODO: Add information about where the other module got this
-                already_exists = true;
-                break;
+                errors.panic("Imported class '" + new_class.name + "' has the same name as a local class");
+                return 1;
             }
         }
 
         // Also check for name conflicts with structures
         for(const Structure& structure : structures){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_class.name == structure.name){
-                //errors.panic("Imported class '" + new_class.name + "' has the same name as a local structure");
-                //return 1;
+                errors.panic("Imported class '" + new_class.name + "' has the same name as a local structure");
+                return 1;
             }
         }
 
         // Also check for name conflicts with type aliases
         for(const TypeAlias& type_alias : type_aliases){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_class.name == type_alias.alias){
-                //errors.panic("Imported class '" + new_class.name + "' has the same name as a local type alias");
-                //return 1;
+                errors.panic("Imported class '" + new_class.name + "' has the same name as a local type alias");
+                return 1;
             }
         }
 
-        if(!already_exists){
-            classes.resize(classes.size() + 1);
-            Class* target = &classes[classes.size()-1];
+        classes.resize(classes.size() + 1);
+        Class* target = &classes[classes.size()-1];
 
-            *target = new_class;
-            target->is_public = public_import;
-            target->is_imported = true;
+        *target = new_class;
+        target->is_public = public_import;
+        target->is_imported = true;
 
-            for(size_t i = 0; i != target->methods.size(); i++){
-                target->methods[i].parent_class_offset = classes.size();
-            }
+        for(size_t i = 0; i != target->methods.size(); i++){
+            target->methods[i].parent_class_offset = classes.size();
         }
     }
 
     // Merge Externals
     for(const External& new_external : other.externs){
-        // If the external is private, skip over it
         if(!new_external.is_public) continue;
-        bool already_exists = false;
+        if(this->already_imported(new_external.origin)) continue;
         std::string new_external_final_name = (new_external.is_mangled) ? mangle(new_external.name, new_external.arguments) : new_external.name;
 
         for(const External& external : externs){
             if( new_external_final_name == (external.is_mangled ? mangle(external.name, external.arguments) : external.name) ){
-                already_exists = true;
-                break;
+                errors.panic(DUPLICATE_FUNC(new_external.name));
             }
         }
 
-        if(!already_exists){
-            External target = new_external;
-            target.is_public = public_import;
-            externs.push_back(target);
-        }
+        External target = new_external;
+        target.is_public = public_import;
+        externs.push_back(target);
     }
 
     // Merge Extra Libraries
@@ -430,57 +415,43 @@ int Program::import_merge(Program& other, bool public_import, ErrorHandler& erro
     // Merge Constants
     for(const Constant& new_constant : other.constants){
         if(!new_constant.is_public) continue;
-        bool already_exists = false;
+        if(this->already_imported(new_constant.origin)) continue;
 
         for(const Constant& constant : constants){
             if(new_constant.name == constant.name){
-                //errors.panic("Imported constant '" + new_constant.name + "' has the same name as a local constant");
-                //return 1;
-
-                // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-                // TODO: Add information about where the other module got this
-                already_exists = true;
-                break;
+                errors.panic("Imported constant '$" + new_constant.name + "' has the same name as a local constant");
+                return 1;
             }
         }
 
-        if(!already_exists){
-            constants.push_back( Constant(new_constant.name, new_constant.value->clone(), public_import) );
-        }
+        Constant created_constant(new_constant.name, new_constant.value->clone(), public_import, new_constant.origin);
+        constants.push_back(created_constant);
     }
 
     // Merge Globals
     for(Global& new_global : other.globals){
         if(!new_global.is_public) continue;
-        bool already_exists = false;
+        if(this->already_imported(new_global.origin)) continue;
 
         for(const Global& global : globals){
             if(new_global.name == global.name){
-                //errors.panic("Imported global variable '" + new_global.name + "' has the same name as a local global variable");
-                //return 1;
-
-                // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-                already_exists = true;
-                break;
+                errors.panic("Imported global variable '" + new_global.name + "' has the same name as a local global variable");
+                return 1;
             }
         }
 
-        if(!already_exists){
-            Global cloned_global = new_global;
-            cloned_global.is_imported = true;
-            globals.push_back(std::move(cloned_global));
-        }
+        Global cloned_global = new_global;
+        cloned_global.is_imported = true;
+        cloned_global.is_public = public_import;
+        globals.push_back(std::move(cloned_global));
     }
 
     // Merge Type Aliases
     for(TypeAlias& new_type_alias : other.type_aliases){
         if(!new_type_alias.is_public) continue;
+        if(this->already_imported(new_type_alias.origin)) continue;
 
         for(const TypeAlias& type_alias : type_aliases){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_type_alias.alias == type_alias.alias){
                 errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local type alias");
                 return 1;
@@ -488,10 +459,6 @@ int Program::import_merge(Program& other, bool public_import, ErrorHandler& erro
         }
 
         for(const Structure& structure : structures){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_type_alias.alias == structure.name){
                 errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local structure");
                 return 1;
@@ -499,17 +466,32 @@ int Program::import_merge(Program& other, bool public_import, ErrorHandler& erro
         }
 
         for(const Class& klass : classes){
-            // HACK: We don't know where the other module got this from, but we'll ignore any name collisions it may have
-            // TODO: Add information about where the other module got this
-            break;
-
             if(new_type_alias.alias == klass.name){
                 errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local class");
                 return 1;
             }
         }
 
-        type_aliases.push_back(new_type_alias);
+        TypeAlias created_type_alias = new_type_alias;
+        created_type_alias.is_public = public_import;
+        type_aliases.push_back(std::move(created_type_alias));
+    }
+
+    // Merge imports last
+    for(const ImportDependency& new_import : other.imports){
+        if( !(new_import.is_public) ) continue;
+        bool already_exists = false;
+
+        for(const ImportDependency& existing_import : imports){
+            if(new_import.filename == existing_import.filename){
+                already_exists = true;
+                break;
+            }
+        }
+
+        if(!already_exists){
+            imports.push_back( ImportDependency(new_import.filename, public_import) );
+        }
     }
 
     return 0;
@@ -709,9 +691,15 @@ void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program:
     }
 }
 
+bool Program::already_imported(OriginInfo* origin){
+    for(const ImportDependency& import_dependency : imports){
+        if(import_dependency.filename == origin->filename) return true;
+    }
+    return false;
+}
 void Program::generate_type_aliases(){
     // Standard type aliases
-    type_aliases.push_back( TypeAlias("usize", "uint", false) );
+    type_aliases.push_back( TypeAlias("usize", "uint", false, &origin_info) );
 }
 int Program::generate_types(AssemblyData& context){
     // NOTE: Requires types vector to be empty
@@ -762,7 +750,7 @@ int Program::generate_types(AssemblyData& context){
         for(size_t j = 0; j != struct_data.members.size(); j++){
             llvm::Type* member_type;
             if(this->find_type(struct_data.members[j].type, context, &member_type) != 0) {
-                std::cerr << "The type '" << struct_data.members[j].type << "' does not exist" << std::endl;
+                fail_filename(origin_info.filename, "The type '" + struct_data.members[j].type + "' does not exist");
                 return 1;
             }
             members.push_back(member_type);
@@ -780,7 +768,7 @@ int Program::generate_types(AssemblyData& context){
         for(size_t j = 0; j != class_data.members.size(); j++){
             llvm::Type* member_type;
             if(this->find_type(class_data.members[j].type, context, &member_type) != 0) {
-                std::cerr << "The type '" << class_data.members[j].type << "' does not exist" << std::endl;
+                fail_filename(origin_info.filename, "The type '" + class_data.members[j].type + "' does not exist");
                 return 1;
             }
             members.push_back(member_type);
@@ -796,6 +784,7 @@ int Program::generate_types(AssemblyData& context){
 
     return 0;
 }
+
 int Program::find_type(const std::string& name, AssemblyData& context, llvm::Type** type) const {
     std::vector<Type>& types = context.types;
     std::vector<TypeModifier> type_modifiers;

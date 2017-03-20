@@ -409,14 +409,27 @@ class AllocExp : public PlainExp {
     llvm::Value* assemble_elements(Program&, Function&, AssemblyData&, std::string*);
 };
 
-class ArrayDataExpression : public PlainExp {
+class ArrayDataExp : public PlainExp {
     public:
     std::vector<PlainExp*> elements;
 
-    ArrayDataExpression(ErrorHandler&);
-    ArrayDataExpression(const std::vector<PlainExp*>&, ErrorHandler&);
-    ArrayDataExpression(const ArrayDataExpression&);
-    ~ArrayDataExpression();
+    ArrayDataExp(ErrorHandler&);
+    ArrayDataExp(const std::vector<PlainExp*>&, ErrorHandler&);
+    ArrayDataExp(const ArrayDataExp&);
+    ~ArrayDataExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
+class RetrieveConstantExp : public PlainExp {
+    public:
+    std::string value;
+
+    RetrieveConstantExp(ErrorHandler&);
+    RetrieveConstantExp(const std::string&, ErrorHandler&);
+    RetrieveConstantExp(const RetrieveConstantExp&);
+    ~RetrieveConstantExp();
     llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
     std::string toString();
     PlainExp* clone();

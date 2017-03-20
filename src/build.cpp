@@ -79,23 +79,23 @@ void build_add_api(Program* program){
     klass->members.push_back( ClassField{"", "ptr", false, false} );
 
     klass->methods.resize(14);
-    klass->methods[0] = Function("create", {}, "void", true);
-    klass->methods[1] = Function("free", {}, "void", true);
-    klass->methods[2] = Function("defaults", {}, "void", true);
+    klass->methods[0] = Function("create", {}, "void", true, &program->origin_info);
+    klass->methods[1] = Function("free", {}, "void", true, &program->origin_info);
+    klass->methods[2] = Function("defaults", {}, "void", true, &program->origin_info);
 
-    klass->methods[3] = Function("setTiming", { Field{"", "bool"} }, "void", true);
-    klass->methods[4] = Function("setSilent", { Field{"", "bool"} }, "void", true);
-    klass->methods[5] = Function("setJIT", { Field{"", "bool"} }, "void", true);
-    klass->methods[6] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true);
+    klass->methods[3] = Function("setTiming", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    klass->methods[4] = Function("setSilent", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    klass->methods[5] = Function("setJIT", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    klass->methods[6] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true, &program->origin_info);
 
-    klass->methods[7] = Function("isTiming", {}, "bool", true);
-    klass->methods[8] = Function("isSilent", {}, "bool", true);
-    klass->methods[9] = Function("isJIT", {}, "bool", true);
-    klass->methods[10] = Function("getOptimization", {}, "ubyte", true);
+    klass->methods[7] = Function("isTiming", {}, "bool", true, &program->origin_info);
+    klass->methods[8] = Function("isSilent", {}, "bool", true, &program->origin_info);
+    klass->methods[9] = Function("isJIT", {}, "bool", true, &program->origin_info);
+    klass->methods[10] = Function("getOptimization", {}, "ubyte", true, &program->origin_info);
 
-    klass->methods[11] = Function("compile", { Field{"", "*ubyte"} }, "int", true);
-    klass->methods[12] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true);
-    klass->methods[13] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true);
+    klass->methods[11] = Function("compile", { Field{"", "*ubyte"} }, "int", true, &program->origin_info);
+    klass->methods[12] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
+    klass->methods[13] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
 }
 
 extern "C" {

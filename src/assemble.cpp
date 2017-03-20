@@ -67,9 +67,9 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     out_stream->flush();
     delete out_stream;
 
-    for(size_t i = 0; i != program.imports.size(); i++){
+    for(size_t i = 0; i != program.dependencies.size(); i++){
         AssemblyData import_context;
-        ModuleDependency* dependency = &program.imports[i];
+        ModuleDependency* dependency = &program.dependencies[i];
 
         if(std::find(linked_objects.begin(), linked_objects.end(), dependency->target_obj) != linked_objects.end()){
             // We've already linked to that object file
@@ -153,9 +153,9 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
     out_stream->flush();
     delete out_stream;
 
-    for(size_t i = 0; i != program.imports.size(); i++){
+    for(size_t i = 0; i != program.dependencies.size(); i++){
         AssemblyData import_context;
-        ModuleDependency* dependency = &program.imports[i];
+        ModuleDependency* dependency = &program.dependencies[i];
         Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
 
         if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
@@ -175,7 +175,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
     build_context.module = llvm::CloneModule(context.module.get());
 
     // Run 'build()'
-    if(jit_run(build_context, "build", program.imports, build_result) != 0) return 1;
+    if(jit_run(build_context, "build", program.dependencies, build_result) != 0) return 1;
     if(build_result != "0") return 1;
 
     return 0;

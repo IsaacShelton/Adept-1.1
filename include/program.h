@@ -32,6 +32,10 @@ struct ClassField {
     bool is_static;
 };
 
+struct OriginInfo {
+    std::string filename;
+};
+
 class Structure {
     public:
     std::string name;
@@ -39,6 +43,10 @@ class Structure {
     bool is_public;
     bool is_packed;
 
+    OriginInfo* origin;
+
+    Structure();
+    Structure(const std::string&, const std::vector<Field>&, bool, bool, OriginInfo*);
     int find_index(std::string name, int* index);
 };
 
@@ -55,10 +63,12 @@ class Function {
     bool is_stdcall;
     size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
 
+    OriginInfo* origin;
+
     Function();
-    Function(const std::string&, const std::vector<Field>&, const std::string&, bool);
-    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool);
-    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool);
+    Function(const std::string&, const std::vector<Field>&, const std::string&, bool, OriginInfo*);
+    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, OriginInfo*);
+    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool, OriginInfo*);
     Function(const Function&);
     ~Function();
     void print_statements();
@@ -73,8 +83,10 @@ class External {
     bool is_mangled;
     bool is_stdcall;
 
+    OriginInfo* origin;
+
     External();
-    External(const std::string&, const std::vector<std::string>&, const std::string&, bool, bool, bool);
+    External(const std::string&, const std::vector<std::string>&, const std::string&, bool, bool, bool, OriginInfo*);
     std::string toString();
 };
 
@@ -89,14 +101,24 @@ class ModuleDependency {
     ModuleDependency(const std::string&, const std::string&, const std::string&, Configuration*, bool);
 };
 
+class ImportDependency {
+    public:
+    std::string filename;
+    bool is_public;
+
+    ImportDependency(const std::string&, bool);
+};
+
 class Constant {
     public:
     std::string name;
     PlainExp* value;
     bool is_public;
 
+    OriginInfo* origin;
+
     Constant();
-    Constant(const std::string&, PlainExp*, bool);
+    Constant(const std::string&, PlainExp*, bool, OriginInfo*);
 };
 
 class Global {
@@ -107,8 +129,10 @@ class Global {
     bool is_imported;
     ErrorHandler errors;
 
+    OriginInfo* origin;
+
     Global();
-    Global(const std::string&, const std::string&, bool, ErrorHandler&);
+    Global(const std::string&, const std::string&, bool, ErrorHandler&, OriginInfo*);
 };
 
 class Class {
@@ -119,9 +143,11 @@ class Class {
     bool is_public;
     bool is_imported;
 
+    OriginInfo* origin;
+
     Class();
-    Class(const std::string&, bool, bool);
-    Class(const std::string&, const std::vector<ClassField>&, bool);
+    Class(const std::string&, bool, bool, OriginInfo*);
+    Class(const std::string&, const std::vector<ClassField>&, bool, OriginInfo*);
     int find_index(std::string name, int* index);
 };
 
@@ -131,15 +157,20 @@ class TypeAlias {
     std::string binding;
     bool is_public;
 
+    OriginInfo* origin;
+
     TypeAlias();
-    TypeAlias(const std::string&, const std::string&, bool);
+    TypeAlias(const std::string&, const std::string&, bool, OriginInfo*);
 };
 
 class Program {
     public:
     CacheManager* parent_manager;
-    std::vector<ModuleDependency> imports;
+    std::vector<ModuleDependency> dependencies;
+    std::vector<ImportDependency> imports;
     std::vector<std::string> extra_libs;
+    std::vector<OriginInfo> origins;
+    OriginInfo origin_info;
 
     std::vector<Function> functions;
     std::vector<Structure> structures;
@@ -152,7 +183,7 @@ class Program {
     llvm::Type* llvm_array_type;
     llvm::Function* llvm_array_ctor;
 
-    enum TypeModifier {
+    enum TypeModifier : unsigned char {
         Pointer = 0,
         Array = 1,
     };
@@ -163,9 +194,9 @@ class Program {
     static bool is_integer_typename(const std::string&);
     static bool function_typename_is_stdcall(const std::string&);
 
-    Program(CacheManager*);
+    Program(CacheManager*, const std::string&);
     ~Program();
-    int import_merge(Program&, bool, ErrorHandler& errors);
+    int import_merge(Configuration*, Program&, bool, ErrorHandler& errors);
 
     bool resolve_if_alias(std::string&) const;
     bool resolve_once_if_alias(std::string&) const;
@@ -175,6 +206,8 @@ class Program {
     int function_typename_to_type(const std::string&, AssemblyData&, llvm::Type**) const;
     void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&) const;
 
+    OriginInfo* create_origin(Configuration*);
+    bool already_imported(OriginInfo*);
     void generate_type_aliases();
     int generate_types(AssemblyData&);
 

@@ -200,7 +200,7 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
         }
     }
 
-    program.structures.push_back( Structure{name, members, attr_info.is_public, attr_info.is_packed} );
+    program.structures.push_back( Structure(name, members, attr_info.is_public, attr_info.is_packed, &program.origin_info) );
     return 0;
 }
 int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -235,6 +235,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     klass->name = name;
     klass->is_public = attr_info.is_public;
     klass->is_imported = false;
+    klass->origin = &program.origin_info;
 
     // Skip over class name and '{'
     next_index(i, tokens.size());
@@ -330,7 +331,7 @@ int parse_type_alias(Configuration& config, TokenList& tokens, Program& program,
     std::string binding;
 
     if(parse_type(config, tokens, program, i, binding, errors) != 0) return 1;
-    program.type_aliases.push_back( TypeAlias(alias, binding, attr_info.is_public) );
+    program.type_aliases.push_back( TypeAlias(alias, binding, attr_info.is_public, &program.origin_info) );
     return 0;
 }
 int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -379,7 +380,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
-    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall) );
+    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, &program.origin_info) );
     return 0;
 }
 int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, size_t class_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -439,7 +440,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     next_index(i, tokens.size());
     if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
 
-    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall);
+    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, &program.origin_info);
     created_method.parent_class_offset = class_offset_plus_one;
     klass->methods.push_back( std::move(created_method) );
     return 0;
@@ -475,7 +476,7 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
 
     errors.line++;
-    program.externs.push_back( External(name, arguments, return_type, attr_info.is_public, false, attr_info.is_stdcall) );
+    program.externs.push_back( External(name, arguments, return_type, attr_info.is_public, false, attr_info.is_stdcall, &program.origin_info) );
     return 0;
 }
 int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -605,21 +606,22 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
     // Import the declarations
-    if(program.import_merge(*import_program, attr_info.is_public, errors) != 0){
+    if(program.import_merge(import_config, *import_program, attr_info.is_public, errors) != 0){
         delete import_config;
         return 1;
     }
+    program.imports.push_back( ImportDependency(source_filename, attr_info.is_public) );
 
     // Exit if native dependency already exists
-    for(size_t i = 0; i != program.imports.size(); i++){
-        if(program.imports[i].target_obj == target_obj){
+    for(size_t i = 0; i != program.dependencies.size(); i++){
+        if(program.dependencies[i].target_obj == target_obj){
             delete import_config;
             return 0;
         }
     }
 
     bool is_nothing = (import_program->functions.size() == 0 and import_program->classes.size() == 0 and import_program->globals.size() == 0);
-    program.imports.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config, is_nothing) );
+    program.dependencies.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config, is_nothing) );
     return 0;
 }
 int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
@@ -664,7 +666,7 @@ int parse_constant(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
 
     if(parse_expression(config, tokens, program, i, &value, errors) != 0) return 1;
-    program.constants.push_back( Constant(name, value, attr_info.is_public) );
+    program.constants.push_back( Constant(name, value, attr_info.is_public, &program.origin_info) );
     i--;
     return 0;
 }
@@ -700,6 +702,7 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
         global->type = type;
         global->is_public = attr_info.is_public;
         global->is_imported = false;
+        global->origin = &program.origin_info;
         global->errors = errors;
     }
     return 0;
@@ -1504,15 +1507,8 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         return 0;
     case TOKENID_CONSTANT:
         {
-            std::string const_name = tokens[i].getString();
-            Constant constant;
-
+            *expression = new RetrieveConstantExp(tokens[i].getString(), errors);
             next_index(i, tokens.size());
-            if(program.find_const(const_name, &constant) != 0){
-                errors.panic( UNDECLARED_CONST(const_name) );
-                return 1;
-            }
-            *expression = constant.value->clone();
         }
         return 0;
     case TOKENID_ADDRESS:
@@ -1635,7 +1631,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
             }
 
             next_index(i, tokens.size());
-            *expression = new ArrayDataExpression(elements, errors);
+            *expression = new ArrayDataExp(elements, errors);
         }
         return 0;
     default:

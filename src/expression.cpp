@@ -2003,18 +2003,18 @@ llvm::Value* AllocExp::assemble_elements(Program& program, Function& func, Assem
     return context.builder.CreateCall(program.llvm_array_ctor, ctor_args, "calltmp");
 }
 
-ArrayDataExpression::ArrayDataExpression(ErrorHandler& err){
+ArrayDataExp::ArrayDataExp(ErrorHandler& err){
     is_mutable = false;
     is_constant = true;
     errors = err;
 }
-ArrayDataExpression::ArrayDataExpression(const std::vector<PlainExp*>& elements, ErrorHandler& err){
+ArrayDataExp::ArrayDataExp(const std::vector<PlainExp*>& elements, ErrorHandler& err){
     this->elements = elements;
     is_mutable = false;
     is_constant = true;
     errors = err;
 }
-ArrayDataExpression::ArrayDataExpression(const ArrayDataExpression& other) : PlainExp(other) {
+ArrayDataExp::ArrayDataExp(const ArrayDataExp& other) : PlainExp(other) {
     this->elements.resize(other.elements.size());
     is_mutable = false;
     is_constant = true;
@@ -2023,12 +2023,12 @@ ArrayDataExpression::ArrayDataExpression(const ArrayDataExpression& other) : Pla
         this->elements[i] = other.elements[i]->clone();
     }
 }
-ArrayDataExpression::~ArrayDataExpression(){
+ArrayDataExp::~ArrayDataExp(){
     for(size_t i = 0; i != this->elements.size(); i++){
         delete this->elements[i];
     }
 }
-llvm::Value* ArrayDataExpression::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+llvm::Value* ArrayDataExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     llvm::Type* global_llvm_type;
     llvm::GlobalVariable* global_data;
 
@@ -2082,7 +2082,7 @@ llvm::Value* ArrayDataExpression::assemble(Program& program, Function& func, Ass
     if(expr_type != NULL) *expr_type = "*" + element_typename;
     return global_data;
 }
-std::string ArrayDataExpression::toString(){
+std::string ArrayDataExp::toString(){
     std::string data_contents = "{";
 
     for(size_t i = 0; i != this->elements.size(); i++){
@@ -2093,6 +2093,41 @@ std::string ArrayDataExpression::toString(){
     data_contents += "}";
     return data_contents;
 }
-PlainExp* ArrayDataExpression::clone(){
-    return new ArrayDataExpression(*this);
+PlainExp* ArrayDataExp::clone(){
+    return new ArrayDataExp(*this);
+}
+
+RetrieveConstantExp::RetrieveConstantExp(ErrorHandler& err){
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+RetrieveConstantExp::RetrieveConstantExp(const std::string& val, ErrorHandler& err){
+    value = val;
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+RetrieveConstantExp::RetrieveConstantExp(const RetrieveConstantExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+    is_constant = true;
+}
+RetrieveConstantExp::~RetrieveConstantExp(){}
+llvm::Value* RetrieveConstantExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+    Constant constant;
+    PlainExp* constant_expression;
+
+    if(program.find_const(value, &constant) != 0){
+        errors.panic(UNDECLARED_CONST(value));
+        return NULL;
+    }
+
+    return constant.value->assemble(program, func, context, expr_type);
+}
+std::string RetrieveConstantExp::toString(){
+    return "$" + value;
+}
+PlainExp* RetrieveConstantExp::clone(){
+    return new RetrieveConstantExp(*this);
 }

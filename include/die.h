@@ -20,5 +20,6 @@ void _ensure(const char*, const char*, int);
 
 void fail(const std::string& message);
 void fail_filename(const Configuration& config, const std::string& message);
+void fail_filename(const std::string&, const std::string& message);
 
 #endif // DIE_H_INCLUDED

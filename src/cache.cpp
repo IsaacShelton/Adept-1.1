@@ -14,7 +14,7 @@ Program* CacheManager::newProgram(const std::string& filename){
     }
 
     // The program wasn't found, so create a new one
-    Program* created_program = new Program(this);
+    Program* created_program = new Program(this, filename);
     cache.push_back( CacheEntry{filename, created_program} );
     return created_program;
 }

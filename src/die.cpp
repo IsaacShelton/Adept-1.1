@@ -16,3 +16,7 @@ void fail(const std::string& message){
 void fail_filename(const Configuration& config, const std::string& message){
     std::cerr << filename_name(config.filename) + ": " + message << std::endl;
 }
+
+void fail_filename(const std::string& filename, const std::string& message){
+    std::cerr << filename_name(filename) + ": " + message << std::endl;
+}
