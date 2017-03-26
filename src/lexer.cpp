@@ -174,11 +174,12 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
 
                 // NOTE: MUST be pre sorted alphabetically (used for string_search)
                 //         Make sure to update switch statement with correct indices after add or removing a type
-                const size_t keywords_size = 30;
+                const size_t keywords_size = 34;
                 const std::string keywords[keywords_size] = {
-                    "and", "cast", "class", "constant", "def", "delete", "dynamic", "else", "false", "foreign",
-                    "funcptr", "if", "import", "link", "new", "null", "or", "packed", "private", "public", "return",
-                    "sizeof", "static", "stdcall", "true", "type", "unless", "until", "while"
+                    "and", "break", "case", "cast", "class", "constant", "def", "default", "defer", "delete",
+                    "dynamic", "else", "false", "foreign", "funcptr", "if", "import", "link", "new", "null",
+                    "or", "packed", "private", "public", "return", "sizeof", "static", "stdcall", "switch", "true",
+                    "type", "unless", "until", "while"
                 };
 
                 int keyword_index = string_search(keywords, keywords_size, word);
@@ -192,7 +193,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                     // 'and' keyword
                     tokens.push_back( TOKEN_AND );
                     break;
-                case 16:
+                case 20:
                     // 'or' keyword
                     tokens.push_back( TOKEN_OR );
                     break;

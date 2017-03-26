@@ -1017,7 +1017,7 @@ int CallStatement::assemble(Program& program, Function& func, AssemblyData& cont
                 }
             }
 
-            llvm::Value* function_address = context.builder.CreateLoad(context.current_function->getVariableValue(func_variable->name));
+            llvm::Value* function_address = context.builder.CreateLoad(func_variable->variable);
             llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
 
             if(Program::function_typename_is_stdcall(func_variable->type)){
@@ -2160,3 +2160,185 @@ bool DeallocStatement::isTerminator(){
 bool DeallocStatement::isConditional(){
     return false;
 }
+
+SwitchStatement::Case::Case(){}
+SwitchStatement::Case::Case(PlainExp* value, const StatementList& statements){
+    this->value = value;
+    this->statements = statements;
+}
+
+SwitchStatement::SwitchStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+SwitchStatement::SwitchStatement(PlainExp* condition, const std::vector<SwitchStatement::Case>& cases, const StatementList& default_statements, ErrorHandler& errors){
+    this->condition = condition;
+    this->cases = cases;
+    this->default_statements = default_statements;
+    this->errors = errors;
+}
+SwitchStatement::SwitchStatement(const SwitchStatement& other) : Statement(other) {
+    SwitchStatement::Case* this_case;
+    SwitchStatement::Case* other_case;
+
+    this->condition = other.condition->clone();
+    this->errors = errors;
+    this->cases.resize(other.cases.size());
+    this->default_statements.resize(other.default_statements.size());
+
+    for(size_t i = 0; i != other.cases.size(); i++){
+        this_case = &this->cases[i];
+        other_case = &other.cases[i];
+
+        this_case->value = other_case->value->clone();
+        this_case->statements.resize(other_case->statements.size());
+
+        for(size_t j = 0; j != other_case->statements.size(); j++){
+            this_case->statements[j] = other_case->statements[j]->clone();
+        }
+    }
+
+    for(size_t i = 0; i != other.default_statements.size(); i++){
+        this->default_statements[i] = other.default_statements[i]->clone();
+    }
+}
+SwitchStatement::~SwitchStatement(){
+    delete condition;
+
+    for(const SwitchStatement::Case& switch_case : this->cases){
+        delete switch_case.value;
+
+        for(Statement* statement : switch_case.statements){
+            delete statement;
+        }
+    }
+
+    for(Statement* statement : default_statements){
+        delete statement;
+    }
+}
+int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& context){
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
+
+    std::string value_typename;
+    std::string condition_typename;
+    llvm::Value* switch_value = condition->assemble_immutable(program, func, context, &condition_typename);
+    llvm::BasicBlock* continue_block = llvm::BasicBlock::Create(context.context, "switchcont", llvm_function);
+    llvm::BasicBlock* default_block; // Points to default block (continue_block if no default case was specified)
+    llvm::BasicBlock* current_block = context.builder.GetInsertBlock();
+    llvm::Value* case_condition;
+    llvm::BasicBlock* case_block;
+    std::vector<llvm::APInt> values;
+
+    if(switch_value == NULL) return 1;
+    if(!Program::is_integer_typename(condition_typename)){
+        errors.panic("Switch condition value must be an integer");
+        return 1;
+    }
+
+    if(this->default_statements.size() != 0){
+        bool terminated = false;
+        default_block = llvm::BasicBlock::Create(context.context, "switchdefault", llvm_function);
+        context.builder.SetInsertPoint(default_block);
+
+        for(Statement* statement : this->default_statements){
+            if(statement->isTerminator()) terminated = true;
+            statement->assemble(program, func, context);
+        }
+
+        if(!terminated){
+            context.builder.CreateBr(continue_block);
+        }
+    }
+    else {
+        default_block = continue_block;
+    }
+
+    context.builder.SetInsertPoint(current_block);
+    llvm::SwitchInst* switch_statement = context.builder.CreateSwitch(switch_value, default_block);
+
+    for(const SwitchStatement::Case& switch_case : this->cases){
+        case_condition = switch_case.value->assemble_immutable(program, func, context, &value_typename);
+        if(case_condition == NULL) return 1;
+
+        if(!Program::is_integer_typename(value_typename)){
+            errors.panic("Case condition value must be an integer");
+            return 1;
+        }
+
+        if(!switch_case.value->is_constant){
+            errors.panic("Case condition value must be constant");
+            return 1;
+        }
+
+        bool terminated = false;
+        case_block = llvm::BasicBlock::Create(context.context, "case", llvm_function);
+        context.builder.SetInsertPoint(case_block);
+
+        for(Statement* statement : switch_case.statements){
+            if(statement->isTerminator()) terminated = true;
+            statement->assemble(program, func, context);
+        }
+
+        if(!terminated){
+            context.builder.CreateBr(continue_block);
+        }
+
+        // WARNING: case_condition should be a llvm::ConstantInt* (this should've been verified earlier) but if it isn't, bad things will happen
+        llvm::ConstantInt* constant_val = static_cast<llvm::ConstantInt*>(case_condition);
+        llvm::APInt constant_int = constant_val->getValue();
+
+        for(const llvm::APInt& i : values){
+            if(constant_int == i){
+                errors.panic("Attempting to define multiple cases with the same value");
+                return 1;
+            }
+        }
+
+        switch_statement->addCase(constant_val, case_block);
+        values.push_back(constant_int);
+    }
+
+    context.builder.SetInsertPoint(continue_block);
+    return 0;
+}
+std::string SwitchStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += "switch " + condition->toString() + " {\n";
+
+    for(SwitchStatement::Case& switch_case : cases){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+        result += "case " + switch_case.value->toString() + "\n";
+
+        for(Statement* statement : switch_case.statements){
+            result += statement->toString(indent + 1, false) + "\n";
+        }
+    }
+
+    if(default_statements.size() != 0){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+        result += "default\n";
+
+        for(Statement* statement : default_statements){
+            result += statement->toString(indent + 1, false) + "\n";
+        }
+    }
+
+    for(unsigned int i = 0; i != indent; i++) result += "    ";
+    result += "}";
+    return result;
+}
+Statement* SwitchStatement::clone(){
+    return new SwitchStatement(*this);
+}
+bool SwitchStatement::isTerminator(){
+    return false;
+}
+bool SwitchStatement::isConditional(){
+    return false; // Not really a conditional (or at least don't treat is as a conditional)
+}
+

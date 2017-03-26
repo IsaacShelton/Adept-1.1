@@ -44,7 +44,8 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->parent_class_offset = 0;
     this->origin = origin;
 }
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public, OriginInfo* origin){
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements,
+                   bool is_public, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
@@ -55,8 +56,8 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->parent_class_offset = 0;
     this->origin = origin;
 }
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements, bool is_public,
-                   bool is_static, bool is_stdcall, OriginInfo* origin){
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements,
+                   bool is_public, bool is_static, bool is_stdcall, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;

@@ -8,6 +8,7 @@
 #include "../include/parse.h"
 #include "../include/lexer.h"
 #include "../include/errors.h"
+#include "../include/search.h"
 #include "../include/strings.h"
 #include "../include/mangling.h"
 #include "llvm/Support/DynamicLibrary.h"
@@ -79,61 +80,72 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     std::string keyword = tokens[i].getString();
     next_index(i, tokens.size());
 
-    if(keyword == "def"){
-        if(parse_function(config, tokens, program, i, attr_info, errors) != 0) return 1;
-    }
-    else if(keyword == "foreign"){
-        if(parse_external(config, tokens, program, i, attr_info, errors) != 0) return 1;
-    }
-    else if(keyword == "public" or keyword == "private"){
-        if(parse_attribute(config, tokens, program, --i, errors) != 0) return 1;
-    }
-    else if(keyword == "type"){
-        if(parse_structure(config, tokens, program, i, attr_info, errors) != 0) return 1;
-    }
-    else if(keyword == "class"){
+    const size_t accepted_keywords_size = 10;
+    const std::string accepted_keywords[] = {
+        "class", "constant", "def", "dynamic", "foreign", "import", "link", "private", "public", "type"
+    };
+
+    size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
+
+    switch(string_index){
+    case 0: // class
         if(parse_class(config, tokens, program, i, attr_info, errors) != 0) return 1;
-    }
-    else if(keyword == "import"){
-        if(parse_import(config, tokens, program, i, attr_info, errors) != 0) return 1;
-    }
-    else if(keyword == "link"){
-        if(parse_lib(config, tokens, program, i, errors) != 0) return 1;
-    }
-    else if(keyword == "dynamic"){
-        if(tokens[i].id != TOKENID_STRING){
-            errors.panic("Expected name of dynamic library after 'dynamic' keyword");
-            return 1;
-        }
-
-        // Don't load dynamic libraries if we know this code won't run jit
-        if(!config.load_dyn) return 0;
-
-        std::string name = tokens[i].getString();
-        std::string local_file = filename_path(config.filename) + name;
-        std::string public_file = "C:/Users/" + config.username + "/.adept/lib/" + name;
-
-        if( access(local_file.c_str(), F_OK) != -1 ){
-            name = local_file;
-        }
-        else if( access(public_file.c_str(), F_OK) != -1 ){
-            name = public_file;
-        }
-        else if( access(name.c_str(), F_OK) == -1 ){
-            // File doesn't exist globally either
-            errors.panic( UNKNOWN_MODULE(name) );
-            return 1;
-        }
-
-        if( llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str()) ){
-            errors.panic("Failed to load dynamic library '" + name + "'");
-            return 1;
-        }
-    }
-    else if(keyword == "constant"){
+        break;
+    case 1: // constant
         if(parse_constant(config, tokens, program, i, attr_info, errors) != 0) return 1;
-    }
-    else {
+        break;
+    case 2: // def
+        if(parse_function(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case 3: { // dynamic
+            if(tokens[i].id != TOKENID_STRING){
+                errors.panic("Expected name of dynamic library after 'dynamic' keyword");
+                return 1;
+            }
+
+            // Don't load dynamic libraries if we know this code won't run jit
+            if(!config.load_dyn) return 0;
+
+            std::string name = tokens[i].getString();
+            std::string local_file = filename_path(config.filename) + name;
+            std::string public_file = "C:/Users/" + config.username + "/.adept/lib/" + name;
+
+            if( access(local_file.c_str(), F_OK) != -1 ){
+                name = local_file;
+            }
+            else if( access(public_file.c_str(), F_OK) != -1 ){
+                name = public_file;
+            }
+            else if( access(name.c_str(), F_OK) == -1 ){
+                // File doesn't exist globally either
+                errors.panic( UNKNOWN_MODULE(name) );
+                return 1;
+            }
+
+            if( llvm::sys::DynamicLibrary::LoadLibraryPermanently(name.c_str()) ){
+                errors.panic("Failed to load dynamic library '" + name + "'");
+                return 1;
+            }
+
+            break;
+        }
+    case 4: // foreign
+        if(parse_external(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case 5: // import
+        if(parse_import(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case 6: // link
+        if(parse_lib(config, tokens, program, i, errors) != 0) return 1;
+        break;
+    case 7: // private
+    case 8: // public
+        if(parse_attribute(config, tokens, program, --i, errors) != 0) return 1;
+        break;
+    case 9: // type
+        if(parse_structure(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    default:
         errors.panic( UNEXPECTED_KEYWORD(keyword) );
         return 1;
     }
@@ -350,6 +362,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     std::vector<Field> arguments;
     std::string return_type;
     StatementList statements;
+    StatementList defer_statements;
 
     while(tokens[i].id != TOKENID_CLOSE){
         if(tokens[i].id != TOKENID_WORD){
@@ -378,7 +391,21 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
 
     next_index(i, tokens.size());
-    if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
+    if(parse_block(config, tokens, program, statements, defer_statements, i, true, errors) != 0) return 1;
+
+    // If function not terminated, make sure to add defer statements
+    if(statements.size() != 0){
+        if(!statements[statements.size()-1]->isTerminator()){
+            for(size_t i = defer_statements.size(); i-- > 0;){
+                statements.push_back( defer_statements[i]->clone() );
+            }
+        }
+    }
+
+    for(Statement* statement : defer_statements){
+        // delete defered statements, they are no longer needed
+        delete statement;
+    }
 
     program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, &program.origin_info) );
     return 0;
@@ -405,6 +432,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     std::vector<Field> arguments;
     std::string return_type;
     StatementList statements;
+    StatementList defer_statements;
 
     while(tokens[i].id != TOKENID_CLOSE){
         if(tokens[i].id != TOKENID_WORD){
@@ -438,7 +466,21 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     next_index(i, tokens.size());
-    if(parse_block(config, tokens, program, statements, i, errors) != 0) return 1;
+    if(parse_block(config, tokens, program, statements, defer_statements, i, true, errors) != 0) return 1;
+
+    // If method not terminated, make sure to add defer statements
+    if(statements.size() != 0){
+        if(!statements[statements.size()-1]->isTerminator()){
+            for(size_t i = defer_statements.size(); i-- > 0;){
+                statements.push_back( defer_statements[i]->clone() );
+            }
+        }
+    }
+
+    for(Statement* statement : defer_statements){
+        // delete defered statements, they are no longer needed
+        delete statement;
+    }
 
     Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, &program.origin_info);
     created_method.parent_class_offset = class_offset_plus_one;
@@ -830,7 +872,7 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
     return 0;
 }
 
-int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
+int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, bool can_defer, ErrorHandler& errors){
     // { some code; some more code; }
     //    ^
 
@@ -841,13 +883,13 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
             next_index(i, tokens.size());
             break;
         case TOKENID_KEYWORD:
-            if(parse_block_keyword(config, tokens, program, statements, i, tokens[i].getString(), errors) != 0) return -1;
+            if(parse_block_keyword(config, tokens, program, statements, defer_statements, i, tokens[i].getString(), can_defer, errors) != 0) return 1;
             break;
         case TOKENID_WORD:
-            if(parse_block_word(config, tokens, program, statements, i, errors) != 0) return -1;
+            if(parse_block_word(config, tokens, program, statements, i, errors) != 0) return 1;
             break;
         case TOKENID_MULTIPLY: // multiply/pointer operator
-            if(parse_block_dereference(config, tokens, program, statements, i, errors) != 0) return -1;
+            if(parse_block_dereference(config, tokens, program, statements, i, errors) != 0) return 1;
             break;
         default:
             errors.panic("Expected statement, received '" + tokens[i].syntax() + "'");
@@ -857,78 +899,118 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
 
     return 0;
 }
-int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string keyword, ErrorHandler& errors){
+int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string keyword, bool can_defer, ErrorHandler& errors){
     // keyword <unknown syntax follows>
     //    ^
 
-    if(keyword == "return"){
-        PlainExp* expression;
+    const size_t accepted_keywords_size = 8;
+    const std::string accepted_keywords[] = {
+        "defer", "delete", "if", "return", "switch", "unless", "until", "while"
+    };
+
+    size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
+
+    switch(string_index){
+    case 0: { // defer
         next_index(i, tokens.size());
 
-        if(tokens[i].id == TOKENID_NEWLINE){
-            statements.push_back( new ReturnStatement(NULL, errors) );
+        if(!can_defer){
+            errors.panic("Statements currently can't be defered while in conditionals");
+            return 1;
         }
-        else {
+
+        switch(tokens[i].id){
+        case TOKENID_KEYWORD:
+            // NOTE: 'defer defer <statement>' acts the same ways as 'defer <statement>' (Number of defers does not metter, maybe add a check here idk)
+            if(parse_block_keyword(config, tokens, program, defer_statements, defer_statements, i, tokens[i].getString(), true, errors) != 0) return 1;
+            break;
+        case TOKENID_WORD:
+            if(parse_block_word(config, tokens, program, defer_statements, i, errors) != 0) return 1;
+            break;
+        case TOKENID_MULTIPLY: // multiply/pointer operator
+            if(parse_block_dereference(config, tokens, program, defer_statements, i, errors) != 0) return 1;
+            break;
+        default:
+            errors.panic("Expected statement, received '" + tokens[i].syntax() + "'");
+            return 1;
+        }
+
+        break;
+    }
+    case 1: { // delete
+            PlainExp* expression;
+            next_index(i, tokens.size());
             if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-            statements.push_back( new ReturnStatement(expression, errors) );
+            statements.push_back( new DeallocStatement(expression, errors) );
+            break;
         }
-    }
-    else if(keyword == "if"){
-        next_index(i, tokens.size());
+    case 2: { // if
+            next_index(i, tokens.size());
 
-        if(tokens[i].id == TOKENID_KEYWORD){
-            std::string next_keyword = tokens[i].getString();
+            if(tokens[i].id == TOKENID_KEYWORD){
+                std::string next_keyword = tokens[i].getString();
 
-            if(next_keyword == "while"){
-                // if-while-else
-                if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_IFWHILEELSE, errors) != 0) return 1;
-            } else if(next_keyword == "until"){
-                // if-until-else doesn't exist
-                errors.panic("if-until-else loops don't exist, did you mean to use an unless-until-else loop?");
-                return 1;
+                if(next_keyword == "while"){ // if-while-else
+                    if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_IFWHILEELSE, errors) != 0) return 1;
+                } else if(next_keyword == "until"){ // if-until-else doesn't exist
+                    errors.panic("if-until-else loops don't exist, did you mean to use an unless-until-else loop?");
+                    return 1;
+                } else { // Plain if or if-else
+                    if(parse_block_conditional(config, tokens, program, statements, defer_statements, --i, STATEMENTID_IF, errors) != 0) return 1;
+                }
             } else {
-                // Plain if or if-else
-                if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_IF, errors) != 0) return 1;
+                if(parse_block_conditional(config, tokens, program, statements, defer_statements, --i, STATEMENTID_IF, errors) != 0) return 1;
             }
-        } else {
-            if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_IF, errors) != 0) return 1;
+
+            break;
         }
-    }
-    else if(keyword == "while"){
-        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_WHILE, errors) != 0) return 1;
-    }
-    else if(keyword == "unless"){
-        next_index(i, tokens.size());
+    case 3: { // return
+            PlainExp* expression;
+            next_index(i, tokens.size());
 
-        if(tokens[i].id == TOKENID_KEYWORD){
-            std::string next_keyword = tokens[i].getString();
+            for(size_t i = defer_statements.size(); i-- > 0;){
+                statements.push_back( defer_statements[i]->clone() );
+            }
 
-            if(next_keyword == "until"){
-                // unless-until-else
-                if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNLESSUNTILELSE, errors) != 0) return 1;
-            } else if(next_keyword == "while"){
-                // unless-while-else doesn't exist
-                errors.panic("unless-while-else loops don't exist, did you mean to use an if-while-else loop?");
-                return 1;
+            if(tokens[i].id == TOKENID_NEWLINE){
+                statements.push_back( new ReturnStatement(NULL, errors) );
             } else {
-                // Plain unless or unless-else
-                if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_UNLESS, errors) != 0) return 1;
+                if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
+                statements.push_back( new ReturnStatement(expression, errors) );
             }
-        } else {
-            if(parse_block_conditional(config, tokens, program, statements, --i, STATEMENTID_UNLESS, errors) != 0) return 1;
-        }
-    }
-    else if(keyword == "until"){
-        if(parse_block_conditional(config, tokens, program, statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
-    }
-    else if(keyword == "delete"){
-        PlainExp* expression;
 
-        next_index(i, tokens.size());
-        if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-        statements.push_back( new DeallocStatement(expression, errors) );
-    }
-    else {
+            break;
+        }
+    case 4: // switch
+        if(parse_block_switch(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
+        break;
+    case 5: { // unless
+            next_index(i, tokens.size());
+
+            if(tokens[i].id == TOKENID_KEYWORD){
+                std::string next_keyword = tokens[i].getString();
+
+                if(next_keyword == "until"){ // unless-until-else
+                    if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_UNLESSUNTILELSE, errors) != 0) return 1;
+                } else if(next_keyword == "while"){ // unless-while-else doesn't exist
+                    errors.panic("unless-while-else loops don't exist, did you mean to use an if-while-else loop?");
+                    return 1;
+                } else { // Plain unless or unless-else
+                    if(parse_block_conditional(config, tokens, program, statements, defer_statements, --i, STATEMENTID_UNLESS, errors) != 0) return 1;
+                }
+            } else {
+                if(parse_block_conditional(config, tokens, program, statements, defer_statements, --i, STATEMENTID_UNLESS, errors) != 0) return 1;
+            }
+
+            break;
+        }
+    case 6: // until
+        if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
+        break;
+    case 7: // while
+        if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_WHILE, errors) != 0) return 1;
+        break;
+    default:
         errors.panic( UNEXPECTED_KEYWORD(keyword) );
         return 1;
     }
@@ -1187,7 +1269,7 @@ int parse_block_dereference(Configuration& config, TokenList& tokens, Program& p
     if(parse_block_word_expression(config, tokens, program, statements, i, name, deref_count, errors) != 0) return 1;
     return 0;
 }
-int parse_block_conditional(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, uint16_t conditional_type, ErrorHandler& errors){
+int parse_block_conditional(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, uint16_t conditional_type, ErrorHandler& errors){
     // conditional <condition> { ... }
     //      ^
 
@@ -1202,7 +1284,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
     }
 
     next_index(i, tokens.size());
-    if(parse_block(config, tokens, program, conditional_statements, i, errors) != 0) return 1;
+    if(parse_block(config, tokens, program, conditional_statements, defer_statements, i, false, errors) != 0) return 1;
     next_index(i, tokens.size());
 
     // Skip any newlines
@@ -1219,7 +1301,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
 
             if(tokens[i].id == TOKENID_BEGIN){
                 next_index(i, tokens.size());
-                if(parse_block(config, tokens, program, else_statements, i, errors) != 0) return 1;
+                if(parse_block(config, tokens, program, else_statements, defer_statements, i, false, errors) != 0) return 1;
                 next_index(i, tokens.size());
             }
             else if(tokens[i].id == TOKENID_KEYWORD){
@@ -1237,7 +1319,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
                     return 1;
                 }
 
-                parse_block_conditional(config, tokens, program, else_statements, i, else_conditional_type, errors);
+                parse_block_conditional(config, tokens, program, else_statements, defer_statements, i, else_conditional_type, errors);
             }
             else {
                 errors.panic("Expected '{' or 'if' after 'else'");
@@ -1342,6 +1424,114 @@ int parse_block_member_call(Configuration& config, TokenList& tokens, Program& p
     next_index(i, tokens.size());
     return 0;
 }
+int parse_block_switch(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
+    // switch <condition> { .... }
+    //    ^
+
+    enum StatementContext : unsigned char {
+        None = 0,
+        Case = 1,
+        Default = 2
+    };
+
+    PlainExp* switch_condition;
+    PlainExp* case_condition;
+    StatementContext statement_context = StatementContext::None;
+    std::vector<SwitchStatement::Case> cases;
+    ErrorHandler switch_errors = errors;
+
+    StatementList possible_statements;
+    StatementList default_statements;
+
+    next_index(i, tokens.size());
+    if(parse_expression(config, tokens, program, i, &switch_condition, switch_errors) != 0) return 1;
+
+    if(tokens[i].id != TOKENID_BEGIN){
+        errors.panic("Expected '{' after switch condition");
+        return 1;
+    }
+
+    next_index(i, tokens.size());
+
+    while(tokens[i].id != TOKENID_END){
+        switch(tokens[i].id){
+        case TOKENID_NEWLINE:
+            errors.line++;
+            next_index(i, tokens.size());
+            break;
+        case TOKENID_KEYWORD: {
+                std::string keyword = tokens[i].getString();
+
+                if(keyword == "case"){
+                    if(statement_context == StatementContext::Case){
+                        cases.push_back( SwitchStatement::Case(case_condition, possible_statements) );
+                    } else if(statement_context == StatementContext::Default){
+                        default_statements = possible_statements;
+                    }
+
+                    next_index(i, tokens.size());
+                    if(parse_expression(config, tokens, program, i, &case_condition, errors) != 0) return 1;
+
+                    statement_context = StatementContext::Case;
+                    possible_statements.clear();
+                } else if(keyword == "default"){
+                    if(statement_context == StatementContext::Case){
+                        cases.push_back( SwitchStatement::Case(case_condition, possible_statements) );
+                    } else if(statement_context == StatementContext::Default){
+                        default_statements = possible_statements;
+                    }
+
+                    if(default_statements.size() != 0){
+                        errors.panic("Attempting to define a default case when a default case already exists");
+                        return 1;
+                    }
+
+                    statement_context = StatementContext::Default;
+                    possible_statements.clear();
+                    next_index(i, tokens.size());
+                } else {
+                    if(statement_context == StatementContext::None){
+                        errors.panic("Statement must be part of a case because it's inside a switch statement");
+                        return 1;
+                    }
+
+                    if(parse_block_keyword(config, tokens, program, possible_statements, defer_statements, i, keyword, false, errors) != 0) return 1;
+                }
+                break;
+            }
+        case TOKENID_WORD:
+            if(statement_context == StatementContext::None){
+                errors.panic("Statement must be part of a case because it's inside a switch statement");
+                return 1;
+            }
+
+            if(parse_block_word(config, tokens, program, possible_statements, i, errors) != 0) return 1;
+            break;
+        case TOKENID_MULTIPLY: // multiply/pointer operator
+            if(statement_context == StatementContext::None){
+                errors.panic("Statement must be part of a case because it's inside a switch statement");
+                return 1;
+            }
+
+            if(parse_block_dereference(config, tokens, program, possible_statements, i, errors) != 0) return 1;
+            break;
+        default:
+            errors.panic("Expected statement, received '" + tokens[i].syntax() + "'");
+            return 1;
+        }
+    }
+
+    // Push back final case
+    if(statement_context == StatementContext::Case){
+        cases.push_back( SwitchStatement::Case(case_condition, possible_statements) );
+    } else if(statement_context == StatementContext::Default){
+        default_statements = possible_statements;
+    }
+
+    statements.push_back( new SwitchStatement(switch_condition, cases, default_statements, switch_errors) );
+    next_index(i, tokens.size());
+    return 0;
+}
 
 int parse_expression(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
     // 10 + 3 * 6
@@ -1370,6 +1560,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         return 0;
     case TOKENID_KEYWORD:
         {
+            // TODO: Use string_search here
             std::string keyword = tokens[i].getString();
             next_index(i, tokens.size());
 

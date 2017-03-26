@@ -113,7 +113,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
 
         // TODO: Replace 'system' call
         // NOTE: '-Wl,--start-group' can be used disable smart linking and allow any order of linking
-        system( ("C:/MinGW64/bin/gcc -Wl,--start-group \"" + target_obj + "\" " + linked_objects_string + " -o " + target_name).c_str() );
+        system( ("C:/MinGW64/bin/gcc -Wl,--start-group \"" + target_obj + "\" " + config.extra_options + linked_objects_string + " -o " + target_name).c_str() );
 
         if(access(target_name.c_str(), F_OK ) == -1){
             fail( FAILED_TO_CREATE(filename_name(target_name)) );
@@ -196,46 +196,55 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
     size_t overflow_batch_size;
     std::vector<std::future<int>> futures;
 
-    // Divide work into threads (not the most elegant solution but it's good enough for now)
-    // For instance if we wanted to assemble 253 globals in 8 theads, the threads whould each responsible
-    // for the following amount of globals:
+    if(program.globals.size() > 8){
+        // Divide work into threads (not the most elegant solution but it's good enough for now)
+        // For instance if we wanted to assemble 253 globals in 8 theads, the threads whould each responsible
+        // for the following amount of globals:
 
-    // [00]  [01]  [02]  [03]  [04]  [05]  [06]  [07]
-    //  31,   31,   31,   31,   31,   31,   31,   36
+        // [00]  [01]  [02]  [03]  [04]  [05]  [06]  [07]
+        //  31,   31,   31,   31,   31,   31,   31,   36
 
-    // Start on globals
-    target_batch_size = program.globals.size() / (thread_count);
-    overflow_batch_size = target_batch_size + (program.globals.size() % thread_count);
-    for(size_t i = 0; i < program.globals.size(); ){
-        if(program.globals.size()-i != overflow_batch_size){
-            futures.push_back( std::async(assemble_globals_batch, &context, &config, &program, &program.globals[i], target_batch_size) );
-            i += target_batch_size;
+        // Start on globals
+        target_batch_size = program.globals.size() / (thread_count);
+        overflow_batch_size = target_batch_size + (program.globals.size() % thread_count);
+        for(size_t i = 0; i < program.globals.size(); ){
+            if(program.globals.size()-i != overflow_batch_size){
+                futures.push_back( std::async(assemble_globals_batch, &context, &config, &program, &program.globals[i], target_batch_size) );
+                i += target_batch_size;
+            }
+            else {
+                futures.push_back( std::async(assemble_globals_batch, &context, &config, &program, &program.globals[i], overflow_batch_size) );
+                break;
+            }
         }
-        else {
-            futures.push_back( std::async(assemble_globals_batch, &context, &config, &program, &program.globals[i], overflow_batch_size) );
-            break;
-        }
+        // Wait for globals to finish and check if any errors were found
+        if(threads_int_result(futures) != 0) return 1;
     }
-
-    // Wait for globals to finish and check if any errors were found
-    if(threads_int_result(futures) != 0) return 1;
+    else {
+        if(assemble_globals_batch(&context, &config, &program, &program.globals[0], program.globals.size()) != 0) return 1;
+    }
 
     // Start on externals
-    futures.clear();
-    target_batch_size = program.externs.size() / (thread_count);
-    overflow_batch_size = target_batch_size + (program.externs.size() % thread_count);
-    for(size_t i = 0; i < program.externs.size(); ){
-        if(program.externs.size()-i != overflow_batch_size){
-            futures.push_back( std::async(assemble_externals_batch, &context, &config, &program, &program.externs[i], target_batch_size) );
-            i += target_batch_size;
+    if(program.externs.size() > 8){
+        futures.clear();
+        target_batch_size = program.externs.size() / (thread_count);
+        overflow_batch_size = target_batch_size + (program.externs.size() % thread_count);
+        for(size_t i = 0; i < program.externs.size(); ){
+            if(program.externs.size()-i != overflow_batch_size){
+                futures.push_back( std::async(assemble_externals_batch, &context, &config, &program, &program.externs[i], target_batch_size) );
+                i += target_batch_size;
+            }
+            else {
+                futures.push_back( std::async(assemble_externals_batch, &context, &config, &program, &program.externs[i], overflow_batch_size) );
+                break;
+            }
         }
-        else {
-            futures.push_back( std::async(assemble_externals_batch, &context, &config, &program, &program.externs[i], overflow_batch_size) );
-            break;
-        }
+        // Wait for externals to finish and check if any errors were found
+        if(threads_int_result(futures) != 0) return 1;
     }
-    // Wait for externals to finish and check if any errors were found
-    if(threads_int_result(futures) != 0) return 1;
+    else {
+        if(assemble_externals_batch(&context, &config, &program, &program.externs[0], program.externs.size()) != 0) return 1;
+    }
 
     // Assemble the skeleton of each class
     // ASYNC: Maybe parallelize this?
@@ -390,7 +399,6 @@ int assemble_function(AssemblyData& context, Configuration& config, Program& pro
         func_assembly_data->variables.reserve(args.size());
 
         for(auto& arg : llvm_function->args()){
-
             llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, func.arguments[i].name);
             context.builder.CreateStore(&arg, alloca);
             func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
@@ -411,10 +419,6 @@ int assemble_function(AssemblyData& context, Configuration& config, Program& pro
         fail_filename(config, DUPLICATE_FUNC(func.name));
         return 1;
     }
-
-    // USE IF ERROR
-    // Error reading body, remove function.
-    // llvm_function->eraseFromParent();
 
     return 0;
 }

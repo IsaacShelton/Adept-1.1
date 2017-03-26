@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1490050781 source:c:\users\isaac\google drive\adept\src\adept.cpp
+1490449385 source:c:\users\isaac\google drive\adept\src\adept.cpp
 	<string>
 	<vector>
 	<iostream>
@@ -3172,7 +3172,7 @@
 	<vector>
 	"program.h"
 
-1490050223 c:\users\isaac\google drive\adept\include\program.h
+1490559116 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
@@ -3819,7 +3819,7 @@
 	<string>
 	<vector>
 
-1489801349 c:\users\isaac\google drive\adept\include\statement.h
+1490372566 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
@@ -3849,7 +3849,7 @@
 	"tokens.h"
 	"errors.h"
 
-1489791572 c:\users\isaac\google drive\adept\include\parse.h
+1490560783 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -4380,7 +4380,7 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1490049412 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1490452816 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -4572,7 +4572,7 @@
 	"llvm/Support/DataTypes.h"
 	<cassert>
 
-1489789072 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1490558491 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -4955,7 +4955,7 @@
 	"llvm/Target/TargetSubtargetInfo.h"
 	"../include/asmdata.h"
 
-1490054016 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1490560958 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	<boost/filesystem.hpp>
@@ -4965,11 +4965,12 @@
 	"../include/parse.h"
 	"../include/lexer.h"
 	"../include/errors.h"
+	"../include/search.h"
 	"../include/strings.h"
 	"../include/mangling.h"
 	"llvm/Support/DynamicLibrary.h"
 
-1490053497 source:c:\users\isaac\google drive\adept\src\program.cpp
+1490559166 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	<boost/filesystem.hpp>
@@ -4980,7 +4981,7 @@
 	"../include/assemble.h"
 	"../include/mangling.h"
 
-1489948522 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1490452880 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -5032,7 +5033,7 @@
 	"../include/type.h"
 	"../include/parse.h"
 
-1490053450 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1490454904 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>

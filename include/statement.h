@@ -32,6 +32,7 @@
 #define STATEMENTID_IFWHILEELSE     19
 #define STATEMENTID_UNLESSUNTILELSE 20
 #define STATEMENTID_DEALLOC         21
+#define STATEMENTID_SWITCH          22
 
 class Statement;
 typedef std::vector<Statement*> StatementList;
@@ -388,6 +389,32 @@ class DeallocStatement : public Statement {
     DeallocStatement(PlainExp*, ErrorHandler&);
     DeallocStatement(const DeallocStatement&);
     ~DeallocStatement();
+    int assemble(Program&, Function&, AssemblyData&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
+class SwitchStatement : public Statement {
+    public:
+
+    struct Case {
+        PlainExp* value;
+        StatementList statements;
+
+        Case();
+        Case(PlainExp*, const StatementList&);
+    };
+
+    PlainExp* condition;
+    std::vector<Case> cases;
+    StatementList default_statements;
+
+    SwitchStatement(ErrorHandler&);
+    SwitchStatement(PlainExp*, const std::vector<SwitchStatement::Case>&, const StatementList&, ErrorHandler&);
+    SwitchStatement(const SwitchStatement&);
+    ~SwitchStatement();
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();

@@ -971,7 +971,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             }
 
             if(expr_type != NULL) *expr_type = varfunc_return_typename;
-            llvm::Value* function_address = func_variable->variable;
+            llvm::Value* function_address = context.builder.CreateLoad(func_variable->variable);
             llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
 
             if(Program::function_typename_is_stdcall(func_variable->type)){
@@ -1802,7 +1802,7 @@ llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssemblyData
     std::string final_name;
 
     if(program.find_func(function_name, function_arguments, &function_data) != 0){
-        errors.panic(UNDECLARED_FUNC(function_name));
+        errors.panic_undeclared_func(function_name, function_arguments);
         return NULL;
     }
 
