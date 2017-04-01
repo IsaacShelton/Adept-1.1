@@ -1,4 +1,4 @@
-# Adept
+# The Adept programming language
 ## A blazing fast low-level language
 Adept is designed for performace and simplicity.<br/>
 Generally it runs as fast or faster than C code.<br/>
