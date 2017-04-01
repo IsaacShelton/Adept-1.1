@@ -113,20 +113,23 @@ public def main() int {
 NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai. <br/><br/>
 build.adept
 ```
-private import "adept/build.adept"
-private import "system/system.adept"
+private import "adept/terminal.adept"
 
 private def build() int {
-	config adept\BuildConfig = adept\config()
+	config AdeptConfig
 	
-	config.time = true
-	config.optimization = $ADEPT\OPTIMIZATION_HIGH
+	config.create()
+	defer config.free()
+	
+	config.setTiming(true)
+	config.setOptimization(3ui)
 
-	unless adept\compile("main.adept", &config) == 0 {
+	if config.compile("main.adept") != 0 {
+		println("Failed to compile main.adept")
 		return 1
 	}
 	
-	puts("Build Complete!")
+	println("Build Complete!")
 	return 0
 }
 
