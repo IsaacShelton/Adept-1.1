@@ -116,21 +116,21 @@ build.adept
 private import "adept/terminal.adept"
 
 private def build() int {
-	config AdeptConfig
-	
-	config.create()
-	defer config.free()
-	
-	config.setTiming(true)
-	config.setOptimization(3ui)
+    config AdeptConfig
+    
+    config.create()
+    defer config.free()
+    
+    config.setTiming(true)
+    config.setOptimization(3ui)
 
-	if config.compile("main.adept") != 0 {
-		println("Failed to compile main.adept")
-		return 1
-	}
-	
-	println("Build Complete!")
-	return 0
+    if config.compile("main.adept") != 0 {
+        println("Failed to compile main.adept")
+        return 1
+    }
+    
+    println("Build Complete!")
+    return 0
 }
 
 ```
