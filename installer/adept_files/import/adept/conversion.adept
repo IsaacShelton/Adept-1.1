@@ -1,0 +1,267 @@
+
+// -=-=- Adept Conversion "adept/conversion.adept" -=-=-
+// Provides basic conversion functions for primitive types
+
+private import "system/string.adept"
+private import "system/system.adept"
+private import "system/conversion.adept"
+private foreign pow(double, double) double
+private foreign powf(float, float) float
+
+public def bytetostr(number byte, cstr *ubyte, base int) *ubyte {
+	i int = 0
+	is_negative bool = false
+	
+	if number == 0sb {
+		strcpy(cstr, "0")
+		return cstr
+	}
+	
+	if number < 0sb and base == 10 {
+		is_negative = true
+		number = number * -1sb
+	}
+
+	while number != 0sb {
+		rem ubyte = cast ubyte(cast int(number) % base)
+		
+		if rem > 9ub {
+			cstr[i] = rem + 87ub
+		} else {
+			cstr[i] = rem + 48ub
+			i = i + 1
+		}
+		
+		number = number / cast byte(base)
+	}
+	
+	if is_negative {
+		cstr[i] = 45ub
+		i = i + 1
+	}
+	
+	cstr[i] = 0ub
+	reverse(cstr, i)
+	return cstr
+}
+
+public def shorttostr(number short, cstr *ubyte, base int) *ubyte {
+	i int = 0
+	is_negative bool = false
+	
+	if number == 0ss {
+		strcpy(cstr, "0")
+		return cstr
+	}
+	
+	if number < 0ss and base == 10 {
+		is_negative = true
+		number = number * -1ss
+	}
+
+	while number != 0ss {
+		rem ubyte = cast ubyte(cast int(number) % base)
+		
+		if rem > 9ub {
+			cstr[i] = rem + 87ub
+		} else {
+			cstr[i] = rem + 48ub
+			i = i + 1
+		}
+		
+		number = number / cast short(base)
+	}
+	
+	if is_negative {
+		cstr[i] = 45ub
+		i = i + 1
+	}
+	
+	cstr[i] = 0ub
+	reverse(cstr, i)
+	return cstr
+}
+
+public def inttostr(number int, cstr *ubyte, base int) *ubyte {
+	i int = 0
+	is_negative bool = false
+	
+	if number == 0si {
+		strcpy(cstr, "0")
+		return cstr
+	}
+
+	if number < 0si and base == 10 {
+		is_negative = true
+		number *= -1si
+	}
+	
+	while number != 0 {
+		rem ubyte = cast ubyte(number % base)
+		
+		if rem > 9ub {
+			cstr[i] = rem + 87ub
+			i += 1
+		} else {
+			cstr[i] = rem + 48ub
+			i += 1
+		}
+
+		number = number / base
+	}
+	
+	if is_negative {
+		cstr[i] = 45ub
+		i += 1
+	}
+	
+	cstr[i] = 0ub
+	reverse(cstr, i)
+	return cstr
+}
+
+public def longtostr(number long, cstr *ubyte, base int) *ubyte {
+	i int = 0
+	is_negative bool = false
+	
+	if number == 0sl {
+		strcpy(cstr, "0")
+		return cstr
+	}
+	
+	if number < 0sl and base == 10 {
+		is_negative = true
+		number *= -1sl
+	}
+
+	while number != 0sl {
+		rem ubyte = cast ubyte(number % cast long base)
+		
+		if rem > 9ub {
+			cstr[i] = rem + 87ub
+		} else {
+			cstr[i] = rem + 48ub
+			i += 1
+		}
+		
+		number = number / cast long base
+	}
+	
+	if is_negative {
+		cstr[i] = 45ub
+		i += 1
+	}
+	
+	cstr[i] = 0ub
+	reverse(cstr, i)
+	return cstr
+}
+
+public def booltostr(boolean bool, cstr *ubyte) *ubyte {
+	if boolean {
+		strcpy(cstr, "true")
+		return cstr
+	} else {
+		strcpy(cstr, "false")
+		return cstr
+	}
+}
+
+public def floattostr(fp float, dest *ubyte, after_point int) *ubyte {
+	integer int = cast int(fp)
+	floating float = fp - cast float(integer)
+
+	i int = inttostr_fixed(integer, dest, 0)
+
+	if after_point != 0 {
+		dest[i] = 46ub
+		floating = floating * powf(10.0f, cast float(after_point))
+		inttostr_fixed(cast int(floating), dest + cast ptr(i + 1), after_point)
+	}
+	
+	return dest
+}
+
+public def doubletostr(fp double, dest *ubyte, after_point int) *ubyte {
+	integer int = cast int(fp)
+	floating double = fp - cast double(integer)
+
+	i int = inttostr_fixed(integer, dest, 0)
+
+	if after_point != 0 {
+		dest[i] = 46ub
+		floating = floating * pow(10.0, cast double(after_point))
+		inttostr_fixed(cast int(floating), dest + cast ptr(i + 1), after_point)
+	}
+	
+	return dest
+}
+
+public def strtobyte(cstr *ubyte) byte {
+	return cast byte(atoi(cstr))
+}
+
+public def strtoshort(cstr *ubyte) short {
+	return cast short(atoi(cstr))
+}
+
+public def strtoint(cstr *ubyte) int {
+	return atoi(cstr)
+}
+
+public def strtolong(cstr *ubyte) long {
+	return atol(cstr)
+}
+
+public def strtodouble(cstr *ubyte) double {
+	return atof(cstr)
+}
+
+private def reverse(cstr *ubyte, length int) void {
+	start int = 0
+	end int = length - 1
+	
+	while start < end {
+		tmp ubyte = cstr[start]
+		cstr[start] = cstr[end]
+		cstr[end] = tmp
+		
+		start = start + 1
+		end = end - 1
+	}
+}
+
+private def inttostr_fixed(integer int, dest *ubyte, digits int) int {
+	i int = 0
+	is_negative bool = false
+	
+	if integer < 0 {
+		is_negative = true
+		integer *= -1
+	}
+	
+	if integer != 0 {
+		while integer != 0 {
+			dest[i] = cast ubyte(integer % 10) + 48ub
+			integer /= 10
+			i += 1
+		}
+	} else {
+		dest[i] = 48ub
+		i += 1
+	}
+	
+	while i < digits {
+		dest[i] = 48ub
+		i += 1
+	}
+	
+	if(is_negative){
+		dest[i] = 45ub
+		i += 1
+	}
+
+	reverse(dest, i)
+	dest[i] = 0ub
+	return i
+}

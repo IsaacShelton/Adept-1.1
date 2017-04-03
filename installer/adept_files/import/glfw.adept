@@ -1,0 +1,363 @@
+
+link "libglfw3.a"
+link "libgdi32.a"
+dynamic "glfw3.dll"
+public import "opengl.adept"
+
+public type GLFWvidmode {
+	width int
+	height int
+	redBits int
+	greenBits int
+	blueBits int
+	refreshRate int
+}
+
+public type GLFWgammaramp {
+	red *ushort
+	green *ushort
+	blue *ushort
+	size uint
+}
+
+public type GLFWimage {
+	width int
+	height int
+	pixels *ubyte
+}
+
+public type GLFWwindow {}
+public type GLFWcursor {}
+public type GLFWmonitor {}
+public type GLFWglproc {}
+
+public constant $GLFW_MOUSE_BUTTON_1 0x00si
+public constant $GLFW_MOUSE_BUTTON_2 0x01si
+public constant $GLFW_MOUSE_BUTTON_3 0x02si
+public constant $GLFW_MOUSE_BUTTON_4 0x03si
+public constant $GLFW_MOUSE_BUTTON_5 0x04si
+public constant $GLFW_MOUSE_BUTTON_6 0x05si
+public constant $GLFW_MOUSE_BUTTON_7 0x06si
+public constant $GLFW_MOUSE_BUTTON_8 0x07si
+public constant $GLFW_JOYSTICK_1 0x00si
+public constant $GLFW_JOYSTICK_2 0x01si
+public constant $GLFW_JOYSTICK_3 0x02si
+public constant $GLFW_JOYSTICK_4 0x03si
+public constant $GLFW_JOYSTICK_5 0x04si
+public constant $GLFW_JOYSTICK_6 0x05si
+public constant $GLFW_JOYSTICK_7 0x06si
+public constant $GLFW_JOYSTICK_8 0x07si
+public constant $GLFW_JOYSTICK_9 0x08si
+public constant $GLFW_JOYSTICK_10 0x09si
+public constant $GLFW_JOYSTICK_11 0x0Asi
+public constant $GLFW_JOYSTICK_12 0x0Bsi
+public constant $GLFW_JOYSTICK_13 0x0Csi
+public constant $GLFW_JOYSTICK_14 0x0Dsi
+public constant $GLFW_JOYSTICK_15 0x0Esi
+public constant $GLFW_JOYSTICK_16 0x0Fsi
+public constant $GLFW_KEY_EQUAL 61si
+public constant $GLFW_ACCUM_BLUE_BITS 0x00021009si
+public constant $GLFW_KEY_F10 299si
+public constant $GLFW_KEY_F12 301si
+public constant $GLFW_KEY_F13 302si
+public constant $GLFW_KEY_F14 303si
+public constant $GLFW_KEY_F15 304si
+public constant $GLFW_KEY_F16 305si
+public constant $GLFW_KEY_F17 306si
+public constant $GLFW_KEY_F18 307si
+public constant $GLFW_KEY_F19 308si
+public constant $GLFW_HRESIZE_CURSOR 0x00036005si
+public constant $GLFW_HAND_CURSOR 0x00036004si
+public constant $GLFW_KEY_DELETE 261si
+public constant $GLFW_KEY_F20 309si
+public constant $GLFW_KEY_F21 310si
+public constant $GLFW_KEY_F22 311si
+public constant $GLFW_KEY_F23 312si
+public constant $GLFW_KEY_F24 313si
+public constant $GLFW_KEY_PAGE_UP 266si
+public constant $GLFW_NOT_INITIALIZED 0x00010001si
+public constant $GLFW_KEY_PRINT_SCREEN 283si
+public constant $GLFW_KEY_MENU 348si
+public constant $GLFW_EGL_CONTEXT_API 0x00036002si
+public constant $GLFW_KEY_LEFT_SHIFT 340si
+public constant $GLFW_KEY_BACKSLASH 92si
+public constant $GLFW_KEY_APOSTROPHE 39si
+public constant $GLFW_CLIENT_API 0x00022001si
+public constant $GLFW_KEY_KP_DECIMAL 330si
+public constant $GLFW_BLUE_BITS 0x00021003si
+public constant $GLFW_KEY_0 48si
+public constant $GLFW_KEY_1 49si
+public constant $GLFW_KEY_2 50si
+public constant $GLFW_KEY_3 51si
+public constant $GLFW_KEY_5 53si
+public constant $GLFW_KEY_6 54si
+public constant $GLFW_KEY_7 55si
+public constant $GLFW_KEY_8 56si
+public constant $GLFW_KEY_9 57si
+public constant $GLFW_KEY_A 65si
+public constant $GLFW_KEY_B 66si
+public constant $GLFW_KEY_C 67si
+public constant $GLFW_KEY_D 68si
+public constant $GLFW_KEY_E 69si
+public constant $GLFW_KEY_F 70si
+public constant $GLFW_KEY_G 71si
+public constant $GLFW_KEY_H 72si
+public constant $GLFW_KEY_I 73si
+public constant $GLFW_KEY_J 74si
+public constant $GLFW_KEY_K 75si
+public constant $GLFW_KEY_L 76si
+public constant $GLFW_KEY_M 77si
+public constant $GLFW_KEY_N 78si
+public constant $GLFW_KEY_O 79si
+public constant $GLFW_KEY_Q 81si
+public constant $GLFW_KEY_R 82si
+public constant $GLFW_KEY_S 83si
+public constant $GLFW_KEY_T 84si
+public constant $GLFW_KEY_V 86si
+public constant $GLFW_KEY_W 87si
+public constant $GLFW_STICKY_KEYS 0x00033002si
+public constant $GLFW_KEY_LAST 348si
+public constant $GLFW_ANY_RELEASE_BEHAVIOR 0x00si
+public constant $GLFW_KEY_WORLD_2 162si
+public constant $GLFW_KEY_SPACE 32si
+public constant $GLFW_DONT_CARE -1si
+public constant $GLFW_DISCONNECTED 0x00040002si
+public constant $GLFW_KEY_KP_EQUAL 336si
+public constant $GLFW_FOCUSED 0x00020001si
+public constant $GLFW_AUX_BUFFERS 0x0002100Bsi
+public constant $GLFW_CONTEXT_RELEASE_BEHAVIOR 0x00022009si
+public constant $GLFW_DEPTH_BITS 0x00021005si
+public constant $GLFW_PLATFORM_ERROR 0x00010008si
+public constant $GLFW_KEY_F11 300si
+public constant $GLFW_KEY_UNKNOWN -1si
+public constant $GLFW_TRUE 1si
+public constant $GLFW_VERSION_MINOR 2si
+public constant $GLFW_CONTEXT_VERSION_MINOR 0x00022003si
+public constant $GLFW_KEY_RIGHT_SHIFT 344si
+public constant $GLFW_MOUSE_BUTTON_RIGHT 1si
+public constant $GLFW_KEY_COMMA 44si
+public constant $GLFW_JOYSTICK_LAST 15si
+public constant $GLFW_OUT_OF_MEMORY 0x00010005si
+public constant $GLFW_KEY_INSERT 260si
+public constant $GLFW_VERSION_MAJOR 3si
+public constant $GLFW_CONTEXT_VERSION_MAJOR 0x00022002si
+public constant $GLFW_KEY_F25 314si
+public constant $GLFW_NO_ROBUSTNESS 0si
+public constant $GLFW_MOD_ALT 0x0004si
+public constant $GLFW_VISIBLE 0x00020004si
+public constant $GLFW_KEY_RIGHT 262si
+public constant $GLFW_ACCUM_ALPHA_BITS 0x0002100Asi
+public constant $GLFW_KEY_PERIOD 46si
+public constant $GLFW_FALSE 0si
+public constant $GLFW_OPENGL_CORE_PROFILE 0x00032001si
+public constant $GLFW_KEY_KP_1 321si
+public constant $GLFW_KEY_KP_2 322si
+public constant $GLFW_KEY_KP_3 323si
+public constant $GLFW_KEY_KP_5 325si
+public constant $GLFW_KEY_KP_6 326si
+public constant $GLFW_KEY_KP_7 327si
+public constant $GLFW_KEY_KP_8 328si
+public constant $GLFW_KEY_KP_9 329si
+public constant $GLFW_STICKY_MOUSE_BUTTONS 0x00033003si
+public constant $GLFW_KEY_BACKSPACE 259
+public constant $GLFW_OPENGL_API 0x00030001si
+public constant $GLFW_AUTO_ICONIFY 0x00020006si
+public constant $GLFW_CURSOR_NORMAL 0x00034001si
+public constant $GLFW_OPENGL_COMPAT_PROFILE 0x00032002si
+public constant $GLFW_KEY_Z 90si
+public constant $GLFW_STENCIL_BITS 0x00021006si
+public constant $GLFW_CROSSHAIR_CURSOR 0x00036003si
+public constant $GLFW_CURSOR_DISABLED 0x00034003si
+public constant $GLFW_NO_CURRENT_CONTEXT 0x00010002si
+public constant $GLFW_NATIVE_CONTEXT_API 0x00036001si
+public constant $GLFW_SRGB_CAPABLE 0x0002100Esi
+public constant $GLFW_NO_WINDOW_CONTEXT 0x0001000Asi
+public constant $GLFW_RELEASE_BEHAVIOR_FLUSH 0x00035001si
+public constant $GLFW_KEY_KP_DIVIDE 331si
+public constant $GLFW_KEY_4 52si
+public constant $GLFW_KEY_KP_0 320si
+public constant $GLFW_KEY_KP_ADD 334si
+public constant $GLFW_FLOATING 0x00020007si
+public constant $GLFW_CONTEXT_ROBUSTNESS 0x00022005si
+public constant $GLFW_KEY_P 80si
+public constant $GLFW_MOUSE_BUTTON_MIDDLE 1si
+public constant $GLFW_KEY_U 85si
+public constant $GLFW_KEY_X 88si
+public constant $GLFW_KEY_Y 89si
+public constant $GLFW_DECORATED 0x00020005si
+public constant $GLFW_API_UNAVAILABLE 0x00010006si
+public constant $GLFW_MAXIMIZED 0x00020008si
+public constant $GLFW_ARROW_CURSOR 0x00036001si
+public constant $GLFW_KEY_PAUSE 284si
+public constant $GLFW_DOUBLEBUFFER 0x00021010si
+public constant $GLFW_STEREO 0x0002100Csi
+public constant $GLFW_KEY_RIGHT_CONTROL 345si
+public constant $GLFW_KEY_KP_4 324si
+public constant $GLFW_KEY_PAGE_DOWN 267si
+public constant $GLFW_KEY_DOWN 264si
+public constant $GLFW_KEY_LEFT_SUPER 343si
+public constant $GLFW_KEY_F1 290si
+public constant $GLFW_KEY_F2 291si
+public constant $GLFW_KEY_F3 292si
+public constant $GLFW_KEY_F4 293si
+public constant $GLFW_KEY_F5 294si
+public constant $GLFW_KEY_F6 295si
+public constant $GLFW_KEY_F7 296si
+public constant $GLFW_KEY_F8 297si
+public constant $GLFW_KEY_F9 298si
+public constant $GLFW_KEY_RIGHT_SUPER 347si
+public constant $GLFW_LOSE_CONTEXT_ON_RESET 0x00031002si
+public constant $GLFW_KEY_WORLD_1 161si
+public constant $GLFW_KEY_LEFT_CONTROL 341si
+public constant $GLFW_KEY_LEFT 263si
+public constant $GLFW_RESIZABLE 0x00020003si
+public constant $GLFW_KEY_ENTER 257si
+public constant $GLFW_VRESIZE_CURSOR 0x00036006si
+public constant $GLFW_VERSION_REVISION 1si
+public constant $GLFW_KEY_UP 265
+public constant $GLFW_KEY_LEFT_ALT 342si
+public constant $GLFW_MOD_CONTROL 0x0002si
+public constant $GLFW_KEY_SEMICOLON 59si
+public constant $GLFW_KEY_LEFT_BRACKET 91si
+public constant $GLFW_CONTEXT_NO_ERROR 0x0002200Asi
+public constant $GLFW_KEY_MINUS 45si
+public constant $GLFW_MOD_SUPER 0x0008si
+public constant $GLFW_NO_API 0x00si
+public constant $GLFW_CONNECTED 0x00040001si
+public constant $GLFW_NO_RESET_NOTIFICATION 0x00031001si
+public constant $GLFW_GREEN_BITS 0x00021002si
+public constant $GLFW_KEY_ESCAPE 256si
+public constant $GLFW_OPENGL_DEBUG_CONTEXT 0x00022007si
+public constant $GLFW_KEY_SLASH 47si
+public constant $GLFW_SAMPLES 0x0002100Dsi
+public constant $GLFW_CONTEXT_REVISION 0x00022004si
+public constant $GLFW_OPENGL_ANY_PROFILE 0si
+public constant $GLFW_IBEAM_CURSOR 0x00036002si
+public constant $GLFW_MOUSE_BUTTON_LAST 7si
+public constant $GLFW_ACCUM_GREEN_BITS 0x00021008si
+public constant $GLFW_REFRESH_RATE 0x0002100Fsi
+public constant $GLFW_PRESS 0x01si
+public constant $GLFW_ALPHA_BITS 0x00021004si
+public constant $GLFW_KEY_CAPS_LOCK 280si
+public constant $GLFW_INVALID_VALUE 0x00010004si
+public constant $GLFW_ICONIFIED 0x00020002si
+public constant $GLFW_KEY_RIGHT_ALT 346si
+public constant $GLFW_KEY_END 269si
+public constant $GLFW_MOUSE_BUTTON_LEFT 0si
+public constant $GLFW_KEY_GRAVE_ACCENT 96si
+public constant $GLFW_CURSOR_HIDDEN 0x00034002si
+public constant $GLFW_MOD_SHIFT 0x0001si
+public constant $GLFW_KEY_KP_MULTIPLY 332si
+public constant $GLFW_KEY_KP_SUBTRACT 333si
+public constant $GLFW_RELEASE 0si
+public constant $GLFW_FORMAT_UNAVAILABLE 0x00010009si
+public constant $GLFW_KEY_KP_ENTER 335si
+public constant $GLFW_KEY_NUM_LOCK 282si
+public constant $GLFW_INVALID_ENUM 0x00010003si
+public constant $GLFW_RELEASE_BEHAVIOR_NONE 0x00035002si
+public constant $GLFW_KEY_TAB 258si
+public constant $GLFW_VERSION_UNAVAILABLE 0x00010007si
+public constant $GLFW_ACCUM_RED_BITS 0x00021007si
+public constant $GLFW_RED_BITS 0x00021001si
+public constant $GLFW_CURSOR 0x00033001si
+public constant $GLFW_REPEAT 2si
+public constant $GLFW_OPENGL_PROFILE 0x00022008si
+public constant $GLFW_KEY_SCROLL_LOCK 281si
+public constant $GLFW_CONTEXT_CREATION_API 0x0002200Bsi
+public constant $GLFW_KEY_HOME 268si
+public constant $GLFW_KEY_RIGHT_BRACKET 93si
+public constant $GLFW_OPENGL_ES_API 0x00030002si
+public constant $GLFW_OPENGL_FORWARD_COMPAT 0x00022006si
+
+public foreign glfwInit() int
+public foreign glfwTerminate() void
+public foreign glfwGetVersion(*int, *int, *int) void
+public foreign glfwGetVersionString() *ubyte
+public foreign glfwSetErrorCallback(ptr) ptr
+public foreign glfwGetMonitors(*int) **GLFWmonitor
+public foreign glfwGetPrimaryMonitor() *GLFWmonitor
+public foreign glfwGetMonitorPos(*GLFWmonitor, *int, *int) void
+public foreign glfwGetMonitorPhysicalSize(*GLFWmonitor, *int, *int) void
+public foreign glfwGetMonitorName(*GLFWmonitor) *ubyte
+public foreign glfwSetMonitorCallback(ptr) ptr
+public foreign glfwGetVideoModes(*GLFWmonitor, *int) *GLFWvidmode
+public foreign glfwGetVideoMode(*GLFWmonitor) *GLFWvidmode
+public foreign glfwSetGamma(*GLFWmonitor, float) void
+public foreign glfwGetGammaRamp(*GLFWmonitor) *GLFWgammaramp
+public foreign glfwSetGammaRamp(*GLFWmonitor, *GLFWgammaramp) void
+public foreign glfwDefaultWindowHints() void
+public foreign glfwWindowHint(int, int) void
+public foreign glfwCreateWindow(int, int, *ubyte, *GLFWmonitor, *GLFWwindow) *GLFWwindow
+public foreign glfwDestroyWindow(*GLFWwindow) void
+public foreign glfwWindowShouldClose(*GLFWwindow) int
+public foreign glfwSetWindowShouldClose(*GLFWwindow, int) void
+public foreign glfwSetWindowTitle(*GLFWwindow, *ubyte) void
+public foreign glfwSetWindowIcon(*GLFWwindow, int, *GLFWimage) void
+public foreign glfwGetWindowPos(*GLFWwindow, *int, *int) void
+public foreign glfwSetWindowPos(*GLFWwindow, int, int) void
+public foreign glfwGetWindowSize(*GLFWwindow, *int, *int) void
+public foreign glfwSetWindowSizeLimits(*GLFWwindow, int, int, int, int) void
+public foreign glfwSetWindowAspectRatio(*GLFWwindow, int, int) void
+public foreign glfwSetWindowSize(*GLFWwindow, int, int) void
+public foreign glfwGetFramebufferSize(*GLFWwindow, *int, *int) void
+public foreign glfwGetWindowFrameSize(*GLFWwindow, *int, *int, *int, *int) void
+public foreign glfwIconifyWindow(*GLFWwindow) void
+public foreign glfwRestoreWindow(*GLFWwindow) void
+public foreign glfwMaximizeWindow(*GLFWwindow) void
+public foreign glfwShowWindow(*GLFWwindow) void
+public foreign glfwHideWindow(*GLFWwindow) void
+public foreign glfwFocusWindow(*GLFWwindow) void
+public foreign glfwGetWindowMonitor(*GLFWwindow) *GLFWmonitor
+public foreign glfwSetWindowMonitor(*GLFWwindow, *GLFWmonitor, int, int, int, int, int) void
+public foreign glfwGetWindowAttrib(*GLFWwindow, int) int
+public foreign glfwSetWindowUserPointer(*GLFWwindow, ptr) void
+public foreign glfwGetWindowUserPointer(*GLFWwindow) ptr
+public foreign glfwSetWindowPosCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetWindowSizeCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetWindowCloseCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetWindowRefreshCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetWindowFocusCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetWindowIconifyCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetFramebufferSizeCallback(*GLFWwindow, ptr) ptr
+public foreign glfwPollEvents() void
+public foreign glfwWaitEvents() void
+public foreign glfwWaitEventsTimeout(double) void
+public foreign glfwPostEmptyEvent() void
+public foreign glfwGetInputMode(*GLFWwindow, int) int
+public foreign glfwSetInputMode(*GLFWwindow, int, int) void
+public foreign glfwGetKeyName(int, int) *ubyte
+public foreign glfwGetKey(*GLFWwindow, int) int
+public foreign glfwGetMouseButton(*GLFWwindow, int) int
+public foreign glfwGetCursorPos(*GLFWwindow, *double, *double) void
+public foreign glfwSetCursorPos(*GLFWwindow, double, double) void
+public foreign glfwCreateCursor(*GLFWimage, int, int) *GLFWcursor
+public foreign glfwCreateStandardCursor(int) *GLFWcursor
+public foreign glfwDestroyCursor(*GLFWcursor) void
+public foreign glfwSetCursor(*GLFWwindow, *GLFWcursor) void
+public foreign glfwSetKeyCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetCharCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetCharModsCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetMouseButtonCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetCursorPosCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetCursorEnterCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetScrollCallback(*GLFWwindow, ptr) ptr
+public foreign glfwSetDropCallback(*GLFWwindow, ptr) ptr
+public foreign glfwJoystickPresent(int) int
+public foreign glfwGetJoystickAxes(int, *int) *float
+public foreign glfwGetJoystickButtons(int, *int) *ubyte
+public foreign glfwGetJoystickName(int) *ubyte
+public foreign glfwSetJoystickCallback(ptr) ptr
+public foreign glfwSetClipboardString(*GLFWwindow, *ubyte) void
+public foreign glfwGetClipboardString(*GLFWwindow) *ubyte
+public foreign glfwGetTime() double
+public foreign glfwSetTime(double) void
+public foreign glfwGetTimerValue() ulong
+public foreign glfwGetTimerFrequency() ulong
+public foreign glfwMakeContextCurrent(*GLFWwindow) void
+public foreign glfwGetCurrentContext() *GLFWwindow
+public foreign glfwSwapBuffers(*GLFWwindow) void
+public foreign glfwSwapInterval(int) void
+public foreign glfwExtensionSupported(*ubyte) int
+public foreign glfwGetProcAddress(*ubyte) GLFWglproc
+public foreign glfwVulkanSupported() int
+public foreign glfwGetRequiredInstanceExtensions(*uint) **ubyte

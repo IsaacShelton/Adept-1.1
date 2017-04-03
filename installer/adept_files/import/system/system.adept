@@ -1,0 +1,12 @@
+
+public foreign system(*ubyte) void
+public foreign exit(int) void
+public foreign abort() void
+
+public foreign calloc(usize, usize) ptr
+public foreign free(ptr) void
+public foreign malloc(usize) ptr
+public foreign realloc(ptr, usize) ptr
+
+public foreign puts(*ubyte) int
+public foreign gets(*ubyte) *ubyte

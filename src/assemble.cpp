@@ -113,7 +113,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
 
         // TODO: Replace 'system' call
         // NOTE: '-Wl,--start-group' can be used disable smart linking and allow any order of linking
-        system( ("C:/MinGW64/bin/gcc -Wl,--start-group \"" + target_obj + "\" " + config.extra_options + linked_objects_string + " -o " + target_name).c_str() );
+        system( ("\"C:/Users/" + config.username + "/.adept/mingw64/bin/gcc\" -Wl,--start-group \"" + target_obj + "\" " + config.extra_options + linked_objects_string + " -o " + target_name).c_str() );
 
         if(access(target_name.c_str(), F_OK ) == -1){
             fail( FAILED_TO_CREATE(filename_name(target_name)) );

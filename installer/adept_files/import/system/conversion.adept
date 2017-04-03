@@ -1,0 +1,7 @@
+
+public foreign atof(*ubyte) double
+public foreign atoi(*ubyte) int
+public foreign atol(*ubyte) long
+public foreign strtod(*ubyte, **ubyte) double
+public foreign strtol(*ubyte, **ubyte, int) long
+public foreign strtoul(*ubyte, **ubyte, int) ulong

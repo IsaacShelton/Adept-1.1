@@ -1,0 +1,608 @@
+
+// -=-=- Adept Matrix Math "adept/matrix4f.adept" -=-=-
+// Heavily influenced from "https://github.com/coreh/gl-matrix.c"
+
+public import "adept/vector3f.adept"
+private import "system/string.adept"
+private import "system/system.adept"
+private import "adept/conversion.adept"
+private foreign sinf(float) float
+private foreign cosf(float) float
+private foreign tanf(float) float
+private foreign sqrtf(float) float
+
+public class Matrix4f {
+	public array *float
+	
+	public def create() void {
+		this.array = malloc(16ui * sizeof float)
+	}
+
+	public def create(scale float) void {
+		matrix_data *float = malloc(16ui * sizeof float)
+		matrix_data[0] = scale
+		matrix_data[1] = 0.0f
+		matrix_data[2] = 0.0f
+		matrix_data[3] = 0.0f
+		matrix_data[4] = 0.0f
+		matrix_data[5] = scale
+		matrix_data[6] = 0.0f
+		matrix_data[7] = 0.0f
+		matrix_data[8] = 0.0f
+		matrix_data[9] = 0.0f
+		matrix_data[10] = scale
+		matrix_data[11] = 0.0f
+		matrix_data[12] = 0.0f
+		matrix_data[13] = 0.0f
+		matrix_data[14] = 0.0f
+		matrix_data[15] = scale
+		this.array = matrix_data
+	}
+	
+	public def free() void {
+		free(this.array)
+	}
+	
+	public def set(matrix Matrix4f) void {
+		matrix_data *float = this.array
+		matrix_data[0] = matrix.array[0]
+		matrix_data[1] = matrix.array[1]
+		matrix_data[2] = matrix.array[2]
+		matrix_data[3] = matrix.array[3]
+		matrix_data[4] = matrix.array[4]
+		matrix_data[5] = matrix.array[5]
+		matrix_data[6] = matrix.array[6]
+		matrix_data[7] = matrix.array[7]
+		matrix_data[8] = matrix.array[8]
+		matrix_data[9] = matrix.array[9]
+		matrix_data[10] = matrix.array[10]
+		matrix_data[11] = matrix.array[11]
+		matrix_data[12] = matrix.array[12]
+		matrix_data[13] = matrix.array[13]
+		matrix_data[14] = matrix.array[14]
+		matrix_data[15] = matrix.array[15]
+	}
+	
+	public def clone() Matrix4f {
+		matrix Matrix4f
+		matrix_data *float = this.array
+		
+		matrix.create()
+		
+		matrix.array[0] = matrix_data[0]
+		matrix.array[1] = matrix_data[1]
+		matrix.array[2] = matrix_data[2]
+		matrix.array[3] = matrix_data[3]
+		matrix.array[4] = matrix_data[4]
+		matrix.array[5] = matrix_data[5]
+		matrix.array[6] = matrix_data[6]
+		matrix.array[7] = matrix_data[7]
+		matrix.array[8] = matrix_data[8]
+		matrix.array[9] = matrix_data[9]
+		matrix.array[10] = matrix_data[10]
+		matrix.array[11] = matrix_data[11]
+		matrix.array[12] = matrix_data[12]
+		matrix.array[13] = matrix_data[13]
+		matrix.array[14] = matrix_data[14]
+		matrix.array[15] = matrix_data[15]
+		return matrix
+	}
+	
+	public def identity() void {
+		matrix_data *float = this.array
+		matrix_data[0] = 1.0f
+		matrix_data[1] = 0.0f
+		matrix_data[2] = 0.0f
+		matrix_data[3] = 0.0f
+		matrix_data[4] = 0.0f
+		matrix_data[5] = 1.0f
+		matrix_data[6] = 0.0f
+		matrix_data[7] = 0.0f
+		matrix_data[8] = 0.0f
+		matrix_data[9] = 0.0f
+		matrix_data[10] = 1.0f
+		matrix_data[11] = 0.0f
+		matrix_data[12] = 0.0f
+		matrix_data[13] = 0.0f
+		matrix_data[14] = 0.0f
+		matrix_data[15] = 1.0f
+	}
+	
+	public def transpose() void {
+		matrix_data *float = this.array
+		a01 float = matrix_data[1]
+		a02 float = matrix_data[2]
+		a03 float = matrix_data[3]
+		a12 float = matrix_data[6]
+		a13 float = matrix_data[7]
+		a23 float = matrix_data[11]
+		
+		matrix_data[1] = matrix_data[4]
+		matrix_data[2] = matrix_data[8]
+		matrix_data[3] = matrix_data[12]
+		matrix_data[4] = a01
+		matrix_data[6] = matrix_data[9]
+		matrix_data[7] = matrix_data[13]
+		matrix_data[8] = a02
+		matrix_data[9] = a12
+		matrix_data[11] = matrix_data[14]
+		matrix_data[12] = a03
+		matrix_data[13] = a13
+		matrix_data[14] = a23
+	}
+	
+	public def determinant() float {
+		matrix_data *float = this.array
+		a00 float = matrix_data[0]
+		a01 float = matrix_data[1]
+		a02 float = matrix_data[2]
+		a03 float = matrix_data[3]
+		a10 float = matrix_data[4]
+		a11 float = matrix_data[5]
+		a12 float = matrix_data[6]
+		a13 float = matrix_data[7]
+		a20 float = matrix_data[8]
+		a21 float = matrix_data[9]
+		a22 float = matrix_data[10]
+		a23 float = matrix_data[11]
+		a30 float = matrix_data[12]
+		a31 float = matrix_data[13]
+		a32 float = matrix_data[14]
+		a33 float = matrix_data[15]
+		
+		return (a30 * a21 * a12 * a03 - a20 * a31 * a12 * a03 - a30 * a11 * a22 * a03 + a10 * a31 * a22 * a03 +
+		a20 * a11 * a32 * a03 - a10 * a21 * a32 * a03 - a30 * a21 * a02 * a13 + a20 * a31 * a02 * a13 +
+		a30 * a01 * a22 * a13 - a00 * a31 * a22 * a13 - a20 * a01 * a32 * a13 + a00 * a21 * a32 * a13 +
+		a30 * a11 * a02 * a23 - a10 * a31 * a02 * a23 - a30 * a01 * a12 * a23 + a00 * a31 * a12 * a23 +
+		a10 * a01 * a32 * a23 - a00 * a11 * a32 * a23 - a20 * a11 * a02 * a33 + a10 * a21 * a02 * a33 +
+		a20 * a01 * a12 * a33 - a00 * a21 * a12 * a33 - a10 * a01 * a22 * a33 + a00 * a11 * a22 * a33)
+	}
+	
+	public def inverse() void {
+		matrix_data *float = this.array
+		
+		a00 float = matrix_data[0]
+		a01 float = matrix_data[1]
+		a02 float = matrix_data[2]
+		a03 float = matrix_data[3]
+		a10 float = matrix_data[4]
+		a11 float = matrix_data[5]
+		a12 float = matrix_data[6]
+		a13 float = matrix_data[7]
+		a20 float = matrix_data[8]
+		a21 float = matrix_data[9]
+		a22 float = matrix_data[10]
+		a23 float = matrix_data[11]
+		a30 float = matrix_data[12]
+		a31 float = matrix_data[13]
+		a32 float = matrix_data[14]
+		a33 float = matrix_data[15]
+
+		b00 float = a00 * a11 - a01 * a10
+		b01 float = a00 * a12 - a02 * a10
+		b02 float = a00 * a13 - a03 * a10
+		b03 float = a01 * a12 - a02 * a11
+		b04 float = a01 * a13 - a03 * a11
+		b05 float = a02 * a13 - a03 * a12
+		b06 float = a20 * a31 - a21 * a30
+		b07 float = a20 * a32 - a22 * a30
+		b08 float = a20 * a33 - a23 * a30
+		b09 float = a21 * a32 - a22 * a31
+		b10 float = a21 * a33 - a23 * a31
+		b11 float = a22 * a33 - a23 * a32
+
+		d float = (b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06)
+
+		if d == 0.0f {
+			// An error occured
+			return
+		}
+		
+		inv_det float = 1.0f / d
+
+		matrix_data[0] = (a11 * b11 - a12 * b10 + a13 * b09) * inv_det
+		matrix_data[1] = (-1.0f * a01 * b11 + a02 * b10 - a03 * b09) * inv_det
+		matrix_data[2] = (a31 * b05 - a32 * b04 + a33 * b03) * inv_det
+		matrix_data[3] = (-1.0f * a21 * b05 + a22 * b04 - a23 * b03) * inv_det
+		matrix_data[4] = (-1.0f * a10 * b11 + a12 * b08 - a13 * b07) * inv_det
+		matrix_data[5] = (a00 * b11 - a02 * b08 + a03 * b07) * inv_det
+		matrix_data[6] = (-1.0f * a30 * b05 + a32 * b02 - a33 * b01) * inv_det
+		matrix_data[7] = (a20 * b05 - a22 * b02 + a23 * b01) * inv_det
+		matrix_data[8] = (a10 * b10 - a11 * b08 + a13 * b06) * inv_det
+		matrix_data[9] = (-1.0f * a00 * b10 + a01 * b08 - a03 * b06) * inv_det
+		matrix_data[10] = (a30 * b04 - a31 * b02 + a33 * b00) * inv_det
+		matrix_data[11] = (-1.0f * a20 * b04 + a21 * b02 - a23 * b00) * inv_det
+		matrix_data[12] = (-1.0f * a10 * b09 + a11 * b07 - a12 * b06) * inv_det
+		matrix_data[13] = (a00 * b09 - a01 * b07 + a02 * b06) * inv_det
+		matrix_data[14] = (-1.0f * a30 * b03 + a31 * b01 - a32 * b00) * inv_det
+		matrix_data[15] = (a20 * b03 - a21 * b01 + a22 * b00) * inv_det
+	}
+	
+	public def toRotationMatrix() void {
+		matrix_data *float = this.array
+		matrix_data[12] = 0.0f
+		matrix_data[13] = 0.0f
+		matrix_data[14] = 0.0f
+		matrix_data[15] = 1.0f
+	}
+	
+	public def multiply(other Matrix4f) void {
+		self_data *float = this.array
+		other_data *float = other.array
+		
+		a00 float = self_data[0]
+		a01 float = self_data[1]
+		a02 float = self_data[2]
+		a03 float = self_data[3]
+		a10 float = self_data[4]
+		a11 float = self_data[5]
+		a12 float = self_data[6]
+		a13 float = self_data[7]
+		a20 float = self_data[8]
+		a21 float = self_data[9]
+		a22 float = self_data[10]
+		a23 float = self_data[11]
+		a30 float = self_data[12]
+		a31 float = self_data[13]
+		a32 float = self_data[14]
+		a33 float = self_data[15]
+		
+		b00 float = other_data[0]
+		b01 float = other_data[1]
+		b02 float = other_data[2]
+		b03 float = other_data[3]
+		b10 float = other_data[4]
+		b11 float = other_data[5]
+		b12 float = other_data[6]
+		b13 float = other_data[7]
+		b20 float = other_data[8]
+		b21 float = other_data[9]
+		b22 float = other_data[10]
+		b23 float = other_data[11]
+		b30 float = other_data[12]
+		b31 float = other_data[13]
+		b32 float = other_data[14]
+		b33 float = other_data[15]
+		
+		self_data[0] = b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30
+		self_data[1] = b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31
+		self_data[2] = b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32
+		self_data[3] = b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33
+		self_data[4] = b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30
+		self_data[5] = b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31
+		self_data[6] = b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32
+		self_data[7] = b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33
+		self_data[8] = b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30
+		self_data[9] = b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31
+		self_data[10] = b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32
+		self_data[11] = b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33
+		self_data[12] = b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30
+		self_data[13] = b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31
+		self_data[14] = b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32
+		self_data[15] = b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33
+	}
+	
+	public def translate(xyz Vector3f) void {
+		matrix_data *float = this.array
+		x float = xyz.x
+		y float = xyz.y
+		z float = xyz.z
+
+		matrix_data[12] = matrix_data[0] * x + matrix_data[4] * y + matrix_data[8] * z + matrix_data[12]
+		matrix_data[13] = matrix_data[1] * x + matrix_data[5] * y + matrix_data[9] * z + matrix_data[13]
+		matrix_data[14] = matrix_data[2] * x + matrix_data[6] * y + matrix_data[10] * z + matrix_data[14]
+		matrix_data[15] = matrix_data[3] * x + matrix_data[7] * y + matrix_data[11] * z + matrix_data[15]
+	}
+	
+	public def translate(x float, y float, z float) void {
+		matrix_data *float = this.array
+
+		matrix_data[12] = matrix_data[0] * x + matrix_data[4] * y + matrix_data[8] * z + matrix_data[12]
+		matrix_data[13] = matrix_data[1] * x + matrix_data[5] * y + matrix_data[9] * z + matrix_data[13]
+		matrix_data[14] = matrix_data[2] * x + matrix_data[6] * y + matrix_data[10] * z + matrix_data[14]
+		matrix_data[15] = matrix_data[3] * x + matrix_data[7] * y + matrix_data[11] * z + matrix_data[15]
+	}
+	
+	public def scale(xyz Vector3f) void {
+		matrix_data *float = this.array
+		x float = xyz.x
+		y float = xyz.y
+		z float = xyz.z
+
+		matrix_data[0] = matrix_data[0] * x
+		matrix_data[1] = matrix_data[1] * x
+		matrix_data[2] = matrix_data[2] * x
+		matrix_data[3] = matrix_data[3] * x
+		matrix_data[4] = matrix_data[4] * y
+		matrix_data[5] = matrix_data[5] * y
+		matrix_data[6] = matrix_data[6] * y
+		matrix_data[7] = matrix_data[7] * y
+		matrix_data[8] = matrix_data[8] * z
+		matrix_data[9] = matrix_data[9] * z
+		matrix_data[10] = matrix_data[10] * z
+		matrix_data[11] = matrix_data[11] * z
+	}
+	
+	public def scale(x float, y float, z float) void {
+		matrix_data *float = this.array
+
+		matrix_data[0] = matrix_data[0] * x
+		matrix_data[1] = matrix_data[1] * x
+		matrix_data[2] = matrix_data[2] * x
+		matrix_data[3] = matrix_data[3] * x
+		matrix_data[4] = matrix_data[4] * y
+		matrix_data[5] = matrix_data[5] * y
+		matrix_data[6] = matrix_data[6] * y
+		matrix_data[7] = matrix_data[7] * y
+		matrix_data[8] = matrix_data[8] * z
+		matrix_data[9] = matrix_data[9] * z
+		matrix_data[10] = matrix_data[10] * z
+		matrix_data[11] = matrix_data[11] * z
+	}
+	
+	public def rotate(angle float, axis Vector3f) void {
+		matrix_data *float = this.array
+		x float = axis.x
+		y float = axis.y
+		z float = axis.z
+		
+		len float = sqrtf(x * x + y * y + z * z)
+		s float
+		c float
+		t float
+
+		if len == 0.0f {
+			// An error occured
+			return
+		}
+		
+		if len != 1.0f {
+			len = 1.0f / len
+			x = x * len
+			y = y * len
+			z = z * len
+		}
+
+		s = sinf(angle)
+		c = cosf(angle)
+		t = 1.0f - c
+
+		a00 float = matrix_data[0]
+		a01 float = matrix_data[1]
+		a02 float = matrix_data[2]
+		a03 float = matrix_data[3]
+
+		a10 float = matrix_data[4]
+		a11 float = matrix_data[5]
+		a12 float = matrix_data[6]
+		a13 float = matrix_data[7]
+
+		a20 float = matrix_data[8]
+		a21 float = matrix_data[9]
+		a22 float = matrix_data[10]
+		a23 float = matrix_data[11]
+
+		b00 float = x * x * t + c
+		b01 float = y * x * t + z * s
+		b02 float = z * x * t - y * s
+		b10 float = x * y * t - z * s
+		b11 float = y * y * t + c
+		b12 float = z * y * t + x * s
+		b20 float = x * z * t + y * s
+		b21 float = y * z * t - x * s
+		b22 float = z * z * t + c
+
+		matrix_data[0] = a00 * b00 + a10 * b01 + a20 * b02
+		matrix_data[1] = a01 * b00 + a11 * b01 + a21 * b02
+		matrix_data[2] = a02 * b00 + a12 * b01 + a22 * b02
+		matrix_data[3] = a03 * b00 + a13 * b01 + a23 * b02
+
+		matrix_data[4] = a00 * b10 + a10 * b11 + a20 * b12
+		matrix_data[5] = a01 * b10 + a11 * b11 + a21 * b12
+		matrix_data[6] = a02 * b10 + a12 * b11 + a22 * b12
+		matrix_data[7] = a03 * b10 + a13 * b11 + a23 * b12
+
+		matrix_data[8] = a00 * b20 + a10 * b21 + a20 * b22
+		matrix_data[9] = a01 * b20 + a11 * b21 + a21 * b22
+		matrix_data[10] = a02 * b20 + a12 * b21 + a22 * b22
+		matrix_data[11] = a03 * b20 + a13 * b21 + a23 * b22
+	}
+	
+	public def frustum(left float, right float, bottom float, top float, near float, far float) void {
+		matrix_data *float = this.array
+		rl float = (right - left)
+		tb float = (top - bottom)
+		fn float = (far - near)
+
+		matrix_data[0] = (near * 2.0f) / rl
+		matrix_data[1] = 0.0f
+		matrix_data[2] = 0.0f
+		matrix_data[3] = 0.0f
+		matrix_data[4] = 0.0f
+		matrix_data[5] = (near * 2.0f) / tb
+		matrix_data[6] = 0.0f
+		matrix_data[7] = 0.0f
+		matrix_data[8] = (right + left) / rl
+		matrix_data[9] = (top + bottom) / tb
+		matrix_data[10] = -1.0f * (far + near) / fn
+		matrix_data[11] = -1.0f
+		matrix_data[12] = 0.0f
+		matrix_data[13] = 0.0f
+		matrix_data[14] = -1.0f * (far * near * 2.0f) / fn
+		matrix_data[15] = 0.0f
+	}
+	
+	public def perspective(fovy float, aspect float, near float, far float) void {
+		top float = near * tanf(fovy * 3.14159265358979323846f / 360.0f)
+        right float = top * aspect
+		this.frustum(-1.0f * right, right, -1.0f * top, top, near, far)
+	}
+	
+	public def ortho(left float, right float, bottom float, top float, near float, far float) void {
+		matrix_data *float = this.array
+		rl float = (right - left)
+		tb float = (top - bottom)
+		fn float = (far - near)
+
+		matrix_data[0] = 2.0f / rl
+		matrix_data[1] = 0.0f
+		matrix_data[2] = 0.0f
+		matrix_data[3] = 0.0f
+		matrix_data[4] = 0.0f
+		matrix_data[5] = 2.0f / tb
+		matrix_data[6] = 0.0f
+		matrix_data[7] = 0.0f
+		matrix_data[8] = 0.0f
+		matrix_data[9] = 0.0f
+		matrix_data[10] = -2.0f / fn
+		matrix_data[11] = 0.0f
+		matrix_data[12] = -1.0f * (left + right) / rl
+		matrix_data[13] = -1.0f * (top + bottom) / tb
+		matrix_data[14] = -1.0f * (far + near) / fn
+		matrix_data[15] = 1.0f
+	}
+	
+	public def lookAt(eye Vector3f, center Vector3f, up Vector3f) void {
+		matrix_data *float = this.array
+		
+		len float
+		eyex float = eye.x
+		eyey float = eye.y
+		eyez float = eye.z
+		upx float = up.x
+		upy float = up.y
+		upz float = up.z
+		centerx float = center.x
+		centery float = center.y
+		centerz float = center.z
+
+		if eyex == centerx and eyey == centery and eyez == centerz {
+			this.identity()
+		}
+
+		z0 float = eyex - centerx
+		z1 float = eyey - centery
+		z2 float = eyez - centerz
+
+		len = 1.0f / sqrtf(z0 * z0 + z1 * z1 + z2 * z2)
+		z0 = z0 * len
+		z1 = z1 * len
+		z2 = z2 * len
+
+		x0 float = upy * z2 - upz * z1
+		x1 float = upz * z0 - upx * z2
+		x2 float = upx * z1 - upy * z0
+		len = sqrtf(x0 * x0 + x1 * x1 + x2 * x2)
+
+		if len == 0.0f {
+			x0 = 0.0f
+			x1 = 0.0f
+			x2 = 0.0f
+		} else {
+			len = 1.0f / len
+			x0 = x0 * len
+			x1 = x1 * len
+			x2 = x2 * len
+		}
+
+		y0 float = z1 * x2 - z2 * x1
+		y1 float = z2 * x0 - z0 * x2
+		y2 float = z0 * x1 - z1 * x0
+		len = sqrtf(y0 * y0 + y1 * y1 + y2 * y2)
+
+		if len == 0.0f {
+			y0 = 0.0f
+			y1 = 0.0f
+			y2 = 0.0f
+		} else {
+			len = 1.0f / len
+			y0 = y0 * len
+			y1 = y1 * len
+			y2 = y2 * len
+		}
+
+		matrix_data[0] = x0
+		matrix_data[1] = y0
+		matrix_data[2] = z0
+		matrix_data[3] = 0.0f
+		matrix_data[4] = x1
+		matrix_data[5] = y1
+		matrix_data[6] = z1
+		matrix_data[7] = 0.0f
+		matrix_data[8] = x2
+		matrix_data[9] = y2
+		matrix_data[10] = z2
+		matrix_data[11] = 0.0f
+		matrix_data[12] = -1.0f * (x0 * eyex + x1 * eyey + x2 * eyez)
+		matrix_data[13] = -1.0f * (y0 * eyex + y1 * eyey + y2 * eyez)
+		matrix_data[14] = -1.0f * (z0 * eyex + z1 * eyey + z2 * eyez)
+		matrix_data[15] = 1.0f
+	}
+	
+	public def print() void {
+		str *ubyte = malloc(256ui)
+		tmp *ubyte = malloc(128ui)
+		strcpy(str, "Matrix4f {\n    ")
+		
+		// Print row one
+		floattostr(this.array[0], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[1], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[2], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[3], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ",\n    ")
+		
+		// Print row two
+		floattostr(this.array[4], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[5], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[6], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[7], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ",\n    ")
+		
+		// Print row three
+		floattostr(this.array[8], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[9], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[10], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[11], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ",\n    ")
+		
+		// Print row four
+		floattostr(this.array[12], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[13], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[14], tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.array[15], tmp, 4)
+		strcat(str, tmp)
+		
+		strcat(str, "\n}")
+		puts(str)
+		free(str)
+		free(tmp)
+	}
+}
+

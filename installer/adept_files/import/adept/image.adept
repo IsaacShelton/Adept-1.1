@@ -1,0 +1,103 @@
+
+private import "system/io.adept"
+private import "adept/terminal.adept"
+
+public packed type BitmapInfo {
+	bitmap_size int
+	width int
+	height int
+	color_planes short
+	bitcount short
+	compression_type int
+	bytes usize
+	pixels_per_meter_x int
+	pixels_per_meter_y int
+	colors_used int
+	important_colors int
+}
+
+private packed type BitmapFileHeader {
+	bitmap_type short
+	bitmap_size int
+	bitmap_res1 short
+	bitmap_res2 short
+	offset int
+}
+
+
+public def loadBitmap(filename *ubyte, info *BitmapInfo) *ubyte {
+	file *FILE
+	file_header BitmapFileHeader
+	image *ubyte
+	image_index int = 0
+	
+	file = fopen(filename, "rb")
+	if file == null {
+		return null
+	}
+	
+	fread(&file_header, 14ui, 1ui, file)
+
+	if file_header.bitmap_type != 19778ss {
+		fclose(file)
+		return null
+	}
+	
+	fread(info, 40ui, 1ui, file)
+	fseek(file, file_header.offset, $SEEK_SET)
+
+	image = malloc(info.bytes)
+	fread(image, info.bytes, 1ui, file)
+
+	if image == null {
+		fclose(file)
+		return null
+	}
+
+	fclose(file)
+	return image
+}
+
+public def loadBitmapABGR(filename *ubyte, info *BitmapInfo) *ubyte {
+	file *FILE
+	file_header BitmapFileHeader
+	image *ubyte
+	image_index int = 0
+	temp_bgra ubyte
+	
+	file = fopen(filename, "rb")
+	if file == null {
+		return null
+	}
+	
+	fread(&file_header, 14ui, 1ui, file)
+	
+	if file_header.bitmap_type != 19778ss {
+		fclose(file)
+		return null
+	}
+	
+	fread(info, 40u, 1ui, file)
+	fseek(file, file_header.offset, $SEEK_SET)
+
+	image = malloc(info.bytes)
+	fread(image, info.bytes, 1ui, file)
+
+	if image == null {
+		fclose(file)
+		return null
+	}
+	
+	while cast usize(image_index) != info.bytes {
+		temp_bgra = image[image_index]
+		image[image_index] = image[image_index+1]
+		image[image_index+1] = image[image_index+2]
+		image[image_index+2] = image[image_index+3]
+		image[image_index+3] = temp_bgra
+		
+		image_index = image_index + 4
+	}
+
+	fclose(file)
+	return image
+}

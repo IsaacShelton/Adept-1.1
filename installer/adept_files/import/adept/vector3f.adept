@@ -1,0 +1,150 @@
+
+// -=-=- Adept Vector Math "adept/vector3f.adept" -=-=-
+// Heavily influenced from "https://github.com/coreh/gl-matrix.c"
+
+private import "system/string.adept"
+private import "system/system.adept"
+private import "adept/conversion.adept"
+private foreign sqrtf(float) float
+
+public class Vector3f {
+	public x float
+	public y float
+	public z float
+	
+	public def set(other Vector3f) void {
+		this.x = other.x
+		this.y = other.y
+		this.z = other.z
+	}
+	
+	public def set(vec_x float, vec_y float, vec_z float) void {
+		this.x = vec_x
+		this.y = vec_y
+		this.z = vec_z
+	}
+	
+	public def add(other Vector3f) void {
+		this.x = this.x + other.x
+		this.y = this.y + other.y
+		this.z = this.z + other.z
+	}
+
+	public def subtract(other Vector3f) void {
+		this.x = this.x - other.x
+		this.y = this.y - other.y
+		this.z = this.z - other.z
+	}
+
+	public def multiply(other Vector3f) void {
+		this.x = this.x * other.x
+		this.y = this.y * other.y
+		this.z = this.z * other.z
+	}
+
+	public def negate() void {
+		this.x = this.x * -1.0f
+		this.y = this.y * -1.0f
+		this.z = this.z * -1.0f
+	}
+
+	public def scale(amount float) void {
+		this.x = this.x * amount
+		this.y = this.y * amount
+		this.z = this.z * amount
+	}
+
+	public def normalize() void {
+		x float = this.x
+		y float = this.y
+		z float = this.z
+		len float = sqrtf(x * x + y * y + z * z)
+		
+		if len == 0.0f {
+			this.set(0.0f, 0.0f, 0.0f)
+			return
+		} else if len == 1.0f {
+			return
+		}
+		
+		len = 1.0f / len
+		this.set(x * len, y * len, z * len)
+	}
+
+	public def cross(other Vector3f) void {
+		x_a float = this.x
+		y_a float = this.y
+		z_a float = this.z
+		x_b float = other.x
+		y_b float = other.y
+		z_b float = other.z
+		
+		this.x = y_a * z_b - z_a * y_b
+		this.y = z_a * x_b - x_a * z_b
+		this.z = x_a * y_b - y_a * x_b
+	}
+
+	public def length() float {
+		x float = this.x
+		y float = this.y
+		z float = this.z
+		return sqrtf(x * x + y * y + z * z)
+	}
+
+	public def dot(other Vector3f) float {
+		return this.x * other.x + this.y * other.y + this.z * other.z
+	}
+
+	public def direction(other Vector3f) void {
+		x float = this.x - other.x
+		y float = this.y - other.y
+		z float = this.z - other.z
+		len float = sqrtf(x * x + y * y + z * z)
+		
+		if len == 0.0f {
+			this.set(0.0f, 0.0f, 0.0f)
+			return
+		}
+		
+		len = 1.0f / len
+		this.set(x * len, y * len, z * len)
+	}
+
+	public def lerp(other Vector3f, lerp float) void {
+		this.x = this.x + lerp * (other.x - this.x)
+		this.y = this.y + lerp * (other.y - this.y)
+		this.z = this.z + lerp * (other.z - this.z)
+	}
+
+	public def lerp(other Vector3f) void {
+		this.lerp(other, 0.5f)
+	}
+
+	public def distance(other Vector3f) float {
+		x float = other.x - this.x
+		y float = other.y - this.y
+		z float = other.z - this.z
+		return sqrtf(x * x + y * y + z * z)
+	}
+
+	public def print() void {
+		str *ubyte = malloc(256ui)
+		tmp *ubyte = malloc(128ui)
+		strcpy(str, "Vector3f { ")
+		
+		floattostr(this.x, tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.y, tmp, 4)
+		strcat(str, tmp)
+		strcat(str, ", ")
+		floattostr(this.z, tmp, 4)
+		strcat(str, tmp)
+		
+		strcat(str, " }")
+		puts(str)
+		free(str)
+		free(tmp)
+	}
+}
+

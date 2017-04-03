@@ -1,0 +1,49 @@
+
+link "libsystemio.a"
+public import "system/system.adept"
+
+public constant $SEEK_SET 0
+public constant $SEEK_CUR 1
+public constant $SEEK_END 2
+
+public type FILE {}
+
+public foreign fstdout() *FILE
+public foreign fstderr() *FILE
+public foreign fstdin() *FILE
+public foreign ferrno() *int
+
+public foreign remove(*ubyte) int
+public foreign rename(*ubyte, *ubyte) int
+public foreign tmpfile() *FILE
+public foreign tmpnam(*ubyte) *ubyte
+
+public foreign fclose(*FILE) int
+public foreign fflush(*FILE) int
+public foreign fopen(*ubyte, *ubyte) *FILE
+public foreign freopen(*ubyte, *ubyte, *FILE) *FILE
+public foreign setbuf(*FILE, *ubyte) void
+public foreign setvbuf(*FILE, *ubyte, int, usize) int
+
+public foreign fgetc(*FILE) int
+public foreign fgets(*ubyte, int, *FILE) *ubyte
+public foreign fputc(int, *FILE) int
+public foreign fputs(*ubyte, *FILE) int
+public foreign getc(*FILE) int
+public foreign putc(int, *FILE) int
+public foreign putchar(int) int
+public foreign ungetc(int, *FILE) int
+
+public foreign fread(ptr, usize, usize, *FILE) int
+public foreign fwrite(ptr, usize, usize, *FILE) int
+
+public foreign fgetpos(*FILE, *long) int
+public foreign fseek(*FILE, int, int) int
+public foreign fsetpos(*FILE, *long) int
+public foreign ftell(*FILE) int
+public foreign rewind(*FILE) void
+
+public foreign clearerr(*FILE) void
+public foreign feof(*FILE) int
+public foreign ferror(*FILE) int
+public foreign perror(*ubyte) void
