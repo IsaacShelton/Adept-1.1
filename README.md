@@ -18,21 +18,26 @@ def main() int {
 
 ### Functions
 ```
-def sum(a int, b int) int {
+private imoprt "adept/terminal.adept"
+
+def integer_sum(a int, b int) int {
     return a + b
 }
 def main() int {
-    return sum(13, 8)
+    println(integer_sum(13, 8))
+    return 0
 }
  ```
 
 ### Constants
 ```
-private import "system/system.adept"
+private import "adept/terminal.adept"
 private constant $MESSAGE "Hello World"
+private constant $AN_EXPRESSION 10 * 5 - (3 + 81) / 2
  
 public def main() int {
-    puts($MESSAGE)
+    println($MESSAGE)
+    println($AN_EXPRESSION)
     return 0
 }
 ```
@@ -45,15 +50,13 @@ private import "system/system.adept"
 public def main() int {
     // Allocate 12 bytes (one extra for null termination)
     hello *ubyte = malloc(12ui)
+    defer free(hello)
     
     // Set the byte array
     strcpy(hello, "Hello World")
     
     // Print the string
     puts(hello)
-    
-    // Free the dynamically allocated memory
-    free(hello)
     return 0
 }
 ```
@@ -65,6 +68,7 @@ private import "adept/terminal.adept"
 public def main() int {
     // Create an array
     integer_array [] int = new [3] int
+    defer delete integer_array.data
     
     // Set some elements of the array
     integer_array[0] = 10
@@ -78,9 +82,6 @@ public def main() int {
     println(integer_array[0])
     println(integer_array[1])
     println(integer_array[2])
-    
-    // Free the array data
-    delete integer_array.data
     return 0
 }
 ```
@@ -92,6 +93,7 @@ private import "adept/terminal.adept"
 public def main() int {
     // Allocate 10 ints
     an_array *int = new int * 10
+    defer delete an_array
     
     // Using low-level arrays with basic pointer arithmetic
     *an_array = 10
@@ -102,9 +104,6 @@ public def main() int {
     println(*an_array)
     println(an_array[3])    
     println(an_array[7])
-    
-    // Free the dynamically allocated memory
-    delete an_array
     return 0
 }
 ```
@@ -118,17 +117,21 @@ private import "adept/terminal.adept"
 private def build() int {
     config AdeptConfig
     
+    // Initialize and defer freeing the configuration
     config.create()
     defer config.free()
     
+    // Set configuration options
     config.setTiming(true)
     config.setOptimization(3ui)
-
+    
+    // Compile the program using the configuration
     if config.compile("main.adept") != 0 {
         println("Failed to compile main.adept")
         return 1
     }
     
+    // Return success
     println("Build Complete!")
     return 0
 }
@@ -137,9 +140,9 @@ private def build() int {
 main.adept
 ```
 public def main() int {
-    some int = 10
-    another int = 13
-    some_more(code, here)
+    some_variable int = 10
+    another_variable int = 13
+    some_function(some_variable, another_variable)
     return 0
 }
 ```
@@ -271,7 +274,7 @@ public def main() int {
     //   depending on what the target system is. You can ensure a type is aligned to
     //   one byte by specifing the 'packed' attribute
     length usize = sizeof BigType
-    println(cast int(length))
+    println(cast int length)
     
     // Use 'new' operator to allocate an object of type 'BigType' on the heap
     data *BigType = new BigType
@@ -280,7 +283,7 @@ public def main() int {
     data.c = 12345
     println(data.c)
     
-    // Use 'delete' statement to free the object
+    // Use the 'delete' statement to free the object
     delete data
     return 0
 }
@@ -295,14 +298,29 @@ public def main() int {
         10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
     }
     
-    i usize = 0ui
-    while i != 11ui {
+    while i usize = 0ui, i != 11ui, i += 1 {
         println(integer_list[i])
-        i = i + 1ui
     }
     
     // Don't delete the data pointed to by
     //   'integer_list' because it is constant
     return 0
+}
+```
+
+### Type Aliases
+```
+private import "adept/terminal.adept"
+
+private type s64 = long
+
+public def main() int {
+    a_big_number s64 = twice(12345678sl)
+    println(a_big_number)
+    return 0
+}
+
+private def twice(number s64) s64 {
+    return number * number
 }
 ```
