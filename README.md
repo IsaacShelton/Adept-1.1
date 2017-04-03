@@ -9,9 +9,9 @@ Generally it runs as fast or faster than C code.<br/>
 ### Variables
 ```
 def main() int {
-    age int = 36
-    total int = 10 + 3
-    return age + total
+    customer_age int = 36
+    total_amount int = 10 + 3
+    return 0
 }
 ```
 
