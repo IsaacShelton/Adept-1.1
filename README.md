@@ -143,7 +143,7 @@ public def main() int {
     return 0
 }
 ```
-Adept treats any program with a function named 'build' as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you just run the command ```adept build.adept```<br>
+Adept treats any file named ```build.adept``` as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you run the command ```adept build.adept``` or just ```adept```<br>
 
 ### Using functions as operators
 NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai.
