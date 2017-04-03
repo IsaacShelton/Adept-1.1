@@ -5061,3 +5061,43 @@
 	"../include/type.h"
 	"../include/parse.h"
 
+1491254961 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+	<string>
+	<future>
+	<fstream>
+	<stdlib.h>
+	<unistd.h>
+	<iostream>
+	<algorithm>
+	"llvm/ADT/APFloat.h"
+	"llvm/ADT/STLExtras.h"
+	"llvm/ExecutionEngine/ExecutionEngine.h"
+	"llvm/ExecutionEngine/GenericValue.h"
+	"llvm/ExecutionEngine/MCJIT.h"
+	"llvm/Support/DynamicLibrary.h"
+	"llvm/IR/BasicBlock.h"
+	"llvm/IR/Constants.h"
+	"llvm/IR/DerivedTypes.h"
+	"llvm/IR/Function.h"
+	"llvm/IR/IRBuilder.h"
+	"llvm/IR/LLVMContext.h"
+	"llvm/IR/Module.h"
+	"llvm/IR/Type.h"
+	"llvm/IR/Verifier.h"
+	"llvm/IR/Instructions.h"
+	"llvm/Bitcode/ReaderWriter.h"
+	"llvm/Support/Casting.h"
+	"llvm/Support/TargetSelect.h"
+	"llvm/Support/FileSystem.h"
+	"llvm/Transforms/Utils/Cloning.h"
+	"../include/jit.h"
+	"../include/die.h"
+	"../include/build.h"
+	"../include/errors.h"
+	"../include/search.h"
+	"../include/native.h"
+	"../include/threads.h"
+	"../include/strings.h"
+	"../include/assemble.h"
+	"../include/mangling.h"
+
