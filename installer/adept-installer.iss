@@ -83,6 +83,9 @@ Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libstdc++-6.dll
 Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libwinpthread-1.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
+[Dirs]
+Name: "{app}\obj\module_cache"
+
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
