@@ -76,9 +76,9 @@ Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\import\*"; Dest
 Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\mingw64\*"; DestDir: "{app}\mingw64"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\obj\core\*"; DestDir: "{app}\obj\core"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libgcc_s_seh-1.dll"; DestDir: "{app}\libgcc_s_seh-1.dll"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libstdc++-6.dll"; DestDir: "{app}\libstdc++-6.dll"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libwinpthread-1.dll"; DestDir: "{app}\libwinpthread-1.dll"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libgcc_s_seh-1.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libstdc++-6.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\isaac\Google Drive\Adept\installer\adept_files\libwinpthread-1.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
