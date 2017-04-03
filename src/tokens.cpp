@@ -140,6 +140,12 @@ std::string Token::toString(){
     case TOKENID_ULONG:
         str = "unsigned long : " + to_str(getULong());
         break;
+    case TOKENID_FLOAT:
+        str = "float: " + to_str(getFloat());
+        break;
+    case TOKENID_DOUBLE:
+        str = "double : " + to_str(getDouble());
+        break;
     case TOKENID_CONSTANT:
         str = "constant : " + getString();
         break;

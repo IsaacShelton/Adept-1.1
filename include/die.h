@@ -9,7 +9,8 @@
 #include "config.h"
 
 #define die(a) { std::cerr << a << std::endl; return 1; }
-#define next_index(i, s) { if(++i == s) { fail("Unexpected Statement Termination"); return 1; } }
+#define next_index(i, s) { if(++i == s) { fail("Unexpected Statement Termination :\\ " + to_str(__LINE__)); return 1; } }
+#define next_index_else(i, s, err) { if(++i == s) { fail(err); return 1; } }
 
 #ifdef USE_ENSURES
 void _ensure(const char*, const char*, int);

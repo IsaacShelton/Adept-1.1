@@ -24,10 +24,11 @@
 #include "llvm/Support/FileSystem.h"
 
 #include <string>
+#include "config.h"
 #include "program.h"
 #include "asmdata.h"
 
 void jit_init();
-int jit_run(AssemblyData&, std::string, std::vector<ModuleDependency>& dependencies, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
+int jit_run(Configuration* config, AssemblyData&, std::string, std::vector<ModuleDependency>& dependencies, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
 
 #endif // JIT_H_INCLUDED

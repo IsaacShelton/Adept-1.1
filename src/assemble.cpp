@@ -90,7 +90,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     }
 
     // Link to the minimal Adept core
-    linked_objects.push_back("C:/Users/isaac/.adept/lib/core.o");
+    linked_objects.push_back("C:/Users/" + config.username + "/.adept/obj/core/core.o");
 
     for(const std::string& lib : program.extra_libs){
         linked_objects.push_back(lib);
@@ -158,6 +158,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
         ModuleDependency* dependency = &program.dependencies[i];
         Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
 
+        dependency->config->clock.remember();
         if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
 
         if(!dependency->is_nothing){
@@ -175,7 +176,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
     build_context.module = llvm::CloneModule(context.module.get());
 
     // Run 'build()'
-    if(jit_run(build_context, "build", program.dependencies, build_result) != 0) return 1;
+    if(jit_run(&config, build_context, "build", program.dependencies, build_result) != 0) return 1;
     if(build_result != "0") return 1;
 
     return 0;
@@ -641,7 +642,7 @@ int assemble_global(AssemblyData* context, const Configuration* config, const Pr
         linkage = llvm::GlobalVariable::LinkageTypes::ExternalLinkage;
     }
     else {
-        if(global->is_public and !config->add_build_api){
+        if(global->is_public and !config->add_build_api and !config->jit){
             // If global variable is public and is not a part of a build script
             linkage = llvm::GlobalVariable::LinkageTypes::CommonLinkage;
         } else {

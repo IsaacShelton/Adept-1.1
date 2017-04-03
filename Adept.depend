@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1490449385 source:c:\users\isaac\google drive\adept\src\adept.cpp
+1491237428 source:c:\users\isaac\google drive\adept\src\adept.cpp
 	<string>
 	<vector>
 	<iostream>
@@ -3815,11 +3815,11 @@
 1482705706 c:\users\isaac\google drive\adept\include\clock.h
 	<chrono>
 
-1489950974 c:\users\isaac\google drive\adept\include\errors.h
+1490896352 c:\users\isaac\google drive\adept\include\errors.h
 	<string>
 	<vector>
 
-1490372566 c:\users\isaac\google drive\adept\include\statement.h
+1491236674 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
@@ -4347,7 +4347,7 @@
 1464213801 c:\llvm\include\llvm\transforms\utils\valuemapper.h
 	"llvm/IR/ValueMap.h"
 
-1490053436 c:\users\isaac\google drive\adept\include\die.h
+1490896204 c:\users\isaac\google drive\adept\include\die.h
 	<string>
 	<iostream>
 	"config.h"
@@ -4375,12 +4375,12 @@
 	"../include/die.h"
 	"../include/strings.h"
 
-1485906189 source:c:\users\isaac\google drive\adept\src\errors.cpp
+1490896420 source:c:\users\isaac\google drive\adept\src\errors.cpp
 	"../include/die.h"
 	"../include/errors.h"
 	"../include/strings.h"
 
-1490452816 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1491236067 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -4416,16 +4416,18 @@
 	<vector>
 	"program.h"
 
-1489968347 source:c:\users\isaac\google drive\adept\src\finalize.cpp
+1491231865 source:c:\users\isaac\google drive\adept\src\finalize.cpp
+	"../include/die.h"
 	"../include/jit.h"
 	"../include/lexer.h"
 	"../include/parse.h"
 	"../include/config.h"
+	"../include/native.h"
 	"../include/strings.h"
 	"../include/assemble.h"
 	"../include/finalize.h"
 
-1489801346 c:\users\isaac\google drive\adept\include\jit.h
+1491230547 c:\users\isaac\google drive\adept\include\jit.h
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
@@ -4447,6 +4449,7 @@
 	"llvm/Support/TargetSelect.h"
 	"llvm/Support/FileSystem.h"
 	<string>
+	"config.h"
 	"program.h"
 	"asmdata.h"
 
@@ -4462,7 +4465,7 @@
 	"llvm/Support/CBindingWrapping.h"
 	"llvm/Support/Memory.h"
 
-1489874278 source:c:\users\isaac\google drive\adept\src\jit.cpp
+1491231887 source:c:\users\isaac\google drive\adept\src\jit.cpp
 	<iostream>
 	<unistd.h>
 	"llvm/ADT/APFloat.h"
@@ -4494,6 +4497,7 @@
 	"llvm/Target/TargetSubtargetInfo.h"
 	"../include/die.h"
 	"../include/jit.h"
+	"../include/config.h"
 	"../include/errors.h"
 	"../include/strings.h"
 	"../include/assemble.h"
@@ -4572,7 +4576,7 @@
 	"llvm/Support/DataTypes.h"
 	<cassert>
 
-1490558491 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1491234270 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -4584,7 +4588,7 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1489790532 source:c:\users\isaac\google drive\adept\src\main.cpp
+1491237817 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -4955,7 +4959,7 @@
 	"llvm/Target/TargetSubtargetInfo.h"
 	"../include/asmdata.h"
 
-1490560958 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1491237327 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	<boost/filesystem.hpp>
@@ -4970,7 +4974,7 @@
 	"../include/mangling.h"
 	"llvm/Support/DynamicLibrary.h"
 
-1490559166 source:c:\users\isaac\google drive\adept\src\program.cpp
+1491230803 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	<boost/filesystem.hpp>
@@ -4981,7 +4985,7 @@
 	"../include/assemble.h"
 	"../include/mangling.h"
 
-1490452880 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1491237895 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -5023,7 +5027,7 @@
 	<thread>
 	<vector>
 
-1488635477 source:c:\users\isaac\google drive\adept\src\tokens.cpp
+1490895573 source:c:\users\isaac\google drive\adept\src\tokens.cpp
 	<iostream>
 	"../include/tokens.h"
 	"../include/strings.h"
@@ -5033,7 +5037,7 @@
 	"../include/type.h"
 	"../include/parse.h"
 
-1490454904 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1491231800 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>

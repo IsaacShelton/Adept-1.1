@@ -903,13 +903,14 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
     // keyword <unknown syntax follows>
     //    ^
 
-    const size_t accepted_keywords_size = 8;
+    const size_t accepted_keywords_size = 9;
     const std::string accepted_keywords[] = {
-        "defer", "delete", "if", "return", "switch", "unless", "until", "while"
+        "defer", "delete", "for", "if", "return", "switch", "unless", "until", "while"
     };
 
     size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
 
+    // TODO: Clean up code inside blocks
     switch(string_index){
     case 0: { // defer
         next_index(i, tokens.size());
@@ -944,7 +945,91 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             statements.push_back( new DeallocStatement(expression, errors) );
             break;
         }
-    case 2: { // if
+    case 2: { // for
+        // TODO: Clean up this horrible mess of code
+
+        StatementList for_condition_statements; // Will hold initialization statement and increament statement - [init ptr, incr ptr]
+        StatementList for_statements;
+        PlainExp* expression;
+
+        next_index(i, tokens.size());
+        switch(tokens[i].id){
+        case TOKENID_NEWLINE:
+            errors.line++;
+            next_index(i, tokens.size());
+            break;
+        case TOKENID_KEYWORD:
+            if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), false, errors) != 0) return 1;
+            break;
+        case TOKENID_WORD:
+            if(parse_block_word(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
+            break;
+        case TOKENID_MULTIPLY: // multiply/pointer operator
+            if(parse_block_dereference(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
+            break;
+        case TOKENID_NEXT: // Skip initialization statement if next token is found
+            for_condition_statements.push_back(NULL);
+            break;
+        default:
+            errors.panic("Expected statement, received '" + tokens[i].syntax() + "'");
+            return 1;
+        }
+
+        next_index(i, tokens.size());
+        if(for_condition_statements.size() > 1){
+            errors.panic("Compound initialization statements currently not allowed");
+            return 1;
+        }
+
+        if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
+        if(tokens[i].id != TOKENID_BEGIN) next_index(i, tokens.size());
+
+        switch(tokens[i].id){
+        case TOKENID_NEWLINE:
+            errors.line++;
+            next_index(i, tokens.size());
+            break;
+        case TOKENID_KEYWORD:
+            if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), false, errors) != 0) return 1;
+            break;
+        case TOKENID_WORD:
+            if(parse_block_word(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
+            break;
+        case TOKENID_MULTIPLY: // multiply/pointer operator
+            if(parse_block_dereference(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
+            break;
+        case TOKENID_BEGIN: // Skip increament statement if begin token is found
+            for_condition_statements.push_back(NULL);
+            break;
+        default:
+            errors.panic("Expected statement, received '" + tokens[i].syntax() + "'");
+            return 1;
+        }
+
+        if(for_condition_statements.size() > 2){
+            errors.panic("Compound increament statements currently not allowed");
+            return 1;
+        }
+
+        if(tokens[i].id != TOKENID_BEGIN){
+            errors.panic("Expected '{' after 'for' statement conditions");
+            return 1;
+        }
+
+        next_index(i, tokens.size());
+        if(parse_block(config, tokens, program, for_statements, defer_statements, i, false, errors) != 0) return 1;
+        next_index(i, tokens.size());
+
+        // Skip any newlines
+        while(tokens[i].id == TOKENID_NEWLINE){
+            errors.line++;
+            next_index_else(i, tokens.size(), errors.format("Expected '}' to close off block"));
+        }
+
+        statements.push_back( new ForStatement(for_condition_statements[0], expression, for_condition_statements[1], for_statements, errors) );
+        break;
+    }
+    case 3: { // if
             next_index(i, tokens.size());
 
             if(tokens[i].id == TOKENID_KEYWORD){
@@ -964,7 +1049,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
             break;
         }
-    case 3: { // return
+    case 4: { // return
             PlainExp* expression;
             next_index(i, tokens.size());
 
@@ -981,10 +1066,10 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
             break;
         }
-    case 4: // switch
+    case 5: // switch
         if(parse_block_switch(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
         break;
-    case 5: { // unless
+    case 6: { // unless
             next_index(i, tokens.size());
 
             if(tokens[i].id == TOKENID_KEYWORD){
@@ -1004,10 +1089,10 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
             break;
         }
-    case 6: // until
+    case 7: // until
         if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
         break;
-    case 7: // while
+    case 8: // while
         if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_WHILE, errors) != 0) return 1;
         break;
     default:
@@ -1290,7 +1375,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
     // Skip any newlines
     while(tokens[i].id == TOKENID_NEWLINE){
         errors.line++;
-        next_index(i, tokens.size());
+        next_index_else(i, tokens.size(), errors.format("Expected '}' to close off block"));
     }
 
     if(tokens[i].id == TOKENID_KEYWORD){
@@ -1547,7 +1632,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         errors.line++;
     }
 
-    // TODO: Clean up code inside each case (probally refactor into different functions)
+    // TODO: Clean up code inside each case (probally refactor into different functions or something)
     switch (tokens[i].id) {
     case TOKENID_WORD:
         next_index(i, tokens.size());

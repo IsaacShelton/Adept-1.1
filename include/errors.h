@@ -65,6 +65,9 @@ class ErrorHandler {
     void warn_plain(std::string);
     void panic_plain(std::string);
 
+    // Basic format with info
+    std::string format(const std::string&);
+
     // Error message templates
     void panic_undeclared_func(const std::string&, const std::vector<std::string>&);
     void panic_undeclared_method(const std::string&, const std::string&, const std::vector<std::string>&);

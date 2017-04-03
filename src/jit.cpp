@@ -31,6 +31,7 @@
 
 #include "../include/die.h"
 #include "../include/jit.h"
+#include "../include/config.h"
 #include "../include/errors.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
@@ -41,7 +42,7 @@ void jit_init(){
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
 }
-int jit_run(AssemblyData& context, std::string func_name, std::vector<ModuleDependency>& dependencies, std::string& result, std::vector<llvm::GenericValue> args){
+int jit_run(Configuration* config, AssemblyData& context, std::string func_name, std::vector<ModuleDependency>& dependencies, std::string& result, std::vector<llvm::GenericValue> args){
     std::string error_str;
     llvm::Function* entry_point = context.module->getFunction(func_name.c_str());
     jit_init();
@@ -105,7 +106,18 @@ int jit_run(AssemblyData& context, std::string func_name, std::vector<ModuleDepe
         }
     }
 
+    // Load adept core
+    llvm::SMDiagnostic sm_diagnostic;
+    std::unique_ptr<llvm::Module> adept_core_module = llvm::parseIRFile("C:/Users/" + config->username + "/.adept/obj/core/core.bc", sm_diagnostic, context.context);
+    if (!adept_core_module) {
+        sm_diagnostic.print("Failed to parse IR File (core.bc) : ", llvm::errs());
+        return false;
+    }
+    adept_core_module->setModuleIdentifier("__adept_core__");
+    execution_engine->addModule(std::move(adept_core_module));
+
     execution_engine->finalizeObject();
+    config->clock.remember();
     llvm::GenericValue return_value = execution_engine->runFunction(entry_point, args);
 
     result = return_value.IntVal.toString(10, true);

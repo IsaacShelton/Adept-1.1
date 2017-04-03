@@ -2342,3 +2342,120 @@ bool SwitchStatement::isConditional(){
     return false; // Not really a conditional (or at least don't treat is as a conditional)
 }
 
+ForStatement::ForStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+ForStatement::ForStatement(Statement* initialization_statement, PlainExp* condition, Statement* increament_statement, const StatementList& statements, ErrorHandler& errors){
+    this->initialization_statement = initialization_statement;
+    this->condition = condition;
+    this->increament_statement = increament_statement;
+    this->statements = statements;
+    this->errors = errors;
+}
+ForStatement::ForStatement(const ForStatement& other) : Statement(other) {
+    this->initialization_statement = other.initialization_statement == NULL ? NULL : other.initialization_statement->clone();
+    this->condition = other.condition == NULL ? NULL : other.condition->clone();
+    this->increament_statement = other.increament_statement == NULL ? NULL : other.increament_statement->clone();
+    this->statements.resize(other.statements.size());
+
+    for(size_t i = 0; i != other.statements.size(); i++){
+        this->statements[i] = other.statements[i]->clone();
+    }
+}
+ForStatement::~ForStatement(){
+    delete initialization_statement;
+    delete condition;
+    delete increament_statement;
+
+    for(Statement* statement : statements){
+        delete statement;
+    }
+}
+int ForStatement::assemble(Program& program, Function& func, AssemblyData& context){
+    if(initialization_statement != NULL) if(initialization_statement->assemble(program, func, context) != 0) return 1;
+
+    llvm::Function* llvm_function = context.module->getFunction( mangle(program, func) );
+
+    llvm::BasicBlock* incr_block;
+    llvm::BasicBlock* test_block = llvm::BasicBlock::Create(context.context, "test", llvm_function);
+    llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
+    llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
+
+    context.builder.CreateBr(test_block);
+    context.builder.SetInsertPoint(test_block);
+
+    std::string expr_typename;
+    llvm::Value* expr_value = this->condition->assemble_immutable(program, func, context, &expr_typename);
+    if(expr_value == NULL) return 1;
+
+    assemble_merge_conditional_types(context, program, expr_typename, &expr_value);
+
+    if(expr_typename != "bool"){
+        errors.panic("Expression type for conditional must be 'bool' or another compatible primitive");
+        return 1;
+    }
+
+    context.builder.CreateCondBr(expr_value, true_block, false_block);
+    context.builder.SetInsertPoint(true_block);
+
+    bool terminated = false;
+    for(size_t s = 0; s != this->statements.size(); s++){
+        if(this->statements[s]->isTerminator()) terminated = true;
+
+        if(this->statements[s]->assemble(program, func, context) != 0){
+            return 1;
+        }
+
+        if(terminated) break;
+    }
+
+    if(!terminated){
+        if(increament_statement != NULL){
+            incr_block = llvm::BasicBlock::Create(context.context, "incr", llvm_function);
+            context.builder.CreateBr(incr_block);
+        }
+        else {
+            context.builder.CreateBr(test_block);
+        }
+    }
+
+    if(increament_statement != NULL){
+        context.builder.SetInsertPoint(incr_block);
+        if(increament_statement->assemble(program, func, context) != 0) return 1;
+        context.builder.CreateBr(test_block);
+    }
+
+    context.builder.SetInsertPoint(false_block);
+    return 0;
+}
+std::string ForStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    result += "for ";
+    if(initialization_statement != NULL) result += initialization_statement->toString(0, true);
+    result += ", ";
+    if(condition != NULL) result += condition->toString();
+    if(increament_statement != NULL) result += ", " + increament_statement->toString(0, true);
+    result += " {\n";
+
+    for(Statement* s : statements){
+        result += s->toString(indent + 1, false) + "\n";
+    }
+
+    for(unsigned int i = 0; i != indent; i++) result += "    ";
+    result += "}";
+    return result;
+}
+Statement* ForStatement::clone(){
+    return new ForStatement(*this);
+}
+bool ForStatement::isTerminator(){
+    return false;
+}
+bool ForStatement::isConditional(){
+    return false;
+}

@@ -422,4 +422,22 @@ class SwitchStatement : public Statement {
     bool isConditional();
 };
 
+class ForStatement : public Statement {
+    public:
+    Statement* initialization_statement;
+    PlainExp* condition;
+    Statement* increament_statement;
+    StatementList statements;
+
+    ForStatement(ErrorHandler&);
+    ForStatement(Statement*, PlainExp*, Statement*, const StatementList&, ErrorHandler&);
+    ForStatement(const ForStatement&);
+    ~ForStatement();
+    int assemble(Program&, Function&, AssemblyData&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
 #endif // STATEMENT_H_INCLUDED

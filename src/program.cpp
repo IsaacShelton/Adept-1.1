@@ -781,7 +781,7 @@ int Program::generate_types(AssemblyData& context){
     // Create a constructor for arrays
     std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
     llvm::FunctionType* array_ctor_type = llvm::FunctionType::get(llvm_array_type, array_ctor_args, false);
-    llvm_array_ctor = llvm::Function::Create(array_ctor_type, llvm::Function::ExternalLinkage, ".arrctor", context.module.get());
+    llvm_array_ctor = llvm::Function::Create(array_ctor_type, llvm::Function::ExternalLinkage, ".__adept_core_arrctor", context.module.get());
 
     return 0;
 }

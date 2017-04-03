@@ -29,6 +29,10 @@ void ErrorHandler::panic_plain(std::string message){
     fail(message);
 }
 
+std::string ErrorHandler::format(const std::string& message){
+    return filename + "(" + to_str(line) + "): " + message;
+}
+
 void ErrorHandler::panic_undeclared_func(const std::string& name, const std::vector<std::string>& args){
     std::string message = "Undefined function '" + name + "(";
     for(size_t i = 0; i != args.size(); i++){

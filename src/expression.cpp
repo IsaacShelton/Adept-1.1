@@ -248,11 +248,27 @@ std::string OperatorExp::toString(){
     case TOKENID_DIVIDE:
         operator_str = "/";
         break;
+    case TOKENID_MODULUS:
+        operator_str = "%";
+        break;
     case TOKENID_EQUALITY:
         operator_str = "==";
         break;
     case TOKENID_INEQUALITY:
         operator_str = "!=";
+        break;
+    case TOKENID_LESS:
+        operator_str = "<";
+        break;
+    case TOKENID_GREATER:
+        operator_str = ">";
+        break;
+    case TOKENID_LESSEQ:
+        operator_str = "<=";
+        break;
+    case TOKENID_GREATEREQ:
+        operator_str = ">=";
+        break;
     case TOKENID_AND:
         operator_str = "and";
         break;
