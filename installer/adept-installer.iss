@@ -59,7 +59,9 @@ begin
   end;
   // look for the path with leading and trailing semicolon
   // Pos() returns 0 if not found
-  Result := Pos(';' + Param + ';', ';' + OrigPath + ';') = 0;
+  // Result := Pos(';' + Param + ';', ';' + OrigPath + ';') = 0;
+  Result := False;
+  exit;
 end;
 
 [Registry]
