@@ -81,7 +81,8 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
 
         std::cout << 2 << std::endl;
-        if(dependency_program->functions.size() != 0 or dependency_program->classes.size() != 0){
+        if(!dependency->is_nothing){
+            std::cout << "create" << std::endl;
             out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
             std::cout << "a" << std::endl;
             llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
