@@ -77,15 +77,20 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         }
 
         Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
+        std::cout << 1 << std::endl;
         if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
 
+        std::cout << 2 << std::endl;
         if(dependency_program->functions.size() != 0 or dependency_program->classes.size() != 0){
             out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
             llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
             out_stream->flush();
+            std::cout << 3 << std::endl;
             delete out_stream;
+            std::cout << 4 << std::endl;
             native_build_module(context, dependency->target_bc, dependency->target_obj, module_build_options);
             linked_objects.push_back(dependency->target_obj);
+            std::cout << 5 << std::endl;
         }
     }
 
