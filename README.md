@@ -298,7 +298,7 @@ public def main() int {
         10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
     }
     
-    while i usize = 0ui, i != 11ui, i += 1 {
+    while i usize = 0ui, i != 11ui, i += 1ui {
         println(integer_list[i])
     }
     
