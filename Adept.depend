@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1491237428 source:c:\users\isaac\google drive\adept\src\adept.cpp
+1497885044 source:c:\users\isaac\google drive\adept\src\adept.cpp
 	<string>
 	<vector>
 	<iostream>
@@ -3163,7 +3163,9 @@
 	<boost/config/abi_prefix.hpp>
 	<boost/config/abi_suffix.hpp>
 
-1489875500 c:\users\isaac\google drive\adept\include\adept.h
+1496874735 c:\users\isaac\google drive\adept\include\adept.h
+	<string>
+	<vector>
 
 1487031328 c:\users\isaac\google drive\adept\include\info.h
 
@@ -3172,7 +3174,7 @@
 	<vector>
 	"program.h"
 
-1490559116 c:\users\isaac\google drive\adept\include\program.h
+1497493823 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
@@ -3808,18 +3810,18 @@
 
 1466190434 c:\llvm\include\llvm\support\codegen.h
 
-1489949013 c:\users\isaac\google drive\adept\include\config.h
+1497884716 c:\users\isaac\google drive\adept\include\config.h
 	"clock.h"
 	"errors.h"
 
 1482705706 c:\users\isaac\google drive\adept\include\clock.h
 	<chrono>
 
-1491240802 c:\users\isaac\google drive\adept\include\errors.h
+1497491976 c:\users\isaac\google drive\adept\include\errors.h
 	<string>
 	<vector>
 
-1491240802 c:\users\isaac\google drive\adept\include\statement.h
+1497539228 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
@@ -3831,14 +3833,14 @@
 	<string>
 	<vector>
 
-1490049198 c:\users\isaac\google drive\adept\include\expression.h
+1497494238 c:\users\isaac\google drive\adept\include\expression.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 	"errors.h"
 	"asmdata.h"
 
-1489948766 c:\users\isaac\google drive\adept\include\asmdata.h
+1497034648 c:\users\isaac\google drive\adept\include\asmdata.h
 	<string>
 	<vector>
 	"type.h"
@@ -3852,13 +3854,13 @@
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 
-1482876616 c:\users\isaac\google drive\adept\include\lexer.h
+1496797514 c:\users\isaac\google drive\adept\include\lexer.h
 	<vector>
 	"config.h"
 	"tokens.h"
 	"errors.h"
 
-1491240802 c:\users\isaac\google drive\adept\include\parse.h
+1497382931 c:\users\isaac\google drive\adept\include\parse.h
 	<vector>
 	"type.h"
 	"config.h"
@@ -3875,12 +3877,14 @@
 	<fstream>
 	<stdlib.h>
 
-1489801345 c:\users\isaac\google drive\adept\include\assemble.h
+1498508060 c:\users\isaac\google drive\adept\include\assemble.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 	"parse.h"
 	"config.h"
+	"native.h"
+	"search.h"
 	"asmdata.h"
 
 1489801347 c:\users\isaac\google drive\adept\include\finalize.h
@@ -3890,12 +3894,12 @@
 	"../include/tokens.h"
 	"../include/asmdata.h"
 
-1489948786 source:c:\users\isaac\google drive\adept\src\asmdata.cpp
+1497034690 source:c:\users\isaac\google drive\adept\src\asmdata.cpp
 	"../include/strings.h"
 	"../include/die.h"
 	"../include/asmdata.h"
 
-1491240802 c:\users\isaac\google drive\adept\include\die.h
+1496797892 c:\users\isaac\google drive\adept\include\die.h
 	<string>
 	<iostream>
 	"config.h"
@@ -3909,7 +3913,7 @@
 1486434531 source:c:\users\isaac\google drive\adept\src\attribute.cpp
 	"../include/attribute.h"
 
-1490052098 source:c:\users\isaac\google drive\adept\src\build.cpp
+1497746688 source:c:\users\isaac\google drive\adept\src\build.cpp
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
 	"llvm/ExecutionEngine/ExecutionEngine.h"
@@ -4381,9 +4385,10 @@
 	<iostream>
 	"../include/clock.h"
 
-1489949391 source:c:\users\isaac\google drive\adept\src\config.cpp
+1497884736 source:c:\users\isaac\google drive\adept\src\config.cpp
 	<cstring>
 	<iostream>
+	"../include/adept.h"
 	"../include/config.h"
 	"../include/errors.h"
 	"../include/strings.h"
@@ -4392,12 +4397,12 @@
 	"../include/die.h"
 	"../include/strings.h"
 
-1491240805 source:c:\users\isaac\google drive\adept\src\errors.cpp
+1497538861 source:c:\users\isaac\google drive\adept\src\errors.cpp
 	"../include/die.h"
 	"../include/errors.h"
 	"../include/strings.h"
 
-1491240805 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1498503900 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -4428,7 +4433,7 @@
 	"../include/mangling.h"
 	"../include/expression.h"
 
-1486945142 c:\users\isaac\google drive\adept\include\mangling.h
+1498508028 c:\users\isaac\google drive\adept\include\mangling.h
 	<string>
 	<vector>
 	"program.h"
@@ -4528,7 +4533,7 @@
 	"llvm/Support/DataTypes.h"
 	<cassert>
 
-1491240805 source:c:\users\isaac\google drive\adept\src\jit.cpp
+1497468239 source:c:\users\isaac\google drive\adept\src\jit.cpp
 	<iostream>
 	<unistd.h>
 	"llvm/ADT/APFloat.h"
@@ -4599,7 +4604,7 @@
 1460974649 c:\llvm\include\llvm\irreader\irreader.h
 	<memory>
 
-1491240805 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1498507058 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -4614,7 +4619,7 @@
 1489785467 c:\users\isaac\google drive\adept\include\search.h
 	<string>
 
-1491237817 source:c:\users\isaac\google drive\adept\src\main.cpp
+1497577898 source:c:\users\isaac\google drive\adept\src\main.cpp
 	<string>
 	<memory>
 	<stdio.h>
@@ -4623,7 +4628,7 @@
 	"../include/adept.h"
 	<boost/filesystem.hpp>
 
-1489529862 source:c:\users\isaac\google drive\adept\src\mangling.cpp
+1497035184 source:c:\users\isaac\google drive\adept\src\mangling.cpp
 	"../include/mangling.h"
 
 1489801348 source:c:\users\isaac\google drive\adept\src\native.cpp
@@ -4979,7 +4984,7 @@
 1435056593 c:\llvm\include\llvm\support\tooloutputfile.h
 	"llvm/Support/raw_ostream.h"
 
-1491240805 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1498503927 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	<boost/filesystem.hpp>
@@ -4994,7 +4999,7 @@
 	"../include/mangling.h"
 	"llvm/Support/DynamicLibrary.h"
 
-1491240805 source:c:\users\isaac\google drive\adept\src\program.cpp
+1498503948 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	<boost/filesystem.hpp>
@@ -5009,7 +5014,7 @@
 	<string>
 	"../include/search.h"
 
-1491240805 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1498503991 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -5061,7 +5066,7 @@
 	"../include/type.h"
 	"../include/parse.h"
 
-1491254961 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1497708952 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>
@@ -5094,10 +5099,16 @@
 	"../include/die.h"
 	"../include/build.h"
 	"../include/errors.h"
-	"../include/search.h"
 	"../include/native.h"
+	"../include/asmutil.h"
 	"../include/threads.h"
 	"../include/strings.h"
 	"../include/assemble.h"
 	"../include/mangling.h"
+
+1497035492 source:c:\users\isaac\google drive\adept\src\asmutil.cpp
+	"../include/asmutil.h"
+
+1497035489 c:\users\isaac\google drive\adept\include\asmutil.h
+	"program.h"
 

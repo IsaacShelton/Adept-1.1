@@ -33,7 +33,7 @@ class PlainExp {
     virtual std::string toString() = 0;
     virtual PlainExp* clone() = 0;
 
-    llvm::Value* assemble_immutable(Program&, Function&, AssemblyData&, std::string*);
+    inline llvm::Value* assemble_immutable(Program&, Function&, AssemblyData&, std::string*);
 };
 
 class OperatorExp : public PlainExp {
@@ -359,6 +359,7 @@ class CastExp : public PlainExp {
     llvm::Value* cast_to_float(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_double(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_ptr(Program&, Function&, AssemblyData&);
+    llvm::Value* cast_to_valueptr(Program&, Function&, AssemblyData&);
 };
 
 class FuncptrExp : public PlainExp {

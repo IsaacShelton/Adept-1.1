@@ -32,8 +32,8 @@
 #include "../include/die.h"
 #include "../include/build.h"
 #include "../include/errors.h"
-#include "../include/search.h"
 #include "../include/native.h"
+#include "../include/asmutil.h"
 #include "../include/threads.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
@@ -50,10 +50,12 @@ int build(AssemblyData& context, Configuration& config, Program& program, ErrorH
     }
 }
 int build_program(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+    if(config.time) config.clock.remember();
     std::string target_name = filename_change_ext(config.filename, "exe");
     std::string target_obj  = (config.obj)      ? filename_change_ext(config.filename, "obj") : "C:/Users/" + config.username + "/.adept/obj/object.o";
     std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
     std::vector<ModuleDependency> dependencies;
+    std::vector<ModuleDependency*> compilation_list;
     std::vector<std::string> linked_objects;
     ModuleBuildOptions module_build_options;
     std::error_code error_str;
@@ -67,34 +69,40 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     out_stream->flush();
     delete out_stream;
 
-    for(size_t i = 0; i != program.dependencies.size(); i++){
-        AssemblyData import_context;
-        ModuleDependency* dependency = &program.dependencies[i];
+    // Link to the minimal Adept core
+    linked_objects.push_back("C:/Users/" + config.username + "/.adept/obj/core/core.o");
 
-        if(std::find(linked_objects.begin(), linked_objects.end(), dependency->target_obj) != linked_objects.end()){
+    // Link to other libraries specified
+    for(const std::string& lib : program.extra_libs){
+        linked_objects.push_back(lib);
+    }
+
+    for(ModuleDependency& dependency : program.dependencies){
+        if(dependency.is_nothing) continue; // If there isn't any substance in the dependency, don't bother processing it
+
+        if(std::find(linked_objects.begin(), linked_objects.end(), dependency.target_obj) != linked_objects.end()){
             // We've already linked to that object file
             continue;
         }
 
-        Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
-        if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
-
-        if(!dependency->is_nothing){
-            out_stream = new llvm::raw_fd_ostream(dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
-            llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
-            out_stream->flush();
-            delete out_stream;
-
-            native_build_module(context, dependency->target_bc, dependency->target_obj, module_build_options);
-            linked_objects.push_back(dependency->target_obj);
-        }
+        compilation_list.push_back(&dependency);
+        linked_objects.push_back(dependency.target_obj);
     }
 
-    // Link to the minimal Adept core
-    linked_objects.push_back("C:/Users/" + config.username + "/.adept/obj/core/core.o");
+    // ASYNC: This could be threaded
+    // NOTE: I have tried a theaded version of this, but it had virtually no performance increase
+    //           (most likely due to competition for resources)
+    for(ModuleDependency* uncompiled_dependency : compilation_list){
+        AssemblyData import_context;
+        Program* dependency_program = program.parent_manager->getProgram(uncompiled_dependency->filename);
+        if(assemble(import_context, *uncompiled_dependency->config, *dependency_program, errors) != 0) return 1;
 
-    for(const std::string& lib : program.extra_libs){
-        linked_objects.push_back(lib);
+        out_stream = new llvm::raw_fd_ostream(uncompiled_dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
+        llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
+        out_stream->flush();
+        delete out_stream;
+
+        native_build_module(context, uncompiled_dependency->target_bc, uncompiled_dependency->target_obj, module_build_options);
     }
 
     native_build_module(context, target_bc, target_obj, module_build_options);
@@ -133,6 +141,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
 
 }
 int build_buildscript(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+    if(config.time) config.clock.remember();
     std::string build_result;
     AssemblyData build_context;
     llvm::Function* build_function = context.module->getFunction("build");
@@ -184,19 +193,19 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
     return 0;
 }
 int assemble(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+    if(config.time) config.clock.remember();
+
     context.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), context.context);
     if(program.generate_types(context) != 0) return 1;
     build_add_symbols();
     jit_init();
 
     // Create assembly data for globals
-    for(size_t i = 0; i != program.globals.size(); i++){
-        context.addGlobal(program.globals[i].name);
-    }
+    create_assembly_globals(context, program.globals);
 
-    size_t thread_count = 8;
     size_t target_batch_size;
     size_t overflow_batch_size;
+    const size_t thread_count = 8;
     std::vector<std::future<int>> futures;
 
     if(program.globals.size() > 8){
@@ -251,27 +260,19 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
 
     // Assemble the skeleton of each class
     // ASYNC: Maybe parallelize this?
-    for(size_t i = 0; i != program.classes.size(); i++){
-        if(assemble_class(context, config, program, program.classes[i]) != 0) return 1;
-    }
+    if(assemble_class_skeletons(context, config, program) != 0) return 1;
 
     // Assemble the skeleton of each function
     // ASYNC: Maybe parallelize this?
-    for(size_t i = 0; i != program.functions.size(); i++){
-        if(assemble_function(context, config, program, program.functions[i]) != 0) return 1;
-    }
+    if(assemble_function_skeletons(context, config, program) != 0) return 1;
 
     // Assemble the bodies of each class
     // ASYNC: Maybe parallelize this?
-    for(size_t i = 0; i != program.classes.size(); i++){
-        if(assemble_class_body(context, config, program, program.classes[i]) != 0) return 1;
-    }
+    if(assemble_class_bodies(context, config, program) != 0) return 1;
 
     // Assemble the bodies of each function
     // ASYNC: Maybe parallelize this?
-    for(size_t i = 0; i != program.functions.size(); i++){
-        if(assemble_function_body(context, config, program, program.functions[i]) != 0) return 1;
-    }
+    if(assemble_function_bodies(context, config, program) != 0) return 1;
 
     // Print Assembler Time
     if(config.time and !config.silent){
@@ -290,9 +291,56 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
     // ASYNC: Assembles a chunk of globals, intended for threading purposes
 
     for(size_t g = 0; g != globals_count; g++){
-        if(assemble_global(context, config, program, &globals[g]) != 0){
+        Global* global = &globals[g];
+        llvm::Type* global_llvm_type;
+        const bool is_constant = false;
+        llvm::GlobalVariable* created_global;
+        llvm::GlobalVariable::LinkageTypes linkage;
+        AssembleGlobal* asm_global = context->findGlobal(global->name); // TODO add AssemblyData::findGlobal
+
+        if(asm_global == NULL){
+            global->errors.panic("Attempted to assemble global variable '" + global->name + "' but couldn't find assembly data");
+            fail(SUICIDE);
             return 1;
         }
+
+        if(program->find_type(global->type, *context, &global_llvm_type) != 0){
+            fail_filename(*config, UNDECLARED_TYPE(global->type));
+            return 1;
+        }
+
+        if(global->is_imported){
+            linkage = llvm::GlobalVariable::LinkageTypes::ExternalLinkage;
+        }
+        else {
+            if(global->is_public and !config->add_build_api and !config->jit){
+                // If global variable is public and is not a part of a build script
+                linkage = llvm::GlobalVariable::LinkageTypes::CommonLinkage;
+            } else {
+                // If global variable is private or is part of a build script
+                linkage = llvm::GlobalVariable::LinkageTypes::InternalLinkage;
+            }
+        }
+
+        created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
+                            linkage, nullptr, global->name);
+
+        if(!global->is_imported){
+            // TODO: Add support for native integer types as globals (currently only structs and pointers can be used)
+
+            // Initialize the global as zero
+            if(Program::is_function_typename(global->type) or Program::is_pointer_typename(global->type)){
+                // Safety: Probally not very safe, but whatever. 'global_llvm_type' should always be a pointer
+                assert(global_llvm_type->isPointerTy());
+                created_global->setInitializer( llvm::ConstantPointerNull::get( static_cast<llvm::PointerType*>(global_llvm_type) ) );
+            }
+            else {
+                created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) );
+            }
+        }
+
+        created_global->setExternallyInitialized( (global->is_public or global->is_imported) ); // Assume externally initialized if public
+        asm_global->variable = created_global;
     }
 
     return 0;
@@ -301,7 +349,32 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
     // ASYNC: Assembles a chunk of globals, intended for threading purposes
 
     for(size_t e = 0; e != externs_count; e++){
-        if(assemble_external(context, config, program, &externs[e]) != 0){
+        External* external = &externs[e];
+        std::string final_name = (external->is_mangled) ? mangle(external->name, external->arguments) : external->name;
+        llvm::Function* llvm_function = context->module->getFunction(final_name);
+
+        if(!llvm_function){
+            llvm::Type* llvm_type;
+            std::vector<llvm::Type*> args(external->arguments.size());
+
+            for(size_t i = 0; i != external->arguments.size(); i++){
+                if(program->find_type(external->arguments[i], *context, &llvm_type) != 0){
+                    fail_filename(*config, UNDECLARED_TYPE(external->arguments[i]));
+                    return 1;
+                }
+                args[i] = llvm_type;
+            }
+
+            if(program->find_type(external->return_type, *context, &llvm_type) != 0){
+                fail_filename(*config, UNDECLARED_TYPE(external->return_type));
+                return 1;
+            }
+
+            llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
+            llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context->module.get());
+        }
+        else {
+            fail_filename(*config, DUPLICATE_FUNC(external->name));
             return 1;
         }
     }
@@ -309,17 +382,16 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
     return 0;
 }
 
-int assemble_structure(AssemblyData& context, Configuration& config, Program& program, Structure& structure){
-    // Currently structures don't require any special assembly
-    return 0;
-}
-int assemble_class(AssemblyData& context, Configuration& config, Program& program, Class& klass){
-    for(size_t i = 0; i != klass.methods.size(); i++){
-        if(assemble_method(context, config, program, klass, klass.methods[i], klass.is_imported) != 0) return 1;
+int assemble_class_skeletons(AssemblyData& context, Configuration& config, Program& program){
+    for(Class& klass : program.classes){
+        for(Function& method : klass.methods){
+            if(assemble_method(context, config, program, klass, method, klass.is_imported) != 0) return 1;
+        }
     }
+
     return 0;
 }
-int assemble_class_body(AssemblyData& context, Configuration& config, Program& program, Class& klass){
+int assemble_class_bodies(AssemblyData& context, Configuration& config, Program& program){
     // No not the class body you're thinking of
     // ==========        x        ==========
     // =====================================
@@ -330,133 +402,144 @@ int assemble_class_body(AssemblyData& context, Configuration& config, Program& p
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-    // Get it? Since the name of this function is 'assemble_class_body'
+    // Get it? Since the name of this function is 'assemble_class_bodies'
     // Anyways....
 
-    if(klass.is_imported){
-        // Don't assemble the class if it was imported
-        return 0;
-    }
+    for(Class& klass : program.classes){
+        if(klass.is_imported){
+            // Don't assemble the class if it was imported
+            continue;
+        }
 
-    for(size_t i = 0; i != klass.methods.size(); i++){
-        if(assemble_method_body(context, config, program, klass, klass.methods[i]) != 0) return 1;
+        for(Function& method : klass.methods){
+            if(assemble_method_body(context, config, program, klass, method) != 0) return 1;
+        }
     }
 
     return 0;
 }
-int assemble_function(AssemblyData& context, Configuration& config, Program& program, Function& func){
-    std::string mangled_function_name = mangle(program, func);
-    llvm::Function* llvm_function = context.module->getFunction(mangled_function_name);
+int assemble_function_skeletons(AssemblyData& context, Configuration& config, Program& program){
+    // Assemble all the functions in a program
 
-    if(!llvm_function){
-        llvm::Type* llvm_type;
-        std::vector<llvm::Type*> args(func.arguments.size());
+    for(Function& func : program.functions){
+        std::string mangled_function_name = mangle(program, func);
+        llvm::Function* llvm_function = context.module->getFunction(mangled_function_name);
 
-        // Throw an error if main is private
-        if(func.name == "main" and !func.is_public){
-            fail_filename(config, MAIN_IS_PRIVATE);
-            return 1;
-        }
+        if(!llvm_function){
+            llvm::Type* llvm_type;
+            std::vector<llvm::Type*> args(func.arguments.size());
 
-        // Convert argument typenames to llvm types
-        for(size_t i = 0; i != func.arguments.size(); i++){
-            if(program.find_type(func.arguments[i].type, context, &llvm_type) != 0){
-                fail_filename(config, UNDECLARED_TYPE(func.arguments[i].type));
+            // Throw an error if main is private
+            if(func.name == "main"){
+                if(!func.is_public){
+                    fail_filename(config, MAIN_IS_PRIVATE);
+                    return 1;
+                }
+            }
+
+            // Convert argument typenames to llvm types
+            for(size_t i = 0; i != func.arguments.size(); i++){
+                if(program.find_type(func.arguments[i].type, context, &llvm_type) != 0){
+                    fail_filename(config, UNDECLARED_TYPE(func.arguments[i].type));
+                    return 1;
+                }
+                args[i] = llvm_type;
+            }
+
+            // Convert return type typename to an llvm type
+            if(program.find_type(func.return_type, context, &llvm_type) != 0){
+                fail_filename(config, UNDECLARED_TYPE(func.return_type));
                 return 1;
             }
-            args[i] = llvm_type;
-        }
 
-        // Convert return type typename to an llvm type
-        if(program.find_type(func.return_type, context, &llvm_type) != 0){
-            fail_filename(config, UNDECLARED_TYPE(func.return_type));
-            return 1;
-        }
+            llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
+            llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(program, func), context.module.get());
 
-        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(program, func), context.module.get());
+            // Create a new basic block to start insertion into.
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
+            llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
+            llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
 
-        // Create a new basic block to start insertion into.
-        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
-        llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
-        llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
+            // Set insert point to entry
+            context.builder.SetInsertPoint(entry);
 
-        // Set insert point to entry
-        context.builder.SetInsertPoint(entry);
+            // Allocate return variable
+            llvm::AllocaInst* exitval;
+            if(!llvm_type->isVoidTy()){
+                exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
+            }
 
-        // Allocate return variable
-        llvm::AllocaInst* exitval;
-        if(!llvm_type->isVoidTy()){
-            exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
-        }
+            // Create function assembly data
+            AssembleFunction* func_assembly_data = context.addFunction(mangled_function_name);
+            func_assembly_data->entry = entry;
+            func_assembly_data->body = body;
+            func_assembly_data->quit = quit;
+            func_assembly_data->return_type = llvm_type;
+            func_assembly_data->exitval = exitval;
 
-        // Create function assembly data
-        AssembleFunction* func_assembly_data = context.addFunction(mangled_function_name);
-        func_assembly_data->entry = entry;
-        func_assembly_data->body = body;
-        func_assembly_data->quit = quit;
-        func_assembly_data->return_type = llvm_type;
-        func_assembly_data->exitval = exitval;
+            size_t i = 0;
+            func_assembly_data->variables.reserve(args.size());
 
-        size_t i = 0;
-        func_assembly_data->variables.reserve(args.size());
+            for(auto& arg : llvm_function->args()){
+                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, func.arguments[i].name);
+                context.builder.CreateStore(&arg, alloca);
+                func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
+                i++;
+            }
 
-        for(auto& arg : llvm_function->args()){
-            llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, func.arguments[i].name);
-            context.builder.CreateStore(&arg, alloca);
-            func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
-            i++;
-        }
+            context.builder.SetInsertPoint(quit);
 
-        context.builder.SetInsertPoint(quit);
-
-        if(!llvm_type->isVoidTy()){
-            llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
-            context.builder.CreateRet(retval);
+            if(!llvm_type->isVoidTy()){
+                llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
+                context.builder.CreateRet(retval);
+            }
+            else {
+                context.builder.CreateRet(NULL);
+            }
         }
         else {
-            context.builder.CreateRet(NULL);
+            fail_filename(config, DUPLICATE_FUNC(func.name));
+            return 1;
         }
-    }
-    else {
-        fail_filename(config, DUPLICATE_FUNC(func.name));
-        return 1;
     }
 
     return 0;
 }
-int assemble_function_body(AssemblyData& context, Configuration& config, Program& program, Function& func){
-    std::string mangled_function_name = mangle(program, func);
-    llvm::Function* llvm_function = context.module->getFunction(mangled_function_name);
-    AssembleFunction* asm_func = context.getFunction(mangled_function_name);
-    context.current_function = asm_func;
+int assemble_function_bodies(AssemblyData& context, Configuration& config, Program& program){
 
-    if(asm_func == NULL){
-        fail("Failed to get assembly data for function in assemble_function_body");
-        fail(SUICIDE);
-        return 1;
-    }
+    for(Function& func : program.functions){
+        std::string mangled_function_name = mangle(program, func);
+        llvm::Function* llvm_function = context.module->getFunction(mangled_function_name);
+        AssembleFunction* asm_func = context.getFunction(mangled_function_name);
+        context.current_function = asm_func;
 
-    assert(llvm_function != NULL);
-    context.builder.SetInsertPoint(asm_func->body);
-    bool terminated = false;
-
-    for(size_t i = 0; i != func.statements.size(); i++){
-        if(func.statements[i]->isTerminator()) terminated = true;
-
-        if(func.statements[i]->assemble(program, func, context) != 0){
+        if(asm_func == NULL){
+            fail("Failed to get assembly data for function in assemble_function_body");
+            fail(SUICIDE);
             return 1;
         }
 
-        if(terminated) break;
+        assert(llvm_function != NULL);
+        context.builder.SetInsertPoint(asm_func->body);
+        bool terminated = false;
+
+        for(Statement* statement : func.statements){
+            if(statement->isTerminator()) terminated = true;
+            if(statement->assemble(program, func, context) != 0){
+                return 1;
+            }
+            if(terminated) break;
+        }
+
+        if(!terminated) context.builder.CreateBr(asm_func->quit);
+
+        context.builder.SetInsertPoint(asm_func->entry);
+        context.builder.CreateBr(asm_func->body);
+
+        llvm::verifyFunction(*llvm_function);
+
     }
 
-    if(!terminated) context.builder.CreateBr(asm_func->quit);
-
-    context.builder.SetInsertPoint(asm_func->entry);
-    context.builder.CreateBr(asm_func->body);
-
-    llvm::verifyFunction(*llvm_function);
     return 0;
 }
 int assemble_method(AssemblyData& context, Configuration& config, Program& program, Class& klass, Function& method, bool is_imported){
@@ -581,99 +664,6 @@ int assemble_method_body(AssemblyData& context, Configuration& config, Program& 
     llvm::verifyFunction(*llvm_function);
     return 0;
 }
-int assemble_external(AssemblyData* context, const Configuration* config, const Program* program, const External* external){
-    // ASYNC: This function is thread safe if used correctly:
-    //   - No arguments should be modified until ensuring that this function has finished
-    //   - All pointers passed to this function must be valid
-
-    std::string final_name = (external->is_mangled) ? mangle(external->name, external->arguments) : external->name;
-    llvm::Function* llvm_function = context->module->getFunction(final_name);
-
-    if(!llvm_function){
-        llvm::Type* llvm_type;
-        std::vector<llvm::Type*> args(external->arguments.size());
-
-        for(size_t i = 0; i != external->arguments.size(); i++){
-            if(program->find_type(external->arguments[i], *context, &llvm_type) != 0){
-                fail_filename(*config, UNDECLARED_TYPE(external->arguments[i]));
-                return 1;
-            }
-            args[i] = llvm_type;
-        }
-
-        if(program->find_type(external->return_type, *context, &llvm_type) != 0){
-            fail_filename(*config, UNDECLARED_TYPE(external->return_type));
-            return 1;
-        }
-
-        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-        llvm_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, final_name, context->module.get());
-    }
-    else {
-        fail_filename(*config, DUPLICATE_FUNC(external->name));
-        return 1;
-    }
-
-    return 0;
-}
-int assemble_global(AssemblyData* context, const Configuration* config, const Program* program, Global* global){
-    // ASYNC: This function is thread safe if used correctly:
-    //   - This function modifies the global passed to it, so it must not be modified until ensuring that this
-    //     function has finished
-    //   - No other arguments should be modified until ensuring that this function has finished
-    //   - All pointers passed to this function must be valid
-
-    llvm::Type* global_llvm_type;
-    const bool is_constant = false;
-    llvm::GlobalVariable* created_global;
-    llvm::GlobalVariable::LinkageTypes linkage;
-    AssembleGlobal* asm_global = context->findGlobal(global->name); // TODO add AssemblyData::findGlobal
-
-    if(asm_global == NULL){
-        global->errors.panic("Attempted to assemble global variable '" + global->name + "' but couldn't find assembly data");
-        fail(SUICIDE);
-        return 1;
-    }
-
-    if(program->find_type(global->type, *context, &global_llvm_type) != 0){
-        fail_filename(*config, UNDECLARED_TYPE(global->type));
-        return 1;
-    }
-
-    if(global->is_imported){
-        linkage = llvm::GlobalVariable::LinkageTypes::ExternalLinkage;
-    }
-    else {
-        if(global->is_public and !config->add_build_api and !config->jit){
-            // If global variable is public and is not a part of a build script
-            linkage = llvm::GlobalVariable::LinkageTypes::CommonLinkage;
-        } else {
-            // If global variable is private or is part of a build script
-            linkage = llvm::GlobalVariable::LinkageTypes::InternalLinkage;
-        }
-    }
-
-    created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
-                        linkage, nullptr, global->name);
-
-    if(!global->is_imported){
-        // TODO: Add support for native integer types as globals (currently only structs and pointers can be used)
-
-        // Initialize the global as zero
-        if(Program::is_function_typename(global->type) or Program::is_pointer_typename(global->type)){
-            // Safety: Probally not very safe, but whatever. 'global_llvm_type' should always be a pointer
-            assert(global_llvm_type->isPointerTy());
-            created_global->setInitializer( llvm::ConstantPointerNull::get( static_cast<llvm::PointerType*>(global_llvm_type) ) );
-        }
-        else {
-            created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) );
-        }
-    }
-
-    created_global->setExternallyInitialized( (global->is_public or global->is_imported) ); // Assume externally initialized if public
-    asm_global->variable = created_global;
-    return 0;
-}
 
 void assemble_merge_conditional_types(AssemblyData& context, Program& program, std::string& type, llvm::Value** expr){
     // If type isn't a boolean, try to convert it to one
@@ -689,7 +679,7 @@ void assemble_merge_conditional_types(AssemblyData& context, Program& program, s
 
     // NOTE: MUST be pre sorted alphabetically (used for string_search)
     //         Make sure to update switch statement with correct indices after add or removing a type
-    const std::string affected_types[affected_types_size] = {
+    const static std::string affected_types[affected_types_size] = {
         "byte", "int", "long", "short",
         "ubyte", "uint", "ulong", "ushort"
     };
@@ -769,6 +759,7 @@ int assemble_merge_types(AssemblyData& context, Program& program, std::string ty
     return 1;
 }
 int assemble_merge_types_oneway(AssemblyData& context, Program& program, std::string type_a, std::string type_b, llvm::Value** expr_a, llvm::Type* exprtype_b, std::string* out){
+    // TODO: SPEED: SIZE: This should probably not be inlined
     // Merge a into b if possible
 
     // Resolve any aliases

@@ -14,6 +14,8 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
+std::vector<std::string> AdeptCompiler::build_script_arguments;
+
 void AdeptCompiler::execute(int argc, char** argv){
     // Invoke the compiler with the arguments specified
 
@@ -36,8 +38,8 @@ void AdeptCompiler::execute(int argc, char** argv){
 
     if(argc < 2){
         // Print compiler version info
-        std::cout << "Adept Compiler Version 1.0.0 - " << ADEPT_BUILD_NAME << std::endl;
-        std::cout << "Copyright (c) 2016 Isaac Shelton" << std::endl << std::endl;
+        std::cout << "Adept Compiler Version 1.1.0 - " << ADEPT_BUILD_NAME << std::endl;
+        std::cout << "Copyright (c) 2016-2017 Isaac Shelton" << std::endl << std::endl;
 
         std::cout << "Usage: adept <filename> [options]" << std::endl << std::endl;
         if(arguments_altered) delete argv;
@@ -60,6 +62,11 @@ void AdeptCompiler::execute(int argc, char** argv){
         if(arguments_altered) delete argv;
         cache_manager.free();
         delete tokens;
+
+        if(config.wait){
+            std::cout << "[ERROR] Press enter to continue...";
+            std::cin.get();
+        }
         exit(1);
     }
 
@@ -81,11 +88,21 @@ void AdeptCompiler::execute(int argc, char** argv){
     if( assemble(context, config, *program, errors) != 0 ){
         if(arguments_altered) delete argv;
         cache_manager.free();
+
+        if(config.wait){
+            std::cout << "[ERROR] Press enter to continue...";
+            std::cin.get();
+        }
         exit(1);
     }
     if( finalize(context, config, *program, errors) != 0 ){
         if(arguments_altered) delete argv;
         cache_manager.free();
+
+        if(config.wait){
+            std::cout << "[ERROR] Press enter to continue...";
+            std::cin.get();
+        }
         exit(1);
     }
 
@@ -94,10 +111,14 @@ void AdeptCompiler::execute(int argc, char** argv){
 
     // Free everything cached by our CacheManager
     cache_manager.free();
+
+    if(config.wait){
+        std::cout << "[SUCCESS] Press enter to continue...";
+        std::cin.get();
+    }
 }
 
 void AdeptCompiler::terminate(){
     // Destorys all library resources used
-
     if( shutdown() != 0 ) exit(1);
 }

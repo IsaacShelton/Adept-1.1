@@ -14,6 +14,8 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
+    if(config.time) config.clock.remember();
+
     // Generate standard type aliases
     program.generate_type_aliases();
 
@@ -23,6 +25,7 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
     }
 
     for(size_t i = 0; i != tokens->size(); i++){
+        // SPEED: parse_token code should probably be inlined here
         if(parse_token(config, *tokens, program, i, errors) != 0) return 1;
     }
 
@@ -625,13 +628,13 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
         import_tokens = new TokenList;
 
         if( tokenize(*import_config, source_filename, import_tokens, error_handler) != 0 ){
+            free_tokens(*import_tokens);
             delete import_tokens;
             delete import_config;
             return 1;
         }
 
         if( parse(*import_config, import_tokens, *import_program, error_handler) != 0 ){
-            delete import_tokens;
             delete import_config;
             return 1;
         }
@@ -886,7 +889,7 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
             if(parse_block_keyword(config, tokens, program, statements, defer_statements, i, tokens[i].getString(), can_defer, errors) != 0) return 1;
             break;
         case TOKENID_WORD:
-            if(parse_block_word(config, tokens, program, statements, i, errors) != 0) return 1;
+            if(parse_block_word(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
             break;
         case TOKENID_MULTIPLY: // multiply/pointer operator
             if(parse_block_dereference(config, tokens, program, statements, i, errors) != 0) return 1;
@@ -910,7 +913,6 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
     size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
 
-    // TODO: Clean up code inside blocks
     switch(string_index){
     case 0: { // defer
         next_index(i, tokens.size());
@@ -926,7 +928,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             if(parse_block_keyword(config, tokens, program, defer_statements, defer_statements, i, tokens[i].getString(), true, errors) != 0) return 1;
             break;
         case TOKENID_WORD:
-            if(parse_block_word(config, tokens, program, defer_statements, i, errors) != 0) return 1;
+            if(parse_block_word(config, tokens, program, defer_statements, defer_statements, i, errors) != 0) return 1;
             break;
         case TOKENID_MULTIPLY: // multiply/pointer operator
             if(parse_block_dereference(config, tokens, program, defer_statements, i, errors) != 0) return 1;
@@ -940,9 +942,18 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
     }
     case 1: { // delete
             PlainExp* expression;
+            bool dangerous = false;
+
             next_index(i, tokens.size());
+            if(tokens[i].id == TOKENID_KEYWORD){
+                if(*(static_cast<std::string*>(tokens[i].data)) == "dangerous"){
+                    dangerous = true;
+                    next_index(i, tokens.size());
+                }
+            }
+
             if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-            statements.push_back( new DeallocStatement(expression, errors) );
+            statements.push_back( new DeallocStatement(expression, dangerous, errors) );
             break;
         }
     case 2: { // for
@@ -962,7 +973,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), false, errors) != 0) return 1;
             break;
         case TOKENID_WORD:
-            if(parse_block_word(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
+            if(parse_block_word(config, tokens, program, for_condition_statements, defer_statements, i, errors) != 0) return 1;
             break;
         case TOKENID_MULTIPLY: // multiply/pointer operator
             if(parse_block_dereference(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
@@ -993,7 +1004,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), false, errors) != 0) return 1;
             break;
         case TOKENID_WORD:
-            if(parse_block_word(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
+            if(parse_block_word(config, tokens, program, for_condition_statements, defer_statements, i, errors) != 0) return 1;
             break;
         case TOKENID_MULTIPLY: // multiply/pointer operator
             if(parse_block_dereference(config, tokens, program, for_condition_statements, i, errors) != 0) return 1;
@@ -1102,7 +1113,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
     return 0;
 }
-int parse_block_word(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
+int parse_block_word(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
     // word <unknown syntax follows>
     //  ^
 
@@ -1115,7 +1126,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     case TOKENID_KEYWORD:
     case TOKENID_NEXT:
         // Variable Definition
-        if(parse_block_variable_declaration(config, tokens, program, statements, i, name, errors) != 0) return 1;
+        if(parse_block_variable_declaration(config, tokens, program, statements, defer_statements, i, name, errors) != 0) return 1;
         break;
     case TOKENID_OPEN:
         // Function Call
@@ -1136,7 +1147,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     case TOKENID_BRACKET_OPEN:
         next_index(i, tokens.size());
         if(tokens[i].id == TOKENID_BRACKET_CLOSE){
-            if(parse_block_variable_declaration(config, tokens, program, statements, --i, name, errors) != 0) return 1;
+            if(parse_block_variable_declaration(config, tokens, program, statements, defer_statements, --i, name, errors) != 0) return 1;
         }
         else {
             if(parse_block_word_expression(config, tokens, program, statements, --i, name, 0, errors) != 0) return 1;
@@ -1149,7 +1160,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
 
     return 0;
 }
-int parse_block_variable_declaration(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
+int parse_block_variable_declaration(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string name, ErrorHandler& errors){
     // name str = "Hello World"   |   name, another_name str = "Greetings World"
     //       ^
 
@@ -1590,7 +1601,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
                 return 1;
             }
 
-            if(parse_block_word(config, tokens, program, possible_statements, i, errors) != 0) return 1;
+            if(parse_block_word(config, tokens, program, possible_statements, defer_statements, i, errors) != 0) return 1;
             break;
         case TOKENID_MULTIPLY: // multiply/pointer operator
             if(statement_context == StatementContext::None){

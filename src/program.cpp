@@ -186,65 +186,6 @@ TypeAlias::TypeAlias(const std::string& alias, const std::string& binding, bool 
     this->origin = origin;
 }
 
-bool Program::is_function_typename(const std::string& type_name){
-    // "def(int, int) ptr" -> true
-    // "**int" -> false
-
-    // Function Pointer Type Layout ( [] = optional ):
-    // "[stdcall] def(type, type, type) type"
-
-    if(type_name.length() < 6) return false;
-    if(type_name.substr(0, 4) == "def("){
-        return true;
-    }
-
-    if(type_name.length() < 8) return false;
-    if(type_name.substr(0, 8) == "stdcall "){
-        return true;
-    }
-
-    return false;
-}
-bool Program::is_pointer_typename(const std::string& type_name){
-    // "**uint" -> true
-    // "long"   -> false
-
-    if(type_name.length() < 1) return false;
-    if(type_name[0] == '*') return true;
-    return false;
-}
-bool Program::is_array_typename(const std::string& type_name){
-    // "[]int"  -> true
-    // "**uint" -> false
-
-    if(type_name.length() < 2) return false;
-    if(type_name[0] == '[' and type_name[1] == ']') return true;
-    return false;
-}
-bool Program::is_integer_typename(const std::string& type_name){
-    if(type_name == "int")    return true;
-    if(type_name == "uint")   return true;
-    if(type_name == "long")   return true;
-    if(type_name == "ulong")  return true;
-    if(type_name == "short")  return true;
-    if(type_name == "ushort") return true;
-    if(type_name == "byte")   return true;
-    if(type_name == "ubyte")  return true;
-
-    return false;
-}
-bool Program::function_typename_is_stdcall(const std::string& type_name){
-    // Function Pointer Type Layout ( [] = optional ):
-    // "[stdcall] def(type, type, type) type"
-
-    if(type_name.length() < 8) return false;
-    if(type_name.substr(0, 8) == "stdcall "){
-        return true;
-    }
-
-    return false;
-}
-
 Program::Program(CacheManager* parent_manager, const std::string& filename){
     this->parent_manager = parent_manager;
     this->origin_info.filename = filename;
@@ -501,10 +442,9 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
 bool Program::resolve_if_alias(std::string& type) const {
     // Returns true if completed a substitution
 
-    size_t pointer_count = 0;
-    for(size_t i = 0; i != type.size(); i++){
-        if(type[i] != '*') break;
-        pointer_count++;
+    size_t pointer_count;
+    for(pointer_count = 0; pointer_count != type.size(); pointer_count++){
+        if(type[pointer_count] != '*') break;
     }
 
     type = type.substr(pointer_count, type.size()-pointer_count);
@@ -540,10 +480,9 @@ bool Program::resolve_if_alias(std::string& type) const {
 bool Program::resolve_once_if_alias(std::string& type) const {
     // Returns true if completed a substitution
 
-    size_t pointer_count = 0;
-    for(size_t i = 0; i != type.size(); i++){
-        if(type[i] != '*') break;
-        pointer_count++;
+    size_t pointer_count;
+    for(pointer_count = 0; pointer_count != type.size(); pointer_count++){
+        if(type[pointer_count] != '*') break;
     }
 
     type = type.substr(pointer_count, type.length()-pointer_count);
@@ -679,9 +618,9 @@ int Program::function_typename_to_type(const std::string& type_name, AssemblyDat
     *type = function_type->getPointerTo();
     return 0;
 }
-void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers) const{
-    for(size_t i = modifiers.size(); i-- != 0;){
-        switch(modifiers[i]){
+void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers) const {
+    for(const std::vector<Program::TypeModifier>::const_reverse_iterator i = modifiers.rbegin(); i != modifiers.rend(); ++i){
+        switch(*i){
         case Program::TypeModifier::Pointer:
             *type = (*type)->getPointerTo();
             break;
@@ -706,11 +645,12 @@ int Program::generate_types(AssemblyData& context){
     // NOTE: Requires types vector to be empty
     ensure(context.types.size() == 0);
 
+    llvm::LLVMContext& llvm_context = context.context;
     std::vector<Type>& types = context.types;
 
     // Create from structures
     for(size_t i = 0; i != structures.size(); i++){
-        llvm::StructType* llvm_struct = llvm::StructType::create(context.context, structures[i].name);
+        llvm::StructType* llvm_struct = llvm::StructType::create(llvm_context, structures[i].name);
         types.push_back( Type(structures[i].name, llvm_struct) );
     }
 
@@ -718,46 +658,52 @@ int Program::generate_types(AssemblyData& context){
     size_t classes_start_index = structures.size();
 
     // Create from classes
-    for(size_t i = 0; i != classes.size(); i++){
-        llvm::StructType* llvm_struct = llvm::StructType::create(context.context, classes[i].name);
-        types.push_back( Type(classes[i].name, llvm_struct) );
+    for(Class& klass : classes){
+        llvm::StructType* llvm_struct = llvm::StructType::create(llvm_context, klass.name);
+        types.push_back( Type(klass.name, llvm_struct) );
     }
 
     // Standard language types
-    types.push_back( Type("void", llvm::Type::getInt8Ty(context.context)) );
-    types.push_back( Type("bool", llvm::Type::getInt1Ty(context.context)) );
-    types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(context.context)) );
-    types.push_back( Type("int", llvm::Type::getInt32Ty(context.context)) );
-    types.push_back( Type("uint", llvm::Type::getInt32Ty(context.context)) );
-    types.push_back( Type("double", llvm::Type::getDoubleTy(context.context)) );
-    types.push_back( Type("float", llvm::Type::getFloatTy(context.context)) );
-    types.push_back( Type("byte", llvm::Type::getInt8Ty(context.context)) );
-    types.push_back( Type("ubyte", llvm::Type::getInt8Ty(context.context)) );
-    types.push_back( Type("short", llvm::Type::getInt16Ty(context.context)) );
-    types.push_back( Type("ushort", llvm::Type::getInt16Ty(context.context)) );
-    types.push_back( Type("long", llvm::Type::getInt64Ty(context.context)) );
-    types.push_back( Type("ulong", llvm::Type::getInt64Ty(context.context)) );
+    types.push_back( Type("void", llvm::Type::getInt8Ty(llvm_context)) );
+    types.push_back( Type("bool", llvm::Type::getInt1Ty(llvm_context)) );
+    types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(llvm_context)) );
+    types.push_back( Type("int", llvm::Type::getInt32Ty(llvm_context)) );
+    types.push_back( Type("uint", llvm::Type::getInt32Ty(llvm_context)) );
+    types.push_back( Type("double", llvm::Type::getDoubleTy(llvm_context)) );
+    types.push_back( Type("float", llvm::Type::getFloatTy(llvm_context)) );
+    types.push_back( Type("byte", llvm::Type::getInt8Ty(llvm_context)) );
+    types.push_back( Type("ubyte", llvm::Type::getInt8Ty(llvm_context)) );
+    types.push_back( Type("short", llvm::Type::getInt16Ty(llvm_context)) );
+    types.push_back( Type("ushort", llvm::Type::getInt16Ty(llvm_context)) );
+    types.push_back( Type("long", llvm::Type::getInt64Ty(llvm_context)) );
+    types.push_back( Type("ulong", llvm::Type::getInt64Ty(llvm_context)) );
 
     // Create a struct type for arrays
-    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
+    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
     llvm_array_type = llvm::StructType::create(elements, ".arr");
 
-    // Fill in llvm structures from structure data
-    for(size_t i = 0; i != structures.size(); i++){
-        Structure& struct_data = structures[i];
-        std::vector<llvm::Type*> members;
-        members.reserve(16);
+    // Data for iterating structures
+    std::vector<llvm::Type*> members;
+    llvm::Type* member_type;
+    size_t index = 0;
+    std::vector<Field>::iterator members_end;
+    members.reserve(8);
 
-        for(size_t j = 0; j != struct_data.members.size(); j++){
-            llvm::Type* member_type;
-            if(this->find_type(struct_data.members[j].type, context, &member_type) != 0) {
-                fail_filename(origin_info.filename, "The type '" + struct_data.members[j].type + "' does not exist");
+    // Fill in llvm structures from structure data
+    for(Structure& struct_data : structures){
+        members.clear();
+        members_end = struct_data.members.end();
+
+        for(std::vector<Field>::iterator i = struct_data.members.begin(); i != members_end; ++i){
+            if(this->find_type(i->type, context, &member_type) != 0) {
+                fail_filename(origin_info.filename, "The type '" + i->type + "' does not exist");
                 return 1;
             }
             members.push_back(member_type);
         }
 
-        static_cast<llvm::StructType*>(types[i].type)->setBody(members, struct_data.is_packed);
+        static_cast<llvm::StructType*>(types[index].type)->setBody(members, struct_data.is_packed);
+        index++;
     }
 
     // Fill in llvm structures from class data
@@ -767,7 +713,6 @@ int Program::generate_types(AssemblyData& context){
         members.reserve(100);
 
         for(size_t j = 0; j != class_data.members.size(); j++){
-            llvm::Type* member_type;
             if(this->find_type(class_data.members[j].type, context, &member_type) != 0) {
                 fail_filename(origin_info.filename, "The type '" + class_data.members[j].type + "' does not exist");
                 return 1;
@@ -779,7 +724,7 @@ int Program::generate_types(AssemblyData& context){
     }
 
     // Create a constructor for arrays
-    std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(context.context), llvm::Type::getInt32Ty(context.context) };
+    std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
     llvm::FunctionType* array_ctor_type = llvm::FunctionType::get(llvm_array_type, array_ctor_args, false);
     llvm_array_ctor = llvm::Function::Create(array_ctor_type, llvm::Function::ExternalLinkage, ".__adept_core_arrctor", context.module.get());
 
@@ -981,9 +926,10 @@ int Program::find_const(const std::string& name, Constant* constant){
     return 1;
 }
 int Program::find_global(const std::string& name, Global* global){
-    for(size_t i = 0; i != globals.size(); i++){
-        if(globals[i].name == name){
-            *global = globals[i];
+    std::vector<Global>::iterator globals_end = globals.end();
+    for(std::vector<Global>::iterator i = globals.begin(); i != globals_end; ++i){
+        if(i->name == name){
+            *global = *i;
             return 0;
         }
     }

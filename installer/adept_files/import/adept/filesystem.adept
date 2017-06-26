@@ -1,0 +1,19 @@
+
+public import "system/io.adept"
+private import "system/string.adept"
+
+public class FileOutputStream {
+	public file *FILE
+	
+	public def create(filename *ubyte) void {
+		this.file = fopen(filename, "w")
+	}
+	
+	public def write(c_string *ubyte) void {
+		fwrite(c_string, strlen(c_string), 1ui, this.file)
+	}
+	
+	public def free() void {
+		fclose(this.file)
+	}
+}

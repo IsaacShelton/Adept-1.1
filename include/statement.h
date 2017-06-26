@@ -384,9 +384,11 @@ class UnlessUntilElseStatement : public Statement {
 class DeallocStatement : public Statement {
     public:
     PlainExp* value;
+    bool dangerous; // Whether or not this statement was marked as 'dangerous'
 
     DeallocStatement(ErrorHandler&);
     DeallocStatement(PlainExp*, ErrorHandler&);
+    DeallocStatement(PlainExp*, bool, ErrorHandler&);
     DeallocStatement(const DeallocStatement&);
     ~DeallocStatement();
     int assemble(Program&, Function&, AssemblyData&);
@@ -439,5 +441,8 @@ class ForStatement : public Statement {
     bool isTerminator();
     bool isConditional();
 };
+
+void initialize_string(AssemblyData&, Program&, llvm::Value*);
+int assign_string(AssemblyData&, Program&, Function&, llvm::Value*, PlainExp*, ErrorHandler&);
 
 #endif // STATEMENT_H_INCLUDED

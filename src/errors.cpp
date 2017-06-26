@@ -14,7 +14,7 @@ ErrorHandler::ErrorHandler(std::string file) {
 }
 
 void ErrorHandler::warn(std::string message){
-    fail("(warning)  " + filename + "(" + to_str(line) + "): " + message);
+    fail(filename + "(" + to_str(line) + ") WARNING: " + message);
 }
 
 void ErrorHandler::panic(std::string message){
@@ -22,7 +22,7 @@ void ErrorHandler::panic(std::string message){
 }
 
 void ErrorHandler::warn_plain(std::string message){
-    fail("(warning)  " + message);
+    fail("WARNING:  " + message);
 }
 
 void ErrorHandler::panic_plain(std::string message){

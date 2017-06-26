@@ -180,7 +180,7 @@ class Program {
     std::vector<Global> globals;
     std::vector<TypeAlias> type_aliases;
 
-    llvm::Type* llvm_array_type;
+    llvm::Type* llvm_array_type; // Used for arrays as well as strings
     llvm::Function* llvm_array_ctor;
 
     enum TypeModifier : unsigned char {
@@ -188,11 +188,11 @@ class Program {
         Array = 1,
     };
 
-    static bool is_function_typename(const std::string&);
-    static bool is_pointer_typename(const std::string&);
-    static bool is_array_typename(const std::string&);
-    static bool is_integer_typename(const std::string&);
-    static bool function_typename_is_stdcall(const std::string&);
+    inline static bool is_function_typename(const std::string&);
+    inline static bool is_pointer_typename(const std::string&);
+    inline static bool is_array_typename(const std::string&);
+    inline static bool is_integer_typename(const std::string&);
+    inline static bool function_typename_is_stdcall(const std::string&);
 
     Program(CacheManager*, const std::string&);
     ~Program();
@@ -206,7 +206,6 @@ class Program {
     int function_typename_to_type(const std::string&, AssemblyData&, llvm::Type**) const;
     void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&) const;
 
-    OriginInfo* create_origin(Configuration*);
     bool already_imported(OriginInfo*);
     void generate_type_aliases();
     int generate_types(AssemblyData&);
@@ -228,6 +227,66 @@ class Program {
     void print_classes();
     void print_globals();
 };
+
+inline bool Program::is_function_typename(const std::string& type_name){
+    // "def(int, int) ptr" -> true
+    // "**int" -> false
+
+    // Function Pointer Type Layout ( [] = optional ):
+    // "[stdcall] def(type, type, type) type"
+
+    if(type_name.length() < 6) return false;
+    if(type_name.substr(0, 4) == "def("){
+        return true;
+    }
+
+    if(type_name.length() < 8) return false;
+    if(type_name.substr(0, 8) == "stdcall "){
+        return true;
+    }
+
+    return false;
+}
+inline bool Program::is_pointer_typename(const std::string& type_name){
+    // "**uint" -> true
+    // "long"   -> false
+
+    if(type_name.length() < 1) return false;
+    if(type_name[0] == '*') return true;
+    if(type_name == "ptr") return true;
+    return false;
+}
+inline bool Program::is_array_typename(const std::string& type_name){
+    // "[]int"  -> true
+    // "**uint" -> false
+
+    if(type_name.length() < 2) return false;
+    if(type_name[0] == '[' and type_name[1] == ']') return true;
+    return false;
+}
+inline bool Program::is_integer_typename(const std::string& type_name){
+    if(type_name == "int")    return true;
+    if(type_name == "uint")   return true;
+    if(type_name == "long")   return true;
+    if(type_name == "ulong")  return true;
+    if(type_name == "short")  return true;
+    if(type_name == "ushort") return true;
+    if(type_name == "byte")   return true;
+    if(type_name == "ubyte")  return true;
+
+    return false;
+}
+inline bool Program::function_typename_is_stdcall(const std::string& type_name){
+    // Function Pointer Type Layout ( [] = optional ):
+    // "[stdcall] def(type, type, type) type"
+
+    if(type_name.length() < 8) return false;
+    if(type_name.substr(0, 8) == "stdcall "){
+        return true;
+    }
+
+    return false;
+}
 
 #include "cache.h"
 

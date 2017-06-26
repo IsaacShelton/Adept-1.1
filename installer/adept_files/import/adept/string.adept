@@ -1,0 +1,74 @@
+
+private import "system/string.adept"
+private import "system/system.adept"
+
+public def equal(target_one *ubyte, target_two *ubyte) bool {
+	target_one_length usize = length(target_one)
+	target_two_length usize = length(target_two)
+	
+	unless target_one_length == target_two_length {
+		return false
+	}
+	
+	iterator usize = 0ui
+	
+	until iterator == target_one_length {
+		unless *target_one == *target_two {
+			return false
+		}
+		
+		target_one += cast ptr 1
+		target_two += cast ptr 1
+		iterator += 1ui
+	}
+	
+	return true
+}
+
+public def copy(destination *ubyte, target *ubyte) void {
+	target_length usize = length(target) + 1ui
+	memcpy(destination, target, target_length)
+}
+
+public def append(destination *ubyte, target *ubyte) void {
+	destination_length usize = length(destination)
+	target_length usize = length(target) + 1ui
+	memcpy(destination + cast ptr destination_length, target, target_length)
+}
+
+public def join(target_one *ubyte, target_two *ubyte) *ubyte {
+	target_one_length usize = length(target_one)
+	target_two_length usize = length(target_two)
+	total_length usize = target_one_length + target_two_length + 1ui
+	joined *ubyte = malloc(total_length)
+	
+	if joined == null {
+		return null
+	}
+	
+	memcpy(joined, target_one, target_one_length)
+	memcpy(joined + cast ptr target_one_length, target_two, target_two_length + 1ui)
+	return joined
+}
+
+public def clone(target *ubyte) *ubyte {
+	target_length usize = length(target) + 1ui
+	clone *ubyte = malloc(target_length)
+	
+	if clone == null {
+		return null
+	}
+	
+	memcpy(clone, target, target_length)
+	return clone
+}
+
+public def length(target *ubyte) usize {
+	length usize = 0ui
+	
+	until target[length] == 0ub {
+		length += 1ui
+	}
+	
+	return length
+}

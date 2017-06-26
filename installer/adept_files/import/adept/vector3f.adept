@@ -132,13 +132,13 @@ public class Vector3f {
 		tmp *ubyte = malloc(128ui)
 		strcpy(str, "Vector3f { ")
 		
-		floattostr(this.x, tmp, 4)
+		floatToRawString(this.x, tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floattostr(this.y, tmp, 4)
+		floatToRawString(this.y, tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floattostr(this.z, tmp, 4)
+		floatToRawString(this.z, tmp, 4)
 		strcat(str, tmp)
 		
 		strcat(str, " }")

@@ -38,7 +38,7 @@ PlainExp::PlainExp(ErrorHandler& err){
     errors = err;
 }
 PlainExp::~PlainExp(){}
-llvm::Value* PlainExp::assemble_immutable(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+inline llvm::Value* PlainExp::assemble_immutable(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     // Call this method instead of 'PlainExp::assemble' to get an immutable value
     // because 'PlainExp::assemble' is not guarenteed to return an immutable result
 
@@ -46,8 +46,10 @@ llvm::Value* PlainExp::assemble_immutable(Program& program, Function& func, Asse
     if(val == NULL) return NULL;
 
     if(this->is_mutable){
-        val = context.builder.CreateLoad(val, "loadtmp");
+        return context.builder.CreateLoad(val, "loadtmp");
     }
+
+
     return val;
 }
 
@@ -1079,6 +1081,7 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssemblyData&
     std::string type_name;
     llvm::Value* data = value->assemble(program, func, context, &type_name);
     if(data == NULL) return NULL;
+    program.resolve_if_alias(type_name);
 
     if(!value->is_mutable){
         // Value isn't mutable so we can't get the value of a member from it
@@ -1477,6 +1480,9 @@ llvm::Value* CastExp::assemble(Program& program, Function& func, AssemblyData& c
     program.resolve_if_alias(target_typename);
     if(expr_type != NULL) *expr_type = target_typename;
 
+    // If target typename is empty, then something very bad has gone wrong
+    if(target_typename == "") return NULL;
+
     if(target_typename == "bool"){
         return this->cast_to_bool(program, func, context);
     }
@@ -1500,6 +1506,9 @@ llvm::Value* CastExp::assemble(Program& program, Function& func, AssemblyData& c
     }
     else if(target_typename == "ptr"){
         return this->cast_to_ptr(program, func, context);
+    }
+    else if(target_typename[0] == '*'){
+        return this->cast_to_valueptr(program, func, context);
     }
 
     errors.panic("Can't cast value to type '" + target_typename + "'");
@@ -1782,6 +1791,9 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssemblyData
     else if(type_name == "ulong" or type_name == "long"){
         return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
     }
+    else if(Program::is_pointer_typename(type_name)){
+        return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
+    }
     else if(Program::is_function_typename(type_name)){
         return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
     }
@@ -1792,6 +1804,27 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssemblyData
 
     errors.panic(SUICIDE);
     return NULL;
+}
+llvm::Value* CastExp::cast_to_valueptr(Program& program, Function& func, AssemblyData& context){
+    std::string type_name;
+    llvm::Value* llvm_value = value->assemble_immutable(program, func, context, &type_name);
+    if(llvm_value == NULL) return NULL;
+
+    // If the expression doesn't have a type, something very bad has gone wrong
+    if(type_name == "") return NULL;
+
+    if(!Program::is_pointer_typename(type_name)){
+        errors.panic("Can't cast non-pointer type '" + type_name + "' to pointer type '" + target_typename);
+        return NULL;
+    }
+
+    llvm::Type* target_llvm_type;
+    if(program.find_type(target_typename, context, &target_llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(target_typename));
+        return NULL;
+    }
+
+    return context.builder.CreateBitCast(llvm_value, target_llvm_type, "cast");
 }
 
 FuncptrExp::FuncptrExp(ErrorHandler& err){

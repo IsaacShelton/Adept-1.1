@@ -6,14 +6,19 @@
 #include <vector>
 
 // General
-#define SUICIDE                 ("An unintended part of this compiler was reached :\\\n    (line #" + to_str(__LINE__) + " in " + std::string(__FILE__) + ")")
-#define FAILED_TO_CREATE(a)     ("Failed to create '" + std::string(a) + "'")
-#define UNKNOWN_OPTION(a)       ("Unknown option '" + std::string(a) + "'")
-#define UNKNOWN_MODULE(a)       ("Unknown module '" + std::string(a) + "'")
-#define EXPRESSION_IS_VOID      ("Expression is void")
-#define MAIN_IS_PRIVATE         ("The 'main' function is private")
-#define FAILED_TO_GET_USERNAME  ("Failed to get current username")
-#define FAILED_TO_OPEN_FILE(a)  ("Failed to open file '" + a + "'")
+#define SUICIDE                            ("An unintended part of this compiler was reached :\\\n    (line #" + to_str(__LINE__) + " in " + std::string(__FILE__) + ")")
+#define FAILED_TO_CREATE(a)                ("Failed to create '" + std::string(a) + "'")
+#define UNKNOWN_OPTION(a)                  ("Unknown option '" + std::string(a) + "'")
+#define UNKNOWN_MODULE(a)                  ("Unknown module '" + std::string(a) + "'")
+#define EXPRESSION_IS_VOID                 ("Expression is void")
+#define MAIN_IS_PRIVATE                    ("The 'main' function is private")
+#define FAILED_TO_GET_USERNAME             ("Failed to get current username")
+#define FAILED_TO_OPEN_FILE(a)             ("Failed to open file '" + a + "'")
+#define DELETE_REQUIRES_POINTER            ("Value specified to the keyword 'delete' isn't a pointer")
+#define STRING_ASSIGNMENT_REQUIRES_MUTABLE ("String assignment requires expression to be mutable")
+
+// Reserved
+#define RESERVED_TYPENAME(a)    ("The typename '" + std::string(a) + "' is reserved :\\")
 
 // Undefined
 #define UNDECLARED_VARIABLE(a)  ("Undeclared variable '" + std::string(a) + "'")

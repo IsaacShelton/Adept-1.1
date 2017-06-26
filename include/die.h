@@ -8,8 +8,9 @@
 #include <iostream>
 #include "config.h"
 
+#define FAIL_UNEXPECTED_TERMINATION { fail("Unexpected Statement Termination :\\ " + to_str(__LINE__)); return 1; }
 #define die(a) { std::cerr << a << std::endl; return 1; }
-#define next_index(i, s) { if(++i == s) { fail("Unexpected Statement Termination :\\ " + to_str(__LINE__)); return 1; } }
+#define next_index(i, s) { if(++i == s) FAIL_UNEXPECTED_TERMINATION; }
 #define next_index_else(i, s, err) { if(++i == s) { fail(err); return 1; } }
 
 #ifdef USE_ENSURES

@@ -17,76 +17,88 @@ public def println(message *ubyte) void {
 
 public def print(val bool) void {
 	message *ubyte = malloc(6ui)
-	fputs(booltostr(val, message), fstdout())
+	fputs(boolToRawString(val, message), fstdout())
 	free(message)
 }
 
 public def println(val bool) void {
 	message *ubyte = malloc(6ui)
-	puts(booltostr(val, message))
+	puts(boolToRawString(val, message))
+	free(message)
+}
+
+public def print(val byte) void {
+	message *ubyte = malloc(5ui)
+	fputs(byteToRawString(val, message, 10), fstdout())
+	free(message)
+}
+
+public def println(val byte) void {
+	message *ubyte = malloc(5ui)
+	puts(byteToRawString(val, message, 10))
 	free(message)
 }
 
 public def print(val short) void {
 	message *ubyte = malloc(7ui)
-	fputs(shorttostr(val, message, 10), fstdout())
+	fputs(shortToRawString(val, message, 10), fstdout())
 	free(message)
 }
 
 public def println(val short) void {
 	message *ubyte = malloc(7ui)
-	puts(shorttostr(val, message, 10))
+	puts(shortToRawString(val, message, 10))
 	free(message)
 }
 
 public def print(val int) void {
 	message *ubyte = malloc(12ui)
-	fputs(inttostr(val, message, 10), fstdout())
+	fputs(intToRawString(val, message, 10), fstdout())
 	free(message)
 }
 
 public def println(val int) void {
 	message *ubyte = malloc(12ui)
-	puts(inttostr(val, message, 10))
+	puts(intToRawString(val, message, 10))
 	free(message)
 }
 
 public def print(val long) void {
 	message *ubyte = malloc(21ui)
-	fputs(longtostr(val, message, 10), fstdout())
+	fputs(longToRawString(val, message, 10), fstdout())
 	free(message)
 }
 
 public def println(val long) void {
 	message *ubyte = malloc(21ui)
-	puts(longtostr(val, message, 10))
+	puts(longToRawString(val, message, 10))
 	free(message)
 }
 
 public def print(val float) void {
 	message *ubyte = malloc(21ui)
-	fputs(floattostr(val, message, 4), fstdout())
+	fputs(floatToRawString(val, message, 4), fstdout())
 	free(message)
 }
 
 public def println(val float) void {
 	message *ubyte = malloc(21ui)
-	puts(floattostr(val, message, 4))
+	puts(floatToRawString(val, message, 4))
 	free(message)
 }
 
 public def print(val double) void {
 	message *ubyte = malloc(21ui)
-	fputs(doubletostr(val, message, 4), fstdout())
+	fputs(doubleToRawString(val, message, 4), fstdout())
 	free(message)
 }
 
 public def println(val double) void {
 	message *ubyte = malloc(21ui)
-	puts(doubletostr(val, message, 4))
+	puts(doubleToRawString(val, message, 4))
 	free(message)
 }
 
-public def input(in *ubyte) void {
-	gets(in)
+public def input(input *ubyte) void {
+	gets(input)
 }

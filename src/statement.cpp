@@ -70,9 +70,9 @@ int DeclareStatement::assemble(Program& program, Function& func, AssemblyData& c
 
     context.builder.SetInsertPoint(context.current_function->entry);
     allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
-    context.builder.SetInsertPoint(previous_block);
 
     context.current_function->addVariable(this->variable_name, this->variable_type, allocation_instance);
+    context.builder.SetInsertPoint(previous_block);
     return 0;
 }
 std::string DeclareStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -117,18 +117,10 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssemblyD
     if(context.current_function->findVariable(this->variable_name) != NULL){
         errors.panic(DUPLICATE_VARIBLE(this->variable_name));
         return 1;
-    }
+    };
 
     if(program.find_type(this->variable_type, context, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
-        return 1;
-    }
-
-    llvm::Value* llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
-    if(llvm_value == NULL) return 1;
-
-    if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, variable_llvmtype, NULL) != 0){
-        errors.panic( INCOMPATIBLE_TYPES(expression_type, this->variable_type) );
         return 1;
     }
 
@@ -139,6 +131,14 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssemblyD
     allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
 
     context.builder.SetInsertPoint(previous_block);
+    llvm::Value* llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
+    if(llvm_value == NULL) return 1;
+
+    if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, variable_llvmtype, NULL) != 0){
+        errors.panic( INCOMPATIBLE_TYPES(expression_type, this->variable_type) );
+        return 1;
+    }
+
     context.builder.CreateStore(llvm_value, allocation_instance);
 
     context.current_function->addVariable(this->variable_name, this->variable_type, allocation_instance);
@@ -189,9 +189,7 @@ int MultiDeclareStatement::assemble(Program& program, Function& func, AssemblyDa
         return 1;
     }
 
-    for(size_t i = 0; i != this->variable_names.size(); i++){
-        variable_name = this->variable_names[i];
-
+    for(const std::string& variable_name : this->variable_names){
         if(context.current_function->findVariable(variable_name) != NULL){
             errors.panic(DUPLICATE_VARIBLE(variable_name));
             return 1;
@@ -252,15 +250,15 @@ int MultiDeclareAssignStatement::assemble(Program& program, Function& func, Asse
     llvm::AllocaInst* allocation_instance;
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
+    // Assemble the value
+    llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
+    if(llvm_value == NULL) return 1;
+
     // Get the llvm type for the variables
     if(program.find_type(this->variable_type, context, &variable_llvmtype) != 0){
         errors.panic( UNDECLARED_TYPE(this->variable_type) );
         return 1;
     }
-
-    // Assemble the value
-    llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
-    if(llvm_value == NULL) return 1;
 
     // Merge the value to fit the variable type
     if(assemble_merge_types_oneway(context, program, expression_type, this->variable_type, &llvm_value, variable_llvmtype, NULL) != 0){
@@ -268,9 +266,7 @@ int MultiDeclareAssignStatement::assemble(Program& program, Function& func, Asse
         return 1;
     }
 
-    for(size_t i = 0; i != this->variable_names.size(); i++){
-        variable_name = this->variable_names[i];
-
+    for(const std::string& variable_name : this->variable_names){
         if(context.current_function->findVariable(variable_name) != NULL){
             errors.panic(DUPLICATE_VARIBLE(variable_name));
             return 1;
@@ -2099,14 +2095,23 @@ bool UnlessUntilElseStatement::isConditional(){
 }
 
 DeallocStatement::DeallocStatement(ErrorHandler& errors){
+    this->value = NULL;
+    this->dangerous = false;
     this->errors = errors;
 }
 DeallocStatement::DeallocStatement(PlainExp* value, ErrorHandler& errors){
     this->value = value;
+    this->dangerous = false;
+    this->errors = errors;
+}
+DeallocStatement::DeallocStatement(PlainExp* value, bool dangerous, ErrorHandler& errors){
+    this->value = value;
+    this->dangerous = dangerous;
     this->errors = errors;
 }
 DeallocStatement::DeallocStatement(const DeallocStatement& other) : Statement(other) {
     this->value = other.value->clone();
+    this->dangerous = other.dangerous;
     this->errors = other.errors;
 }
 DeallocStatement::~DeallocStatement(){
@@ -2116,17 +2121,31 @@ int DeallocStatement::assemble(Program& program, Function& func, AssemblyData& c
     llvm::Type* llvm_type;
     std::string type_name;
     llvm::Value* pointer = value->assemble_immutable(program, func, context, &type_name);
+    std::vector<llvm::Value*> free_args(1);
+
+    // Make sure expression specified is a pointer
+    if(!Program::is_pointer_typename(type_name)){
+        errors.panic(DELETE_REQUIRES_POINTER);
+        return 1;
+    }
 
     // Resolve typename if it's an alias
     program.resolve_if_alias(type_name);
 
-    if(program.find_type(type_name, context, &llvm_type) != 0){
+    if(type_name == "*string"){
+        // Custom string type
+        llvm_type = program.llvm_array_type->getPointerTo();
+    }
+    else if(program.find_type(type_name, context, &llvm_type) != 0){
         errors.panic(UNDECLARED_TYPE(type_name));
         return 1;
     }
 
-    llvm::Function* free_function = context.module->getFunction("free");
+    if(type_name == "ptr" and !dangerous){
+        errors.warn("Deleting data pointed to by a 'ptr' won't correctly delete types that require special deletion\n    To suppress this warning, put the 'dangerous' keyword immediately after the 'delete' keyword");
+    }
 
+    llvm::Function* free_function = context.module->getFunction("free");
     if(!free_function){
         // Declare the malloc function if it doesn't already exist
         std::vector<llvm::Type*> args(1);
@@ -2136,9 +2155,19 @@ int DeallocStatement::assemble(Program& program, Function& func, AssemblyData& c
         free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
     }
 
-    std::vector<llvm::Value*> free_args(1);
-    free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context), "casttmp");
-    context.builder.CreateCall(free_function, free_args, "deltmp");
+    if(type_name == "*string"){
+        llvm::Value* string_value = pointer;
+        std::vector<llvm::Value*> indices(2);
+        indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+        indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+        llvm::Value* data_ptr_ptr = context.builder.CreateGEP(program.llvm_array_type, string_value, indices);
+        free_args[0] = context.builder.CreateLoad(data_ptr_ptr);
+        context.builder.CreateCall(free_function, free_args, "deltmp");
+    }
+    else {
+        free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context), "casttmp");
+        context.builder.CreateCall(free_function, free_args, "deltmp");
+    }
     return 0;
 }
 std::string DeallocStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -2228,6 +2257,8 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
     llvm::Value* case_condition;
     llvm::BasicBlock* case_block;
     std::vector<llvm::APInt> values;
+
+    program.resolve_if_alias(condition_typename);
 
     if(switch_value == NULL) return 1;
     if(!Program::is_integer_typename(condition_typename)){

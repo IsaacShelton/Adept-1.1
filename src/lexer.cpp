@@ -11,6 +11,7 @@
 #include "../include/strings.h"
 
 int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens, ErrorHandler& errors){
+    if(config.time) config.clock.remember();
     std::ifstream adept;
 
     adept.open(filename.c_str());
@@ -21,10 +22,11 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
 
     tokens->reserve(1024);
 
-    std::string line;
-    while( std::getline(adept, line) ){
-        if(tokenize_line(line + "\n", *tokens, errors) != 0) return 1;
-    }
+    std::stringstream string_buffer;
+    string_buffer << adept.rdbuf();
+    std::string file_contents = string_buffer.str() + "\n";
+
+    if(tokenize_code(file_contents, *tokens, errors) != 0) return 1;
 
     errors.line = 1;
     adept.close();
@@ -37,15 +39,18 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
 
     return 0;
 }
-int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
+
+int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHandler& errors){
     size_t code_size = code.size();
 
     char prefix_char;
     std::string until_space;
 
     for( size_t i = 0; i != code_size; ){
-        string_iter_kill_whitespace(code, i);
         prefix_char = code[i];
+        while(prefix_char == ' ' or prefix_char == '\t'){
+            prefix_char = code[++i];
+        }
 
         switch(prefix_char){
         case '\n':
@@ -74,51 +79,95 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
             tokens.push_back(TOKEN_NEXT); i++;
             break;
         case '=':
-            next_index(i, code.size());
-            if(code[i] == '=') { tokens.push_back(TOKEN_EQUALITY); i++; }
-            else { tokens.push_back(TOKEN_ASSIGN); }
+            next_index(i, code_size);
+            if(code[i] == '=') {
+                tokens.push_back(TOKEN_EQUALITY);
+                i++; break;
+            }
+            tokens.push_back(TOKEN_ASSIGN);
             break;
         case '!':
-            next_index(i, code.size());
-            if(code[i] == '='){ tokens.push_back(TOKEN_INEQUALITY); i++; }
+            next_index(i, code_size);
+            if(code[i] == '=') {
+                tokens.push_back(TOKEN_INEQUALITY);
+                i++; break;
+            }
             else { tokens.push_back(TOKEN_NOT); }
             break;
         case '+':
-            next_index(i, code.size());
-            if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNADD); i++; }
-            else { tokens.push_back(TOKENID_ADD); }
+            next_index(i, code_size);
+            if(code[i] == '='){
+                tokens.push_back(TOKEN_ASSIGNADD);
+                i++; break;
+            }
+            tokens.push_back(TOKENID_ADD);
             break;
         case '-':
             next_index(i, code_size);
             prefix_char = code[i];
 
-            if(prefix_char >= 48 and prefix_char <= 57){
-                if(tokenize_number(true, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
-                i++;
+            if(prefix_char == '=') {
+                tokens.push_back(TOKEN_ASSIGNSUB);
+                i++; break;
             }
-            else if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNSUB); i++; }
-            else { tokens.push_back(TOKEN_SUBTRACT); }
+
+            if(prefix_char >= 48 and prefix_char <= 57) {
+                if(tokenize_number(true, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
+                i++; break;
+            }
+
+            tokens.push_back(TOKEN_SUBTRACT);
             break;
         case '*':
-            next_index(i, code.size());
-            if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNMUL); i++; }
-            else { tokens.push_back(TOKENID_MULTIPLY); }
+            next_index(i, code_size);
+
+            if(code[i] == '='){
+                tokens.push_back(TOKEN_ASSIGNMUL);
+                i++; break;
+            }
+
+            tokens.push_back(TOKENID_MULTIPLY);
             break;
         case '/':
-            next_index(i, code.size());
-            if(code[i] == '/'){
-                while(code[i] != '\n') i++;
-                tokens.push_back(TOKEN_NEWLINE);
-                errors.line++;
-                i++;
+            next_index(i, code_size);
+
+            if(code[i] == '=') {
+                tokens.push_back(TOKEN_ASSIGNDIV);
+                i++; break;
             }
-            else if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNDIV); i++; }
-            else { tokens.push_back(TOKEN_DIVIDE); }
+
+            if(code[i] == '/'){
+                while(code[++i] != '\n');
+                tokens.push_back(TOKEN_NEWLINE);
+                errors.line++; i++; break;
+            }
+
+            if(code[i] == '*'){
+                i++;
+
+                while(i != code_size){
+                    if(code[i] == '\n'){
+                        tokens.push_back(TOKEN_NEWLINE);
+                        errors.line++;
+                    }
+                    else if(code[i] == '*') if(i + 1 != code_size) if(code[i+1] == '/') { i += 2; break; }
+
+                    i++;
+                }
+
+                break;
+            }
+
+            tokens.push_back(TOKEN_DIVIDE);
             break;
         case '%':
-            next_index(i, code.size());
-            if(code[i] == '='){ tokens.push_back(TOKEN_ASSIGNMOD); i++; }
-            else { tokens.push_back(TOKENID_MODULUS); }
+            next_index(i, code_size);
+            if(code[i] == '=') {
+                tokens.push_back(TOKEN_ASSIGNMOD);
+                i++; break;
+            }
+
+            tokens.push_back(TOKENID_MODULUS);
             break;
         case '.':
             tokens.push_back(TOKEN_MEMBER); i++;
@@ -127,12 +176,16 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
             tokens.push_back(TOKEN_ADDRESS); i++;
             break;
         case '<':
-            next_index(i, code.size());
-            if(code[i] == '=') { tokens.push_back(TOKEN_LESSEQ); i++; }
-            else { tokens.push_back(TOKEN_LESS); }
+            next_index(i, code_size);
+            if(code[i] == '=') {
+                tokens.push_back(TOKEN_LESSEQ);
+                i++; break;
+            }
+
+            tokens.push_back(TOKEN_LESS);
             break;
         case '>':
-            next_index(i, code.size());
+            next_index(i, code_size);
             if(code[i] == '=') { tokens.push_back(TOKEN_GREATEREQ); i++; }
             else { tokens.push_back(TOKEN_GREATER); }
             break;
@@ -174,9 +227,9 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
 
                 // NOTE: MUST be pre sorted alphabetically (used for string_search)
                 //         Make sure to update switch statement with correct indices after add or removing a type
-                const size_t keywords_size = 35;
+                const size_t keywords_size = 36;
                 const std::string keywords[keywords_size] = {
-                    "and", "break", "case", "cast", "class", "constant", "def", "default", "defer", "delete",
+                    "and", "break", "case", "cast", "class", "constant", "dangerous", "def", "default", "defer", "delete",
                     "dynamic", "else", "false", "for", "foreign", "funcptr", "if", "import", "link", "new", "null",
                     "or", "packed", "private", "public", "return", "sizeof", "static", "stdcall", "switch", "true",
                     "type", "unless", "until", "while"
@@ -193,7 +246,7 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                     // 'and' keyword
                     tokens.push_back( TOKEN_AND );
                     break;
-                case 21:
+                case 22:
                     // 'or' keyword
                     tokens.push_back( TOKEN_OR );
                     break;
@@ -209,7 +262,8 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 std::string content;
                 std::string escaped_content;
 
-                while(code[++i] != '"'){
+                // CRASH: Fix forever on going string crash
+                while(code[++i] != '"' or code[i-1] == '\\'){
                     content += code[i];
                 }
                 for(size_t j = 0; j != content.size(); j++){
@@ -232,8 +286,11 @@ int tokenize_line(const std::string& code, std::vector<Token>& tokens, ErrorHand
                         case '\\':
                             escaped_content += "\\";
                             break;
+                        case '"':
+                            escaped_content += "\"";
+                            break;
                         default:
-                            errors.panic("Unknown escape sequence '\\" + content.substr(j, j+1) + "'");
+                            errors.panic("Unknown escape sequence '\\" + content.substr(j, content.size()-j) + "'");
                             return 1;
                         }
                     }

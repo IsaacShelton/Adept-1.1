@@ -11,9 +11,9 @@ AssembleFunction* AssemblyData::addFunction(const std::string& mangled_function_
 }
 
 AssembleFunction* AssemblyData::getFunction(const std::string& mangled_function_name){
-    for(size_t i = 0; i != functions.size(); i++){
-        if(functions[i].mangled_name == mangled_function_name){
-            return &functions[i];
+    for(std::vector<AssembleFunction>::iterator i = functions.begin(); i != functions.end(); ++i){
+        if(i->mangled_name == mangled_function_name){
+            return &(*i);
         }
     }
 

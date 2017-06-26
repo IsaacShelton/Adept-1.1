@@ -17,6 +17,7 @@ struct Configuration {
     bool time;
     char optimization;
     bool add_build_api;
+    bool wait;
 
     Clock clock;
     std::string username;
