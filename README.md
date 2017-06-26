@@ -8,7 +8,7 @@ Generally it runs as fast or faster than C code.<br/>
 
 ### Variables
 ```
-def main() int {
+public def main() int {
     customer_age int = 36
     total_amount int = 10 + 3
     return 0
@@ -20,12 +20,13 @@ def main() int {
 ```
 private imoprt "adept/terminal.adept"
 
-def integer_sum(a int, b int) int {
-    return a + b
-}
-def main() int {
+public def main() int {
     println(integer_sum(13, 8))
     return 0
+}
+
+private def integer_sum(a int, b int) int {
+    return a + b
 }
  ```
 
