@@ -358,3 +358,29 @@ private def println(fruit Fruit) void {
     }
 }
 ```
+
+### Defered Deletion
+```
+private import "adept/string.adept"
+private import "adept/terminal.adept"
+
+public def main() int {
+    firstname ! *ubyte = clone("Steve")
+    lastname ! *ubyte = clone("Johnson")
+    
+    fullname ! *ubyte = new ubyte * 512
+    copy(fullname, firstname)
+    append(fullname, " ")
+    append(fullname, lastname)
+    
+    greeting ! *ubyte = new ubyte * 768
+    copy(greeting, "Welcome")
+    append(greeting, fullname)
+    println(greeting)
+    
+    // NOTICE: We don't have to manually delete any of those strings
+    //         that we created because they will automatically be deleted when
+    //         we exit this function. This is because of the '!' operator signifying defered deletion.
+    return 0
+}
+```
