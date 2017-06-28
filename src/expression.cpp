@@ -231,6 +231,34 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
         }
     }
     else {
+        for(Enum& inum : program.enums){
+            if(inum.name == type_name){
+                switch (operation) {
+                case TOKENID_EQUALITY:
+                    if(expr_type != NULL) *expr_type = "bool";
+                    return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
+                case TOKENID_INEQUALITY:
+                    if(expr_type != NULL) *expr_type = "bool";
+                    return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
+                case TOKENID_LESS:
+                    if(expr_type != NULL) *expr_type = "bool";
+                    return context.builder.CreateICmpSLT(left_value, right_value, "cmptmp");
+                case TOKENID_GREATER:
+                    if(expr_type != NULL) *expr_type = "bool";
+                    return context.builder.CreateICmpSGT(left_value, right_value, "cmptmp");
+                case TOKENID_LESSEQ:
+                    if(expr_type != NULL) *expr_type = "bool";
+                    return context.builder.CreateICmpSLE(left_value, right_value, "cmptmp");
+                case TOKENID_GREATEREQ:
+                    if(expr_type != NULL) *expr_type = "bool";
+                    return context.builder.CreateICmpSGE(left_value, right_value, "cmptmp");
+                default:
+                    errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' being used on an enum in expression");
+                    return NULL;
+                }
+            }
+        }
+
         errors.panic("Invalid use of operator '" + get_tokenid_syntax(operation) + "' on type '" + type_name + "'");
         return NULL;
     }
@@ -2208,4 +2236,49 @@ std::string RetrieveConstantExp::toString(){
 }
 PlainExp* RetrieveConstantExp::clone(){
     return new RetrieveConstantExp(*this);
+}
+
+NamespaceExp::NamespaceExp(ErrorHandler& err){
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+NamespaceExp::NamespaceExp(const std::string& name_space, const std::string& member, ErrorHandler& err){
+    this->name_space = name_space;
+    this->member = member;
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+NamespaceExp::NamespaceExp(const NamespaceExp& other) : PlainExp(other) {
+    this->name_space = other.name_space;
+    this->member = other.member;
+    is_mutable = false;
+    is_constant = true;
+}
+NamespaceExp::~NamespaceExp(){}
+llvm::Value* NamespaceExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+
+    for(Enum& inum : program.enums){
+        if(inum.name == name_space){
+            for(size_t i = 0; i != inum.fields.size(); i++){
+                if(inum.fields[i].name == member){
+                    if(expr_type != NULL) *expr_type = inum.name;
+                    return llvm::ConstantInt::get(context.context, llvm::APInt(inum.bits, (uint64_t) i, false));
+                }
+            }
+
+            errors.panic("No member named '" + member + "' was found in the namespace '" + name_space + "'");
+            return NULL;
+        }
+    }
+
+    errors.panic("No namespace named '" + name_space + "' was found");
+    return NULL;
+}
+std::string NamespaceExp::toString(){
+    return name_space + "::" + member;
+}
+PlainExp* NamespaceExp::clone(){
+    return new NamespaceExp(*this);
 }

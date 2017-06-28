@@ -83,9 +83,9 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     std::string keyword = tokens[i].getString();
     next_index(i, tokens.size());
 
-    const size_t accepted_keywords_size = 10;
+    const size_t accepted_keywords_size = 11;
     const std::string accepted_keywords[] = {
-        "class", "constant", "def", "dynamic", "foreign", "import", "link", "private", "public", "type"
+        "class", "constant", "def", "dynamic", "enum", "foreign", "import", "link", "private", "public", "type"
     };
 
     size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
@@ -132,20 +132,23 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
 
             break;
         }
-    case 4: // foreign
+    case 4: // enum
+        if(parse_enum(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case 5: // foreign
         if(parse_external(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
-    case 5: // import
+    case 6: // import
         if(parse_import(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
-    case 6: // link
+    case 7: // link
         if(parse_lib(config, tokens, program, i, errors) != 0) return 1;
         break;
-    case 7: // private
-    case 8: // public
+    case 8: // private
+    case 9: // public
         if(parse_attribute(config, tokens, program, --i, errors) != 0) return 1;
         break;
-    case 9: // type
+    case 10: // type
         if(parse_structure(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
     default:
@@ -216,6 +219,59 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
     }
 
     program.structures.push_back( Structure(name, members, attr_info.is_public, attr_info.is_packed, &program.origin_info) );
+    return 0;
+}
+int parse_enum(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // enum enum_name { ... }
+    //          ^
+
+    std::string name = tokens[i].getString();
+    std::vector<EnumField> fields;
+
+    next_index(i, tokens.size());
+    uint16_t token = tokens[i].id;
+
+    if(token != TOKENID_BEGIN){
+        errors.panic("Expected '{' or '=' after name of the type");
+        return 1;
+    }
+
+    next_index(i, tokens.size());
+    while(tokens[i].id == TOKENID_NEWLINE){
+        errors.line++;
+        next_index(i, tokens.size());
+    }
+
+    while(tokens[i].id != TOKENID_END){
+        if(tokens[i].id != TOKENID_WORD){
+            errors.panic("Expected enum field");
+            return 1;
+        }
+
+        std::string field_name = tokens[i].getString();
+
+        next_index(i, tokens.size());
+        while(tokens[i].id == TOKENID_NEWLINE){
+            errors.line++;
+            next_index(i, tokens.size());
+        }
+
+        if(tokens[i].id != TOKENID_END){
+            if(tokens[i].id != TOKENID_NEXT){
+                errors.panic("Expected ',' after enum field");
+                return 1;
+            }
+            next_index(i, tokens.size());
+            while(tokens[i].id == TOKENID_NEWLINE){
+                errors.line++;
+                next_index(i, tokens.size());
+            }
+        }
+
+        fields.push_back( EnumField(field_name, NULL, errors) );
+    }
+
+    program.enums.push_back( Enum(name, fields, attr_info.is_public, &program.origin_info) );
     return 0;
 }
 int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -1663,12 +1719,23 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         errors.line++;
     }
 
-    // TODO: Clean up code inside each case (probally refactor into different functions or something)
+    // TODO: CLEAN: Clean up code inside each case (probally refactor into different functions or something)
     switch (tokens[i].id) {
     case TOKENID_WORD:
         next_index(i, tokens.size());
         if(tokens[i].id == TOKENID_OPEN){
             if(parse_expression_call(config, tokens, program, --i, expression, errors) != 0) return 1;
+        }
+        else if(tokens[i].id == TOKENID_NAMESPACE){
+            std::string name_space = tokens[i-1].getString();
+            next_index(i, tokens.size());
+            if(tokens[i].id != TOKENID_WORD){
+                errors.panic("Expected identifier after '::' operator");
+                return 1;
+            }
+            std::string member = tokens[i].getString();
+            *expression = new NamespaceExp(name_space, member, errors);
+            next_index(i, tokens.size());
         }
         else {
             *expression = new WordExp( tokens[i-1].getString(), errors );

@@ -449,4 +449,18 @@ class RetrieveConstantExp : public PlainExp {
     PlainExp* clone();
 };
 
+class NamespaceExp : public PlainExp {
+    public:
+    std::string name_space;
+    std::string member;
+
+    NamespaceExp(ErrorHandler&);
+    NamespaceExp(const std::string&, const std::string&, ErrorHandler&);
+    NamespaceExp(const NamespaceExp&);
+    ~NamespaceExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
 #endif // EXPRESSION_H_INCLUDED

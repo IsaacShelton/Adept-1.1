@@ -186,6 +186,33 @@ TypeAlias::TypeAlias(const std::string& alias, const std::string& binding, bool 
     this->origin = origin;
 }
 
+EnumField::EnumField(const std::string& name, ErrorHandler& errors){
+    this->name = name;
+    this->value = NULL;
+    this->errors = errors;
+}
+EnumField::EnumField(const std::string& name, PlainExp* value, ErrorHandler& errors){
+    this->name = name;
+    this->value = value;
+    this->errors = errors;
+}
+EnumField::EnumField(const EnumField& other){
+    name = other.name;
+    value = (other.value != NULL) ? other.value->clone() : NULL;
+    errors = other.errors;
+}
+EnumField::~EnumField(){
+    delete value;
+}
+
+Enum::Enum(const std::string& name, std::vector<EnumField>& fields, bool is_public, OriginInfo* origin){
+    this->name = name;
+    this->fields = fields;
+    this->is_public = is_public;
+    this->origin = origin;
+    this->bits = 0; // Should be overridden later on in 'Program::generate_types()'
+}
+
 Program::Program(CacheManager* parent_manager, const std::string& filename){
     this->parent_manager = parent_manager;
     this->origin_info.filename = filename;
@@ -260,7 +287,6 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             }
         }
 
-        // Also check for name conflicts with classes
         for(const Class& klass : classes){
             if(new_structure.name == klass.name){
                 errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local class");
@@ -268,10 +294,16 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             }
         }
 
-        // Also check for name conflicts with type aliases
         for(const TypeAlias& type_alias : type_aliases){
             if(new_structure.name == type_alias.alias){
                 errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local type alias");
+                return 1;
+            }
+        }
+
+        for(const Enum& inum : enums){
+            if(new_structure.name == inum.name){
+                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local enum");
                 return 1;
             }
         }
@@ -293,7 +325,6 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             }
         }
 
-        // Also check for name conflicts with structures
         for(const Structure& structure : structures){
             if(new_class.name == structure.name){
                 errors.panic("Imported class '" + new_class.name + "' has the same name as a local structure");
@@ -301,10 +332,16 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             }
         }
 
-        // Also check for name conflicts with type aliases
         for(const TypeAlias& type_alias : type_aliases){
             if(new_class.name == type_alias.alias){
                 errors.panic("Imported class '" + new_class.name + "' has the same name as a local type alias");
+                return 1;
+            }
+        }
+
+        for(const Enum& inum : enums){
+            if(new_class.name == inum.name){
+                errors.panic("Imported class '" + new_class.name + "' has the same name as a local enum");
                 return 1;
             }
         }
@@ -414,9 +451,54 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             }
         }
 
+        for(const Enum& inum : enums){
+            if(new_type_alias.alias == inum.name){
+                errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local enum");
+                return 1;
+            }
+        }
+
         TypeAlias created_type_alias = new_type_alias;
         created_type_alias.is_public = public_import;
         type_aliases.push_back(std::move(created_type_alias));
+    }
+
+    // Merge Enums
+    for(const Enum& new_enum : other.enums){
+        if(!new_enum.is_public) continue;
+        if(this->already_imported(new_enum.origin)) continue;
+
+        for(const Structure& structure : structures){
+            if(new_enum.name == structure.name){
+                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local structure");
+                return 1;
+            }
+        }
+
+        for(const Class& klass : classes){
+            if(new_enum.name == klass.name){
+                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local class");
+                return 1;
+            }
+        }
+
+        for(const TypeAlias& type_alias : type_aliases){
+            if(new_enum.name == type_alias.alias){
+                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local type alias");
+                return 1;
+            }
+        }
+
+        for(const Enum& inum : enums){
+            if(new_enum.name == inum.name){
+                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local enum");
+                return 1;
+            }
+        }
+
+        Enum target = new_enum;
+        target.is_public = public_import;
+        enums.push_back( std::move(target) );
     }
 
     // Merge imports last
@@ -679,6 +761,27 @@ int Program::generate_types(AssemblyData& context){
     types.push_back( Type("long", llvm::Type::getInt64Ty(llvm_context)) );
     types.push_back( Type("ulong", llvm::Type::getInt64Ty(llvm_context)) );
 
+    for(Enum& inum : enums){
+        if(inum.fields.size() <= 256){
+            inum.bits = 8;
+            types.push_back( Type(inum.name, llvm::Type::getInt8Ty(llvm_context)) );
+            continue;
+        }
+        if(inum.fields.size() <= 65536){
+            inum.bits = 16;
+            types.push_back( Type(inum.name, llvm::Type::getInt16Ty(llvm_context)) );
+            continue;
+        }
+        if(inum.fields.size() <= 4294967296){
+            inum.bits = 32;
+            types.push_back( Type(inum.name, llvm::Type::getInt32Ty(llvm_context)) );
+            continue;
+        }
+
+        inum.bits = 64;
+        types.push_back( Type(inum.name, llvm::Type::getInt64Ty(llvm_context)) );
+    }
+
     // Create a struct type for arrays
     std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
     llvm_array_type = llvm::StructType::create(elements, ".arr");
@@ -940,6 +1043,7 @@ int Program::find_global(const std::string& name, Global* global){
 void Program::print(){
     std::cout << std::endl;
     print_externals();
+    print_enums();
     print_structures();
     print_classes();
     print_globals();
@@ -1019,5 +1123,16 @@ void Program::print_classes(){
 void Program::print_globals(){
     for(const Global& global : globals){
         std::cout << (global.is_public ? "public " : "private ") << global.name << " " << global.type << std::endl;
+    }
+}
+void Program::print_enums(){
+    for(const Enum& inum : enums){
+        std::cout << (inum.is_public ? "public " : "private ") << "enum " << inum.name << " {\n";
+        for(size_t i = 0; i != inum.fields.size(); i++){
+            std::cout << inum.fields[i].name;
+            if(i + 1 != inum.fields.size()) std::cout << ",";
+            std::cout << std::endl;
+        }
+        std::cout << "}" << std::endl;
     }
 }

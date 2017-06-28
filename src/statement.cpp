@@ -2262,8 +2262,17 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
 
     if(switch_value == NULL) return 1;
     if(!Program::is_integer_typename(condition_typename)){
-        errors.panic("Switch condition value must be an integer");
-        return 1;
+        bool is_an_enum = false;
+        for(Enum& inum : program.enums){
+            if(inum.name == condition_typename){
+                is_an_enum = true; break;
+            }
+        }
+
+        if(!is_an_enum){
+            errors.panic("Switch condition value must be an integer");
+            return 1;
+        }
     }
 
     if(this->default_statements.size() != 0){
@@ -2291,7 +2300,7 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
         case_condition = switch_case.value->assemble_immutable(program, func, context, &value_typename);
         if(case_condition == NULL) return 1;
 
-        if(!Program::is_integer_typename(value_typename)){
+        if(!Program::is_integer_typename(value_typename) and value_typename != condition_typename){
             errors.panic("Case condition value must be an integer");
             return 1;
         }

@@ -247,6 +247,9 @@ std::string Token::toString(){
     case TOKENID_GREATEREQ:
         str = "greater than or equal";
         break;
+    case TOKENID_NAMESPACE:
+        str = "namespace operator";
+        break;
     }
 
     return str;
@@ -420,6 +423,9 @@ std::string Token::syntax(){
     case TOKENID_GREATEREQ:
         return ">=";
         break;
+    case TOKENID_NAMESPACE:
+        return "::";
+        break;
     }
 
     return "";
@@ -561,6 +567,9 @@ std::string get_tokenid_syntax(uint16_t id){
         break;
     case TOKENID_GREATEREQ:
         return ">=";
+        break;
+    case TOKENID_NAMESPACE:
+        return "::";
         break;
     }
 

@@ -163,6 +163,30 @@ class TypeAlias {
     TypeAlias(const std::string&, const std::string&, bool, OriginInfo*);
 };
 
+class EnumField {
+    public:
+    std::string name;
+    PlainExp* value;
+    ErrorHandler errors;
+
+    EnumField(const std::string&, ErrorHandler&);
+    EnumField(const std::string&, PlainExp*, ErrorHandler&);
+    EnumField(const EnumField&);
+    ~EnumField();
+};
+
+class Enum {
+    public:
+    std::string name;
+    std::vector<EnumField> fields;
+    bool is_public;
+    size_t bits;
+
+    OriginInfo* origin;
+
+    Enum(const std::string&, std::vector<EnumField>&, bool, OriginInfo*);
+};
+
 class Program {
     public:
     CacheManager* parent_manager;
@@ -179,6 +203,7 @@ class Program {
     std::vector<External> externs;
     std::vector<Global> globals;
     std::vector<TypeAlias> type_aliases;
+    std::vector<Enum> enums;
 
     llvm::Type* llvm_array_type; // Used for arrays as well as strings
     llvm::Function* llvm_array_ctor;
@@ -226,6 +251,7 @@ class Program {
     void print_structures();
     void print_classes();
     void print_globals();
+    void print_enums();
 };
 
 inline bool Program::is_function_typename(const std::string& type_name){

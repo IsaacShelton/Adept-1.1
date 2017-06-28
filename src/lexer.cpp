@@ -160,6 +160,16 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
 
             tokens.push_back(TOKEN_DIVIDE);
             break;
+        case ':':
+            next_index(i, code_size);
+
+            if(code[i] == ':'){
+                tokens.push_back(TOKEN_NAMESPACE); i++;
+            } else {
+                errors.panic("ERROR: Lexer found unknown token ':'");
+                return 1;
+            }
+            break;
         case '%':
             next_index(i, code_size);
             if(code[i] == '=') {
@@ -227,10 +237,10 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
 
                 // NOTE: MUST be pre sorted alphabetically (used for string_search)
                 //         Make sure to update switch statement with correct indices after add or removing a type
-                const size_t keywords_size = 36;
+                const size_t keywords_size = 37;
                 const std::string keywords[keywords_size] = {
                     "and", "break", "case", "cast", "class", "constant", "dangerous", "def", "default", "defer", "delete",
-                    "dynamic", "else", "false", "for", "foreign", "funcptr", "if", "import", "link", "new", "null",
+                    "dynamic", "else", "enum", "false", "for", "foreign", "funcptr", "if", "import", "link", "new", "null",
                     "or", "packed", "private", "public", "return", "sizeof", "static", "stdcall", "switch", "true",
                     "type", "unless", "until", "while"
                 };
@@ -246,7 +256,7 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                     // 'and' keyword
                     tokens.push_back( TOKEN_AND );
                     break;
-                case 22:
+                case 23:
                     // 'or' keyword
                     tokens.push_back( TOKEN_OR );
                     break;
