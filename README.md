@@ -330,7 +330,6 @@ private def twice(number s64) s64 {
 
 ### Enums
 ```
-
 private import "adept/terminal.adept"
 
 enum Fruit {
