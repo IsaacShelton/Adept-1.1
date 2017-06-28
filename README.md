@@ -258,9 +258,7 @@ private import "adept/terminal.adept"
 
 private type SmallType {
     length usize
-
-
-data ptr
+    data ptr
 }
 
 private type BigType {
