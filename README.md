@@ -258,7 +258,9 @@ private import "adept/terminal.adept"
 
 private type SmallType {
     length usize
-    data ptr
+
+
+data ptr
 }
 
 private type BigType {
@@ -323,5 +325,37 @@ public def main() int {
 
 private def twice(number s64) s64 {
     return number * number
+}
+```
+
+### Enums
+```
+
+private import "adept/terminal.adept"
+
+enum Fruit {
+    APPLE, BANANA, ORANGE
+}
+
+public def main() int {
+    fruit Fruit = Fruit::ORANGE
+    
+    println(fruit)
+    println(Fruit::APPLE)
+    println(Fruit::BANANA)
+    return 0
+}
+
+private def println(fruit Fruit) void {
+    switch fruit {
+    case Fruit::APPLE
+        println("Apple")
+    case Fruit::BANANA
+        println("Banana")
+    case Fruit::ORANGE
+        println("Orange")
+    default
+        println("Unknown Fruit")
+    }
 }
 ```
