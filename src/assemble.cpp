@@ -326,13 +326,47 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
                             linkage, nullptr, global->name);
 
         if(!global->is_imported){
-            // TODO: Add support for native integer types as globals (currently only structs and pointers can be used)
+            // Resolve if an alias
+            program->resolve_if_alias(global->type);
 
             // Initialize the global as zero
             if(Program::is_function_typename(global->type) or Program::is_pointer_typename(global->type)){
                 // Safety: Probally not very safe, but whatever. 'global_llvm_type' should always be a pointer
                 assert(global_llvm_type->isPointerTy());
                 created_global->setInitializer( llvm::ConstantPointerNull::get( static_cast<llvm::PointerType*>(global_llvm_type) ) );
+            }
+            else if(Program::is_integer_typename(global->type)){
+                bool integer_is_signed = true;
+                unsigned int integer_bits;
+                if(global->type[0] == 'u') integer_is_signed = true; // Cheeky, but it works
+
+                if(global->type == "int" or global->type == "uint"){
+                    integer_bits = 32;
+                }
+                else if(global->type == "long" or global->type == "ulong"){
+                    integer_bits = 64;
+                }
+                else if(global->type == "short" or global->type == "ushort"){
+                    integer_bits = 16;
+                }
+                else if(global->type == "byte" or global->type == "ubyte"){
+                    integer_bits = 8;
+                }
+                else {
+                    global->errors.panic("Unknown bit-length for integer type '" + global->type + "'");
+                    return 1;
+                }
+
+                created_global->setInitializer( llvm::ConstantInt::get(context->context, llvm::APInt(integer_bits, 0, integer_is_signed)) );
+            }
+            else if(global->type == "float"){
+                created_global->setInitializer( llvm::ConstantFP::get(llvm::Type::getFloatTy(context->context), 0) );
+            }
+            else if(global->type == "double"){
+                created_global->setInitializer( llvm::ConstantFP::get(llvm::Type::getDoubleTy(context->context), 0) );
+            }
+            else if(global->type == "half"){
+                created_global->setInitializer( llvm::ConstantFP::get(llvm::Type::getHalfTy(context->context), 0) );
             }
             else {
                 created_global->setInitializer( llvm::ConstantAggregateZero::get(global_llvm_type) );

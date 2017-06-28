@@ -671,6 +671,7 @@ int Program::generate_types(AssemblyData& context){
     types.push_back( Type("uint", llvm::Type::getInt32Ty(llvm_context)) );
     types.push_back( Type("double", llvm::Type::getDoubleTy(llvm_context)) );
     types.push_back( Type("float", llvm::Type::getFloatTy(llvm_context)) );
+    types.push_back( Type("half", llvm::Type::getHalfTy(llvm_context)) );
     types.push_back( Type("byte", llvm::Type::getInt8Ty(llvm_context)) );
     types.push_back( Type("ubyte", llvm::Type::getInt8Ty(llvm_context)) );
     types.push_back( Type("short", llvm::Type::getInt16Ty(llvm_context)) );

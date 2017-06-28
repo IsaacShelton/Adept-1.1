@@ -753,8 +753,8 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
     return 0;
 }
 int parse_type(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors){
-    //  **some_type   |   def (int, int) int   |   another_type   |   [] int
-    //  ^                  ^                            ^             ^
+    //  **some_type   |   def (int, int) int   |   another_type   |   [] int   |   *@TypeName
+    //  ^                  ^                            ^             ^            ^
 
     uint16_t prefix_token_id = tokens[i].id;
 
@@ -862,14 +862,12 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
             return 1;
         }
     }
-    else {
-        // Standard type
-        if(prefix_token_id != TOKENID_WORD){
-            errors.panic(EXPECTED_NAME_OF_TYPE);
-            return 1;
-        }
-
+    else if(prefix_token_id == TOKENID_WORD){
         output_type += tokens[i].getString();
+    }
+    else {
+        errors.panic(EXPECTED_NAME_OF_TYPE);
+        return 1;
     }
 
     return 0;
@@ -1855,6 +1853,10 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         return 0;
     case TOKENID_ULONG:
         *expression = new UnsignedLongExp( tokens[i].getULong(), errors );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_HALF:
+        *expression = new HalfExp( tokens[i].getFloat(), errors );
         next_index(i, tokens.size());
         return 0;
     case TOKENID_FLOAT:

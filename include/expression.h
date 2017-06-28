@@ -168,6 +168,19 @@ class UnsignedLongExp : public PlainExp {
     PlainExp* clone();
 };
 
+class HalfExp : public PlainExp {
+    public:
+    float value;
+
+    HalfExp(ErrorHandler&);
+    HalfExp(float, ErrorHandler&);
+    HalfExp(const HalfExp&);
+    ~HalfExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
 class FloatExp : public PlainExp {
     public:
     float value;

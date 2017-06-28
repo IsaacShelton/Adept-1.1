@@ -98,6 +98,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
     if(type_name == "int" or type_name == "uint" or type_name == "short" or type_name == "ushort"
        or type_name == "long" or type_name == "ulong" or type_name == "byte"
        or type_name == "ubyte" or type_name == "bool"){
+        // TODO: OUTSPEED: Don't use signed versions of operators unless necessary
         switch (operation) {
         case TOKENID_ADD:
             return context.builder.CreateAdd(left_value, right_value, "addtmp");
@@ -144,7 +145,7 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
             return NULL;
         }
     }
-    else if(type_name == "float" or type_name == "double"){
+    else if(type_name == "float" or type_name == "double" or type_name == "half"){
         switch (operation) {
         case TOKENID_ADD:
             return context.builder.CreateFAdd(left_value, right_value, "addtmp");
@@ -538,6 +539,34 @@ std::string UnsignedLongExp::toString(){
 }
 PlainExp* UnsignedLongExp::clone(){
     return new UnsignedLongExp(*this);
+}
+
+HalfExp::HalfExp(ErrorHandler& err){
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+HalfExp::HalfExp(float val, ErrorHandler& err){
+    value = val;
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+HalfExp::HalfExp(const HalfExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+    is_constant = true;
+}
+HalfExp::~HalfExp(){}
+llvm::Value* HalfExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "half";
+    return llvm::ConstantFP::get(llvm::Type::getHalfTy(context.context), value);
+}
+std::string HalfExp::toString(){
+    return to_str(value) + "h";
+}
+PlainExp* HalfExp::clone(){
+    return new HalfExp(*this);
 }
 
 FloatExp::FloatExp(ErrorHandler& err){

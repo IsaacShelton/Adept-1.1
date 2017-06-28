@@ -319,6 +319,9 @@ std::string Token::syntax(){
     case TOKENID_CONSTANT:
         return "$" + getString();
         break;
+    case TOKENID_POLYMORPHIC:
+        return "@" + getString();
+        break;
     // Control Flow
     case TOKENID_WORD:
         return getString();
@@ -457,6 +460,9 @@ std::string get_tokenid_syntax(uint16_t id){
         break;
     case TOKENID_CONSTANT:
         return "$";
+        break;
+    case TOKENID_POLYMORPHIC:
+        return "@";
         break;
     // Control Flow
     case TOKENID_WORD:

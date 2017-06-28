@@ -330,6 +330,33 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 tokens.push_back( TOKEN_CONSTANT( new std::string(word) ) );
             }
             break;
+        case '@':
+            {
+                std::string word;
+                next_index(i, code_size);
+                prefix_char = code[i];
+
+                if( prefix_char != 95 and !(prefix_char >= 65 and prefix_char <= 90) and !(prefix_char >= 97 and prefix_char <= 122) ){
+                    errors.panic("Expected identifier after '$' operator");
+                    return 1;
+                }
+
+                while(true){
+                    word += prefix_char;
+                    next_index(i, code_size);
+                    prefix_char = code[i];
+
+                    if(prefix_char == 95) continue;
+                    if(prefix_char >= 65 and prefix_char <= 90) continue;
+                    if(prefix_char >= 97 and prefix_char <= 122) continue;
+                    if(prefix_char >= 48 and prefix_char <= 57) continue;
+
+                    break;
+                }
+
+                tokens.push_back( TOKEN_POLYMORPHIC( new std::string(word) ) );
+            }
+            break;
         case 48: case 49: case 50:
         case 51: case 52: case 53:
         case 54: case 55: case 56:
@@ -450,6 +477,9 @@ int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code
         }
         else if(prefix_char == 'd'){
             tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
+        }
+        else if(prefix_char == 'h'){
+            tokens.push_back( TOKEN_HALF( to_float(content) ) );
         }
         else {
             tokens.push_back( TOKEN_DOUBLE( to_double(content) ) );
