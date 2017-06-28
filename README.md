@@ -18,7 +18,7 @@ public def main() int {
 
 ### Functions
 ```
-private imoprt "adept/terminal.adept"
+private import "adept/terminal.adept"
 
 public def main() int {
     println(integer_sum(13, 8))
@@ -45,19 +45,19 @@ public def main() int {
 
 ### Pointers
 ```
-private import "system/string.adept"
-private import "system/system.adept"
+private import "adept/string.adept"
+private import "adept/terminal.adept"
 
 public def main() int {
     // Allocate 12 bytes (one extra for null termination)
-    hello *ubyte = malloc(12ui)
-    defer free(hello)
+    hello *ubyte = new ubyte * 12
+    defer delete hello
     
     // Set the byte array
-    strcpy(hello, "Hello World")
+    copy(hello, "Hello World")
     
     // Print the string
-    puts(hello)
+    println(hello)
     return 0
 }
 ```
@@ -69,7 +69,7 @@ private import "adept/terminal.adept"
 public def main() int {
     // Create an array
     integer_array [] int = new [3] int
-    defer delete integer_array.data
+    defer delete integer_array
     
     // Set some elements of the array
     integer_array[0] = 10
@@ -273,7 +273,7 @@ public def main() int {
     // Get the size of the type 'BigType' and print it
     // NOTE: This will be different depending on the alignment of the type and
     //   depending on what the target system is. You can ensure a type is aligned to
-    //   one byte by specifing the 'packed' attribute
+    //   one byte by specifing the 'packed' attribute like: "private packed type BigType { ... }"
     length usize = sizeof BigType
     println(cast int length)
     
@@ -299,7 +299,7 @@ public def main() int {
         10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
     }
     
-    while i usize = 0ui, i != 11ui, i += 1ui {
+    for i usize = 0ui, i != 11ui, i += 1ui {
         println(integer_list[i])
     }
     
