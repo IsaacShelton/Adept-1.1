@@ -374,7 +374,7 @@ public def main() int {
     append(fullname, lastname)
     
     greeting ! *ubyte = new ubyte * 768
-    copy(greeting, "Welcome")
+    copy(greeting, "Welcome ")
     append(greeting, fullname)
     println(greeting)
     
