@@ -1123,6 +1123,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     case TOKENID_MULTIPLY:
     case TOKENID_KEYWORD:
     case TOKENID_NEXT:
+    case TOKENID_NOT:
         // Variable Definition
         if(parse_block_variable_declaration(config, tokens, program, statements, defer_statements, i, name, errors) != 0) return 1;
         break;
@@ -1164,6 +1165,7 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
 
     std::string type;
     std::vector<std::string> multiple_names;
+    bool auto_delete = false;
 
     if(tokens[i].id == TOKENID_NEXT){
         multiple_names = { name };
@@ -1181,8 +1183,28 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
         }
     }
 
+    if(tokens[i].id == TOKENID_NOT){
+        auto_delete = true;
+        next_index(i, tokens.size());
+    }
+
     if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
     next_index(i, tokens.size());
+
+    if(auto_delete){
+        if(!Program::is_pointer_typename(type)){
+            errors.panic("The non-pointer type '" + type + "' can't be deleted later on in the program.\n    Only pointer types work with '!' deletion.");
+            return 1;
+        }
+
+        if(multiple_names.size() == 0){
+            defer_statements.push_back( new DeallocStatement(new WordExp(name, errors), errors) );
+        } else {
+            for(const std::string& multiple_name : multiple_names){
+                defer_statements.push_back( new DeallocStatement(new WordExp(multiple_name, errors), errors) );
+            }
+        }
+    }
 
     if(tokens[i].id == TOKENID_ASSIGN){
         PlainExp* expression;

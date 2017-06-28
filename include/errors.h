@@ -31,7 +31,7 @@
 
 // Expected
 #define EXPECTED_NAME_OF_TYPE        ("Expected typename")
-#define EXPECTED_DEFINITION          ("Expected definition of a function or type")
+#define EXPECTED_DEFINITION          ("Expected function or data type definition")
 
 // Unexpected
 #define UNEXPECTED_KEYWORD(a)        ("Unexpected keyword '" + std::string(a) + "'")
