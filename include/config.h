@@ -10,6 +10,7 @@ struct Configuration {
 
     bool jit;
     bool obj;
+    bool objall;
     bool bytecode;
     bool link;
     bool load_dyn;

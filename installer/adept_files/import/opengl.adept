@@ -7776,11 +7776,11 @@ private stdcall foreign GetProcAddress(HMODULE, *ubyte) ptr
 
 private def getProcedureAddress(name *ubyte) ptr {
 	address ptr = wglGetProcAddress(name)
-	if address == null or address == cast ptr(1) or address == cast ptr(2) or address == cast ptr(3) or address == cast ptr(4) {
+	if address == null or address == cast ptr 1 or address == cast ptr 2 or address == cast ptr 3 or address == cast ptr 4 {
 		module HMODULE = LoadLibraryA("opengl32.dll")
 		address = GetProcAddress(module, name)
 		
-		if address == cast ptr(1) or address == cast ptr(2) or address == cast ptr(3) or address == cast ptr(4) {
+		if address == cast ptr 1 or address == cast ptr 2  or address == cast ptr 3 or address == cast ptr 4 {
 			return null
 		} else {
 			return address
@@ -7791,7 +7791,7 @@ private def getProcedureAddress(name *ubyte) ptr {
 }
 
 // Attempt to load all of the modern opengl extensions
-public def opengl_init() void {
+public def openglInit() void {
 	glActiveProgramEXT = getProcedureAddress("glActiveProgramEXT")
 	glActiveShaderProgram = getProcedureAddress("glActiveShaderProgram")
 	glActiveStencilFaceEXT = getProcedureAddress("glActiveStencilFaceEXT")

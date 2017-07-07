@@ -3,7 +3,10 @@
 #include "../include/die.h"
 #include "../include/asmdata.h"
 
-AssemblyData::AssemblyData() : builder(context) {}
+AssemblyData::AssemblyData() : builder(context) {
+    assembling_constant_expression = false;
+    constant_expression_depth = 0;
+}
 
 AssembleFunction* AssemblyData::addFunction(const std::string& mangled_function_name){
     functions.push_back( AssembleFunction(mangled_function_name) );

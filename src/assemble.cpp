@@ -27,6 +27,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include <boost/filesystem.hpp>
 
 #include "../include/jit.h"
 #include "../include/die.h"
@@ -52,8 +53,8 @@ int build(AssemblyData& context, Configuration& config, Program& program, ErrorH
 int build_program(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
     if(config.time) config.clock.remember();
     std::string target_name = filename_change_ext(config.filename, "exe");
-    std::string target_obj  = (config.obj)      ? filename_change_ext(config.filename, "obj") : "C:/Users/" + config.username + "/.adept/obj/object.o";
-    std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
+    std::string target_obj  = (config.obj)      ? filename_change_ext(filename_name(config.filename), "o") : "C:/Users/" + config.username + "/.adept/obj/object.o";
+    std::string target_bc   = (config.bytecode) ? filename_change_ext(filename_name(config.filename), "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
     std::vector<ModuleDependency> dependencies;
     std::vector<ModuleDependency*> compilation_list;
     std::vector<std::string> linked_objects;
@@ -75,6 +76,13 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     // Link to other libraries specified
     for(const std::string& lib : program.extra_libs){
         linked_objects.push_back(lib);
+    }
+
+    if(config.objall){
+        for(const std::string& obj : linked_objects){
+            if(boost::filesystem::exists(filename_name(obj))) remove(filename_name(obj).c_str());
+            boost::filesystem::copy_file(boost::filesystem::path(obj), boost::filesystem::path(filename_name(obj)));
+        }
     }
 
     for(ModuleDependency& dependency : program.dependencies){
@@ -102,7 +110,12 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         out_stream->flush();
         delete out_stream;
 
-        native_build_module(context, uncompiled_dependency->target_bc, uncompiled_dependency->target_obj, module_build_options);
+        if(config.objall){
+            native_build_module(context, uncompiled_dependency->target_bc, filename_name(uncompiled_dependency->target_obj), module_build_options);
+        }
+        else {
+            native_build_module(context, uncompiled_dependency->target_bc, uncompiled_dependency->target_obj, module_build_options);
+        }
     }
 
     native_build_module(context, target_bc, target_obj, module_build_options);
@@ -113,7 +126,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         config.clock.remember();
     }
 
-    if(config.link){
+    if(config.link and !config.obj and !config.bytecode){
         std::string linked_objects_string;
 
         for(const std::string& obj : linked_objects){
@@ -129,14 +142,14 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
             fail( FAILED_TO_CREATE(filename_name(target_name)) );
             return 1;
         }
+
+        // Print Linker Time
+        if(config.time and !config.silent){
+            config.clock.print_since("LINKER DONE", filename_name(config.filename));
+        }
     }
 
-    // Print Linker Time
-    if(config.time and !config.silent){
-        config.clock.print_since("LINKER DONE", filename_name(config.filename));
-        config.clock.remember();
-    }
-
+    config.clock.remember();
     return 0;
 
 }
@@ -280,7 +293,7 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
         config.clock.remember();
     }
 
-    if(!config.jit and !config.obj and !config.bytecode and config.link){
+    if(!config.jit and config.link){
         if(build(context, config, program, errors) != 0) return 1;
     }
 

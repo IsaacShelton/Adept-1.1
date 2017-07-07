@@ -2223,13 +2223,37 @@ RetrieveConstantExp::~RetrieveConstantExp(){}
 llvm::Value* RetrieveConstantExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     Constant constant;
     PlainExp* constant_expression;
+    bool top_level_constant = !context.assembling_constant_expression;
+
+    if(top_level_constant){
+        context.assembling_constant_expression = true;
+        context.constant_expression_depth = 0;
+    }
+    else {
+        if(context.constant_expression_depth++ == 64){
+            // NOTE: This isn't the most elegant method of detecting infinite loops in constant expressions, but it's a whole lot faster
+            //           than trying to validate every single constant expression and overall constant expressions shouldn't be used for recursive computation anyway (like fib).
+            //           It works well enough and should never really be a problem. The biggest advantage of doing it this way is faster compile-times
+            //               (Which checking every single constant expression would be very expensive especially when you have 100s to 1000s of constants in some libraries)
+            // TLDR: It's not an "all inclusive solution", but it does the job and doesn't have massive performance penalties. - Isaac Shelton July 6 2017
+            errors.panic("Recursion depth of constant expression exceeded max depth of 64\n    (The constant expression most likely contains itself)");
+            return NULL;
+        };
+    }
 
     if(program.find_const(value, &constant) != 0){
         errors.panic(UNDECLARED_CONST(value));
         return NULL;
     }
 
-    return constant.value->assemble(program, func, context, expr_type);
+    if(top_level_constant){
+        llvm::Value* val = constant.value->assemble(program, func, context, expr_type);
+        context.assembling_constant_expression = false;
+        return val;
+    }
+    else {
+        return constant.value->assemble(program, func, context, expr_type);
+    }
 }
 std::string RetrieveConstantExp::toString(){
     return "$" + value;

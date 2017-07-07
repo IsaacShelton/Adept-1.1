@@ -703,8 +703,8 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     std::string mangled_name = mangle_filename(source_filename);
-    target_obj  = (config.obj)      ? filename_change_ext(name, "obj") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
-    target_bc   = (config.bytecode) ? filename_change_ext(name, "bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
+    target_obj  = (config.obj)      ? (mangled_name + ".o") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
+    target_bc   = (config.bytecode) ? (mangled_name + ".bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
 
     // Import the declarations
     if(program.import_merge(import_config, *import_program, attr_info.is_public, errors) != 0){
@@ -1007,7 +1007,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             }
 
             if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-            statements.push_back( new DeallocStatement(expression, dangerous, errors) );
+            statements.push_back( new DeleteStatement(expression, dangerous, errors) );
             break;
         }
     case 2: { // for
@@ -1254,10 +1254,10 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
         }
 
         if(multiple_names.size() == 0){
-            defer_statements.push_back( new DeallocStatement(new WordExp(name, errors), errors) );
+            defer_statements.push_back( new DeleteStatement(new WordExp(name, errors), errors) );
         } else {
             for(const std::string& multiple_name : multiple_names){
-                defer_statements.push_back( new DeallocStatement(new WordExp(multiple_name, errors), errors) );
+                defer_statements.push_back( new DeleteStatement(new WordExp(multiple_name, errors), errors) );
             }
         }
     }

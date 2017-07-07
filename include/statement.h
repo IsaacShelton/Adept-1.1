@@ -381,16 +381,16 @@ class UnlessUntilElseStatement : public Statement {
     bool isConditional();
 };
 
-class DeallocStatement : public Statement {
+class DeleteStatement : public Statement {
     public:
     PlainExp* value;
     bool dangerous; // Whether or not this statement was marked as 'dangerous'
 
-    DeallocStatement(ErrorHandler&);
-    DeallocStatement(PlainExp*, ErrorHandler&);
-    DeallocStatement(PlainExp*, bool, ErrorHandler&);
-    DeallocStatement(const DeallocStatement&);
-    ~DeallocStatement();
+    DeleteStatement(ErrorHandler&);
+    DeleteStatement(PlainExp*, ErrorHandler&);
+    DeleteStatement(PlainExp*, bool, ErrorHandler&);
+    DeleteStatement(const DeleteStatement&);
+    ~DeleteStatement();
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();

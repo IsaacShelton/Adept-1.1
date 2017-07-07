@@ -18,6 +18,8 @@ struct AssemblyData {
     std::vector<::Type> types;
     std::vector<AssembleFunction> functions;
     std::vector<AssembleGlobal> globals;
+    bool assembling_constant_expression;
+    int constant_expression_depth;
 
     // Assembly Context
     AssembleFunction* current_function;

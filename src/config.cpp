@@ -36,6 +36,7 @@ int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors
     // Default Config
     config.jit = false;
     config.obj = false;
+    config.objall = false;
     config.bytecode = false;
     config.filename = argv[1];
     config.link = true;
@@ -52,6 +53,9 @@ int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors
         }
         else if(strcmp(argv[i], "--obj") == 0){
             config.obj = true;
+        }
+        else if(strcmp(argv[i], "--objall") == 0){
+            config.objall = true;
         }
         else if(strcmp(argv[i], "--bc") == 0){
             config.bytecode = true;
@@ -73,8 +77,11 @@ int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors
         }
         else {
             errors.panic_plain( UNKNOWN_OPTION(argv[i]) );
+            return 1;
         }
     }
+
+    if(config.objall) config.obj = true;
 
     char* username = getenv("USERNAME");
     if(username == NULL) {

@@ -2094,57 +2094,36 @@ bool UnlessUntilElseStatement::isConditional(){
     return true;
 }
 
-DeallocStatement::DeallocStatement(ErrorHandler& errors){
+DeleteStatement::DeleteStatement(ErrorHandler& errors){
     this->value = NULL;
     this->dangerous = false;
     this->errors = errors;
 }
-DeallocStatement::DeallocStatement(PlainExp* value, ErrorHandler& errors){
+DeleteStatement::DeleteStatement(PlainExp* value, ErrorHandler& errors){
     this->value = value;
     this->dangerous = false;
     this->errors = errors;
 }
-DeallocStatement::DeallocStatement(PlainExp* value, bool dangerous, ErrorHandler& errors){
+DeleteStatement::DeleteStatement(PlainExp* value, bool dangerous, ErrorHandler& errors){
     this->value = value;
     this->dangerous = dangerous;
     this->errors = errors;
 }
-DeallocStatement::DeallocStatement(const DeallocStatement& other) : Statement(other) {
+DeleteStatement::DeleteStatement(const DeleteStatement& other) : Statement(other) {
     this->value = other.value->clone();
     this->dangerous = other.dangerous;
     this->errors = other.errors;
 }
-DeallocStatement::~DeallocStatement(){
+DeleteStatement::~DeleteStatement(){
     delete this->value;
 }
-int DeallocStatement::assemble(Program& program, Function& func, AssemblyData& context){
+int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Type* llvm_type;
     std::string type_name;
     llvm::Value* pointer = value->assemble_immutable(program, func, context, &type_name);
     std::vector<llvm::Value*> free_args(1);
 
-    // Make sure expression specified is a pointer
-    if(!Program::is_pointer_typename(type_name)){
-        errors.panic(DELETE_REQUIRES_POINTER);
-        return 1;
-    }
-
-    // Resolve typename if it's an alias
-    program.resolve_if_alias(type_name);
-
-    if(type_name == "*string"){
-        // Custom string type
-        llvm_type = program.llvm_array_type->getPointerTo();
-    }
-    else if(program.find_type(type_name, context, &llvm_type) != 0){
-        errors.panic(UNDECLARED_TYPE(type_name));
-        return 1;
-    }
-
-    if(type_name == "ptr" and !dangerous){
-        errors.warn("Deleting data pointed to by a 'ptr' won't correctly delete types that require special deletion\n    To suppress this warning, put the 'dangerous' keyword immediately after the 'delete' keyword");
-    }
-
+    // Declare the 'free' function if it isn't already declared
     llvm::Function* free_function = context.module->getFunction("free");
     if(!free_function){
         // Declare the malloc function if it doesn't already exist
@@ -2155,22 +2134,36 @@ int DeallocStatement::assemble(Program& program, Function& func, AssemblyData& c
         free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
     }
 
-    if(type_name == "*string"){
-        llvm::Value* string_value = pointer;
-        std::vector<llvm::Value*> indices(2);
-        indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
-        indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
-        llvm::Value* data_ptr_ptr = context.builder.CreateGEP(program.llvm_array_type, string_value, indices);
-        free_args[0] = context.builder.CreateLoad(data_ptr_ptr);
-        context.builder.CreateCall(free_function, free_args, "deltmp");
+    // If we're trying to delete an '[]' type, skip all of the normal steps and do this instead
+    if(Program::is_array_typename(type_name)){
+        // Resolve typename if it's an alias
+        program.resolve_if_alias(type_name);
+        return 0;
     }
-    else {
-        free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context), "casttmp");
-        context.builder.CreateCall(free_function, free_args, "deltmp");
+
+    // Make sure expression specified is a pointer
+    if(!Program::is_pointer_typename(type_name)){
+        errors.panic(DELETE_REQUIRES_POINTER);
+        return 1;
     }
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, context, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return 1;
+    }
+
+    if(type_name == "ptr" and !dangerous){
+        errors.warn("Deleting data pointed to by a 'ptr' won't correctly delete types that require special deletion\n    To suppress this warning, put the 'dangerous' keyword immediately after the 'delete' keyword");
+    }
+
+    free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context), "casttmp");
+    context.builder.CreateCall(free_function, free_args, "deltmp");
     return 0;
 }
-std::string DeallocStatement::toString(unsigned int indent, bool skip_initial_indent){
+std::string DeleteStatement::toString(unsigned int indent, bool skip_initial_indent){
     std::string result;
 
     if(!skip_initial_indent){
@@ -2180,13 +2173,13 @@ std::string DeallocStatement::toString(unsigned int indent, bool skip_initial_in
     result += "delete " + value->toString();
     return result;
 }
-Statement* DeallocStatement::clone(){
-    return new DeallocStatement(*this);
+Statement* DeleteStatement::clone(){
+    return new DeleteStatement(*this);
 }
-bool DeallocStatement::isTerminator(){
+bool DeleteStatement::isTerminator(){
     return false;
 }
-bool DeallocStatement::isConditional(){
+bool DeleteStatement::isConditional(){
     return false;
 }
 
