@@ -9,7 +9,7 @@ private import "system/conversion.adept"
 private foreign pow(double, double) double
 private foreign powf(float, float) float
 
-public def byteToRawString(number byte, output *ubyte, base int) *ubyte {
+public def byteToString(number byte, output *ubyte, base int) *ubyte {
 	i int = 0
 	is_negative bool = false
 	
@@ -46,7 +46,7 @@ public def byteToRawString(number byte, output *ubyte, base int) *ubyte {
 	return output
 }
 
-public def shortToRawString(number short, output *ubyte, base int) *ubyte {
+public def shortToString(number short, output *ubyte, base int) *ubyte {
 	i int = 0
 	is_negative bool = false
 	
@@ -83,7 +83,7 @@ public def shortToRawString(number short, output *ubyte, base int) *ubyte {
 	return output
 }
 
-public def intToRawString(number int, output *ubyte, base int) *ubyte {
+public def intToString(number int, output *ubyte, base int) *ubyte {
 	i int = 0
 	is_negative bool = false
 	
@@ -121,7 +121,7 @@ public def intToRawString(number int, output *ubyte, base int) *ubyte {
 	return output
 }
 
-public def longToRawString(number long, output *ubyte, base int) *ubyte {
+public def longToString(number long, output *ubyte, base int) *ubyte {
 	i int = 0
 	is_negative bool = false
 
@@ -158,7 +158,7 @@ public def longToRawString(number long, output *ubyte, base int) *ubyte {
 	return output
 }
 
-public def boolToRawString(boolean bool, output *ubyte) *ubyte {
+public def boolToString(boolean bool, output *ubyte) *ubyte {
 	if boolean {
 		strcpy(output, "true")
 		return output
@@ -168,57 +168,57 @@ public def boolToRawString(boolean bool, output *ubyte) *ubyte {
 	}
 }
 
-public def floatToRawString(fp float, output *ubyte, after_point int) *ubyte {
+public def floatToString(fp float, output *ubyte, after_point int) *ubyte {
 	integer int = cast int(fp)
 	floating float = fp - cast float(integer)
 
-	i int = intToRawStringFixed(integer, output, 0)
+	i int = intToStringFixed(integer, output, 0)
 
 	if after_point != 0 {
 		output[i] = 46ub
 		floating = floating * powf(10.0f, cast float(after_point))
-		intToRawStringFixed(cast int(floating), output + cast ptr(i + 1), after_point)
+		intToStringFixed(cast int(floating), output + cast ptr(i + 1), after_point)
 	}
 	
 	return output
 }
 
-public def doubleToRawString(fp double, output *ubyte, after_point int) *ubyte {
+public def doubleToString(fp double, output *ubyte, after_point int) *ubyte {
 	integer int = cast int(fp)
 	floating double = fp - cast double(integer)
 
-	i int = intToRawStringFixed(integer, output, 0)
+	i int = intToStringFixed(integer, output, 0)
 
 	if after_point != 0 {
 		output[i] = 46ub
 		floating = floating * pow(10.0, cast double(after_point))
-		intToRawStringFixed(cast int(floating), output + cast ptr(i + 1), after_point)
+		intToStringFixed(cast int(floating), output + cast ptr(i + 1), after_point)
 	}
 	
 	return output
 }
 
-public def rawStringToByte(raw *ubyte) byte {
+public def stringToByte(raw *ubyte) byte {
 	return cast byte(atoi(raw))
 }
 
-public def rawStringToShort(raw *ubyte) short {
+public def stringToShort(raw *ubyte) short {
 	return cast short(atoi(raw))
 }
 
-public def rawStringToInt(raw *ubyte) int {
+public def stringToInt(raw *ubyte) int {
 	return atoi(raw)
 }
 
-public def rawStringToLong(raw *ubyte) long {
+public def stringToLong(raw *ubyte) long {
 	return atol(raw)
 }
 
-public def rawStringToFloat(raw *ubyte) float {
+public def stringToFloat(raw *ubyte) float {
 	return cast float atof(raw)
 }
 
-public def rawStringToDouble(raw *ubyte) double {
+public def stringToDouble(raw *ubyte) double {
 	return atof(raw)
 }
 
@@ -236,7 +236,7 @@ private def reverse(raw *ubyte, length int) void {
 	}
 }
 
-private def intToRawStringFixed(integer int, destination *ubyte, digits int) int {
+private def intToStringFixed(integer int, destination *ubyte, digits int) int {
 	i int = 0
 	is_negative bool = false
 	

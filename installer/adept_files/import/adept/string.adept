@@ -39,8 +39,7 @@ public def append(destination *ubyte, target *ubyte) void {
 public def join(target_one *ubyte, target_two *ubyte) *ubyte {
 	target_one_length usize = length(target_one)
 	target_two_length usize = length(target_two)
-	total_length usize = target_one_length + target_two_length + 1ui
-	joined *ubyte = malloc(total_length)
+	joined *ubyte = new ubyte * (target_one_length + target_two_length + 1ui)
 	
 	if joined == null {
 		return null
@@ -53,7 +52,7 @@ public def join(target_one *ubyte, target_two *ubyte) *ubyte {
 
 public def clone(target *ubyte) *ubyte {
 	target_length usize = length(target) + 1ui
-	clone *ubyte = malloc(target_length)
+	clone *ubyte = new ubyte * (target_length)
 	
 	if clone == null {
 		return null

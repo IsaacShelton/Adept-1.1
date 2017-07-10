@@ -3,7 +3,6 @@
 // Provides useful wrappers to print non-string types
 
 private import "system/io.adept"
-private import "system/string.adept"
 private import "system/system.adept"
 private import "adept/conversion.adept"
 
@@ -16,87 +15,87 @@ public def println(message *ubyte) void {
 }
 
 public def print(val bool) void {
-	message *ubyte = malloc(6ui)
-	fputs(boolToRawString(val, message), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 6
+	fputs(boolToString(val, message), fstdout())
+	delete message
 }
 
 public def println(val bool) void {
-	message *ubyte = malloc(6ui)
-	puts(boolToRawString(val, message))
-	free(message)
+	message *ubyte = new ubyte * 6
+	puts(boolToString(val, message))
+	delete message
 }
 
 public def print(val byte) void {
-	message *ubyte = malloc(5ui)
-	fputs(byteToRawString(val, message, 10), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 5
+	fputs(byteToString(val, message, 10), fstdout())
+	delete message
 }
 
 public def println(val byte) void {
-	message *ubyte = malloc(5ui)
-	puts(byteToRawString(val, message, 10))
-	free(message)
+	message *ubyte = new ubyte * 5
+	puts(byteToString(val, message, 10))
+	delete message
 }
 
 public def print(val short) void {
-	message *ubyte = malloc(7ui)
-	fputs(shortToRawString(val, message, 10), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 7
+	fputs(shortToString(val, message, 10), fstdout())
+	delete message
 }
 
 public def println(val short) void {
-	message *ubyte = malloc(7ui)
-	puts(shortToRawString(val, message, 10))
-	free(message)
+	message *ubyte = new ubyte * 7
+	puts(shortToString(val, message, 10))
+	delete message
 }
 
 public def print(val int) void {
-	message *ubyte = malloc(12ui)
-	fputs(intToRawString(val, message, 10), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 12
+	fputs(intToString(val, message, 10), fstdout())
+	delete message
 }
 
 public def println(val int) void {
-	message *ubyte = malloc(12ui)
-	puts(intToRawString(val, message, 10))
-	free(message)
+	message *ubyte = new ubyte * 12
+	puts(intToString(val, message, 10))
+	delete message
 }
 
 public def print(val long) void {
-	message *ubyte = malloc(21ui)
-	fputs(longToRawString(val, message, 10), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 21
+	fputs(longToString(val, message, 10), fstdout())
+	delete message
 }
 
 public def println(val long) void {
-	message *ubyte = malloc(21ui)
-	puts(longToRawString(val, message, 10))
-	free(message)
+	message *ubyte = new ubyte * 21
+	puts(longToString(val, message, 10))
+	delete message
 }
 
 public def print(val float) void {
-	message *ubyte = malloc(21ui)
-	fputs(floatToRawString(val, message, 4), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 21
+	fputs(floatToString(val, message, 4), fstdout())
+	delete message
 }
 
 public def println(val float) void {
-	message *ubyte = malloc(21ui)
-	puts(floatToRawString(val, message, 4))
-	free(message)
+	message *ubyte = new ubyte * 21
+	puts(floatToString(val, message, 4))
+	delete message
 }
 
 public def print(val double) void {
-	message *ubyte = malloc(21ui)
-	fputs(doubleToRawString(val, message, 4), fstdout())
-	free(message)
+	message *ubyte = new ubyte * 21
+	fputs(doubleToString(val, message, 4), fstdout())
+	delete message
 }
 
 public def println(val double) void {
-	message *ubyte = malloc(21ui)
-	puts(doubleToRawString(val, message, 4))
-	free(message)
+	message *ubyte = new ubyte * 21
+	puts(doubleToString(val, message, 4))
+	delete message
 }
 
 public def input(input *ubyte) void {

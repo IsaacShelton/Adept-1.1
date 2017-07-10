@@ -1,5 +1,4 @@
 
-link "libsystemio.a"
 public import "system/system.adept"
 
 public constant $SEEK_SET 0

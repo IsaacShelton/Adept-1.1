@@ -3,6 +3,7 @@
 // Heavily influenced from "https://github.com/coreh/gl-matrix.c"
 
 public import "adept/vector3f.adept"
+
 private import "system/string.adept"
 private import "system/system.adept"
 private import "adept/conversion.adept"
@@ -15,11 +16,11 @@ public class Matrix4f {
 	public array *float
 	
 	public def create() void {
-		this.array = malloc(16ui * sizeof float)
+		this.array = new float * 16
 	}
 
 	public def create(scale float) void {
-		matrix_data *float = malloc(16ui * sizeof float)
+		matrix_data *float = new float * 16
 		matrix_data[0] = scale
 		matrix_data[1] = 0.0f
 		matrix_data[2] = 0.0f
@@ -40,7 +41,7 @@ public class Matrix4f {
 	}
 	
 	public def free() void {
-		free(this.array)
+		delete this.array
 	}
 	
 	public def set(matrix Matrix4f) void {
@@ -540,69 +541,69 @@ public class Matrix4f {
 	}
 	
 	public def print() void {
-		str *ubyte = malloc(256ui)
-		tmp *ubyte = malloc(128ui)
+		str *ubyte = new ubyte * 256
+		tmp *ubyte = new ubyte * 128
 		strcpy(str, "Matrix4f {\n    ")
 		
 		// Print row one
-		floatToRawString(this.array[0], tmp, 4)
+		floatToString(this.array[0], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[1], tmp, 4)
+		floatToString(this.array[1], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[2], tmp, 4)
+		floatToString(this.array[2], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[3], tmp, 4)
+		floatToString(this.array[3], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ",\n    ")
 		
 		// Print row two
-		floatToRawString(this.array[4], tmp, 4)
+		floatToString(this.array[4], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[5], tmp, 4)
+		floatToString(this.array[5], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[6], tmp, 4)
+		floatToString(this.array[6], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[7], tmp, 4)
+		floatToString(this.array[7], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ",\n    ")
 		
 		// Print row three
-		floatToRawString(this.array[8], tmp, 4)
+		floatToString(this.array[8], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[9], tmp, 4)
+		floatToString(this.array[9], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[10], tmp, 4)
+		floatToString(this.array[10], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[11], tmp, 4)
+		floatToString(this.array[11], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ",\n    ")
 		
 		// Print row four
-		floatToRawString(this.array[12], tmp, 4)
+		floatToString(this.array[12], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[13], tmp, 4)
+		floatToString(this.array[13], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[14], tmp, 4)
+		floatToString(this.array[14], tmp, 4)
 		strcat(str, tmp)
 		strcat(str, ", ")
-		floatToRawString(this.array[15], tmp, 4)
+		floatToString(this.array[15], tmp, 4)
 		strcat(str, tmp)
 		
 		strcat(str, "\n}")
 		puts(str)
-		free(str)
-		free(tmp)
+		delete str
+		delete tmp
 	}
 }
 

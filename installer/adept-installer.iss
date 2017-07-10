@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Adept"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.1"
 #define MyAppPublisher "Isaac Shelton"
 #define MyAppURL "http://www.dockysoft.com/adept"
 #define MyAppExeName "adept.exe"
@@ -25,7 +25,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=C:\Users\isaac\Google Drive\Adept\LICENSE
 OutputDir=C:\Users\isaac\Google Drive\Adept\installer
-OutputBaseFilename=Adept Installer 64-bit
+OutputBaseFilename=Adept 1.1 Installer 64-bit
 SetupIconFile=C:\Users\isaac\Google Drive\Adept\installer\favicon.ico
 Compression=lzma
 SolidCompression=yes

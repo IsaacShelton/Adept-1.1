@@ -76,7 +76,6 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     // Link to other libraries specified
     for(const std::string& lib : program.extra_libs){
         linked_objects.push_back(lib);
-        std::cout << lib << std::endl;
     }
 
     if(config.obj){
