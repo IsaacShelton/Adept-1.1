@@ -1277,8 +1277,7 @@ llvm::Value* MemberExp::assemble_array(Program& program, Function& func, Assembl
     indices[1] = member_index;
 
     // Create GEP
-    llvm::Value* member_ptr = context.builder.CreateGEP(program.llvm_array_type, data, indices, "memberptr");
-    return member_ptr;
+    return context.builder.CreateGEP(program.llvm_array_type, data, indices, "memberptr");
 }
 
 MemberCallExp::MemberCallExp(ErrorHandler& err){
@@ -2103,6 +2102,158 @@ llvm::Value* AllocExp::assemble_elements(Program& program, Function& func, Assem
     std::vector<llvm::Value*> malloc_args(1);
 
     malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * amount * element_amount, false));
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+
+    std::vector<llvm::Value*> ctor_args = { heap_memory, llvm::ConstantInt::get(context.context, llvm::APInt(32, element_amount, false)) };
+    return context.builder.CreateCall(program.llvm_array_ctor, ctor_args, "calltmp");
+}
+
+DynamicAllocExp::DynamicAllocExp(ErrorHandler& err){
+    is_mutable = false;
+    is_constant = false;
+    errors = err;
+}
+DynamicAllocExp::DynamicAllocExp(const std::string& type_name, ErrorHandler& err){
+    this->type_name = type_name;
+    this->amount = 1;
+    this->element_amount = 0;
+    is_mutable = false;
+    is_constant = false;
+    errors = err;
+}
+DynamicAllocExp::DynamicAllocExp(const std::string& type_name, PlainExp* amount, ErrorHandler& err){
+    this->type_name = type_name;
+    this->amount = amount;
+    this->element_amount = 0;
+    is_mutable = false;
+    is_constant = false;
+    errors = err;
+}
+DynamicAllocExp::DynamicAllocExp(const std::string& type_name, PlainExp* amount, size_t element_amount, ErrorHandler& err){
+    this->type_name = type_name;
+    this->amount = amount;
+    this->element_amount = element_amount;
+    is_mutable = false;
+    is_constant = false;
+    errors = err;
+}
+DynamicAllocExp::DynamicAllocExp(const DynamicAllocExp& other) : PlainExp(other) {
+    this->type_name = other.type_name;
+    this->amount = other.amount;
+    this->element_amount = other.element_amount;
+    is_mutable = false;
+    is_constant = false;
+}
+DynamicAllocExp::~DynamicAllocExp(){}
+llvm::Value* DynamicAllocExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+    if(element_amount == 0){
+        // Assemble without creating as a high level array
+        return this->assemble_plain(program, func, context, expr_type);
+    }
+    else {
+        // Assemble by creating high level array
+        return this->assemble_elements(program, func, context, expr_type);
+    }
+}
+std::string DynamicAllocExp::toString(){
+    return "new " + this->type_name + (amount != 1 ? " * " + amount->toString() : "");
+}
+PlainExp* DynamicAllocExp::clone(){
+    return new DynamicAllocExp(*this);
+}
+llvm::Value* DynamicAllocExp::assemble_plain(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "*" + type_name;
+    llvm::Type* llvm_type;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, context, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return NULL;
+    }
+
+    llvm::Function* malloc_function = context.module->getFunction("malloc");
+
+    if(!malloc_function){
+        // Declare the malloc function if it doesn't already exist
+        llvm::Type* return_llvm_type;;
+
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt32Ty(context.context);
+        return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+        malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
+    }
+
+    uint64_t type_size = context.module->getDataLayout().getTypeAllocSize(llvm_type);
+    std::vector<llvm::Value*> malloc_args(1);
+
+    std::string amount_typename;
+    llvm::Value* amount_llvm_value = amount->assemble_immutable(program, func, context, &amount_typename);
+    if(amount_llvm_value == NULL) return NULL;
+
+    program.resolve_if_alias(amount_typename);
+    if(!Program::is_integer_typename(amount_typename)){
+        errors.panic("The expression type specified to 'new " + this->type_name + " * ' isn't an integer.\n    Received the type: '" + amount_typename + "'");
+        return NULL;
+    }
+
+    malloc_args[0] = context.builder.CreateMul(llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size, false)), amount_llvm_value);
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+
+    // Special casting if allocated type is a function pointer
+    if(Program::is_function_typename(type_name)){
+        llvm::Type* llvm_func_type;
+        if(program.function_typename_to_type(type_name, context, &llvm_func_type) != 0) return NULL;
+        heap_memory = context.builder.CreateBitCast(heap_memory, llvm_func_type->getPointerTo(), "casttmp");
+        return heap_memory;
+    }
+
+    // Otherwise standard pointer cast
+    return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo(), "casttmp");
+}
+llvm::Value* DynamicAllocExp::assemble_elements(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+    if(expr_type != NULL) *expr_type = "[]" + type_name;
+    llvm::Type* llvm_type;
+
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
+
+    if(program.find_type(type_name, context, &llvm_type) != 0){
+        errors.panic(UNDECLARED_TYPE(type_name));
+        return NULL;
+    }
+
+    llvm::Function* malloc_function = context.module->getFunction("malloc");
+
+    if(!malloc_function){
+        // Declare the malloc function if it doesn't already exist
+        llvm::Type* return_llvm_type;;
+
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt32Ty(context.context);
+        return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+        malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
+    }
+
+    uint64_t type_size = context.module->getDataLayout().getTypeAllocSize(llvm_type);
+    std::vector<llvm::Value*> malloc_args(1);
+
+    std::string amount_typename;
+    llvm::Value* amount_llvm_value = amount->assemble_immutable(program, func, context, &amount_typename);
+    if(amount_llvm_value == NULL) return NULL;
+
+    program.resolve_if_alias(amount_typename);
+    if(!Program::is_integer_typename(amount_typename)){
+        errors.panic("The expression type specified to 'new [...] " + this->type_name + " * ' isn't an integer.\n    Received the type: '" + amount_typename + "'");
+        return NULL;
+    }
+
+    malloc_args[0] = context.builder.CreateMul(llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * element_amount, false)), amount_llvm_value);
     llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
 
     std::vector<llvm::Value*> ctor_args = { heap_memory, llvm::ConstantInt::get(context.context, llvm::APInt(32, element_amount, false)) };

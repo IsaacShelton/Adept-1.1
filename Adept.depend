@@ -3174,7 +3174,7 @@
 	<vector>
 	"program.h"
 
-1498664754 c:\users\isaac\google drive\adept\include\program.h
+1499476783 c:\users\isaac\google drive\adept\include\program.h
 	"type.h"
 	"config.h"
 	"statement.h"
@@ -3810,7 +3810,7 @@
 
 1466190434 c:\llvm\include\llvm\support\codegen.h
 
-1499450349 c:\users\isaac\google drive\adept\include\config.h
+1499478684 c:\users\isaac\google drive\adept\include\config.h
 	"clock.h"
 	"errors.h"
 
@@ -3821,7 +3821,7 @@
 	<string>
 	<vector>
 
-1499362782 c:\users\isaac\google drive\adept\include\statement.h
+1499708269 c:\users\isaac\google drive\adept\include\statement.h
 	<string>
 	<vector>
 	<stdint.h>
@@ -3833,14 +3833,14 @@
 	<string>
 	<vector>
 
-1498685530 c:\users\isaac\google drive\adept\include\expression.h
+1499704643 c:\users\isaac\google drive\adept\include\expression.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 	"errors.h"
 	"asmdata.h"
 
-1499360615 c:\users\isaac\google drive\adept\include\asmdata.h
+1499708483 c:\users\isaac\google drive\adept\include\asmdata.h
 	<string>
 	<vector>
 	"type.h"
@@ -3870,7 +3870,7 @@
 	"statement.h"
 	"asmdata.h"
 
-1486434510 c:\users\isaac\google drive\adept\include\attribute.h
+1499472582 c:\users\isaac\google drive\adept\include\attribute.h
 
 1485907130 c:\users\isaac\google drive\adept\include\strings.h
 	<string>
@@ -3894,7 +3894,7 @@
 	"../include/tokens.h"
 	"../include/asmdata.h"
 
-1499360642 source:c:\users\isaac\google drive\adept\src\asmdata.cpp
+1499708497 source:c:\users\isaac\google drive\adept\src\asmdata.cpp
 	"../include/strings.h"
 	"../include/die.h"
 	"../include/asmdata.h"
@@ -3910,7 +3910,7 @@
 	"../include/strings.h"
 	"../include/asmtypes.h"
 
-1486434531 source:c:\users\isaac\google drive\adept\src\attribute.cpp
+1499472583 source:c:\users\isaac\google drive\adept\src\attribute.cpp
 	"../include/attribute.h"
 
 1497746688 source:c:\users\isaac\google drive\adept\src\build.cpp
@@ -4385,7 +4385,7 @@
 	<iostream>
 	"../include/clock.h"
 
-1499451376 source:c:\users\isaac\google drive\adept\src\config.cpp
+1499478682 source:c:\users\isaac\google drive\adept\src\config.cpp
 	<cstring>
 	<iostream>
 	"../include/adept.h"
@@ -4402,7 +4402,7 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1499362447 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1499706677 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -4533,7 +4533,7 @@
 	"llvm/Support/DataTypes.h"
 	<cassert>
 
-1497468239 source:c:\users\isaac\google drive\adept\src\jit.cpp
+1499458964 source:c:\users\isaac\google drive\adept\src\jit.cpp
 	<iostream>
 	<unistd.h>
 	"llvm/ADT/APFloat.h"
@@ -4604,7 +4604,7 @@
 1460974649 c:\llvm\include\llvm\irreader\irreader.h
 	<memory>
 
-1498665083 source:c:\users\isaac\google drive\adept\src\lexer.cpp
+1499709999 source:c:\users\isaac\google drive\adept\src\lexer.cpp
 	<string>
 	<iostream>
 	<sstream>
@@ -4984,7 +4984,7 @@
 1435056593 c:\llvm\include\llvm\support\tooloutputfile.h
 	"llvm/Support/raw_ostream.h"
 
-1499451286 source:c:\users\isaac\google drive\adept\src\parse.cpp
+1499709944 source:c:\users\isaac\google drive\adept\src\parse.cpp
 	<unistd.h>
 	<iostream>
 	<boost/filesystem.hpp>
@@ -4999,7 +4999,7 @@
 	"../include/mangling.h"
 	"llvm/Support/DynamicLibrary.h"
 
-1498664343 source:c:\users\isaac\google drive\adept\src\program.cpp
+1499478105 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	<boost/filesystem.hpp>
@@ -5014,7 +5014,7 @@
 	<string>
 	"../include/search.h"
 
-1499363034 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1499710134 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -5066,7 +5066,7 @@
 	"../include/type.h"
 	"../include/parse.h"
 
-1499451323 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1499478644 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>
@@ -5095,6 +5095,7 @@
 	"llvm/Support/TargetSelect.h"
 	"llvm/Support/FileSystem.h"
 	"llvm/Transforms/Utils/Cloning.h"
+	<boost/filesystem.hpp>
 	"../include/jit.h"
 	"../include/die.h"
 	"../include/build.h"

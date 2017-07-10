@@ -67,6 +67,8 @@ int parse_word(Configuration& config, TokenList& tokens, Program& program, size_
     switch(tokens[i].id){
     case TOKENID_WORD:
     case TOKENID_KEYWORD:
+    case TOKENID_MULTIPLY:
+    case TOKENID_BRACKET_OPEN:
         if(parse_global(config, tokens, program, i, name, attr_info, errors) != 0) return 1;
         break;
     default:
@@ -83,9 +85,9 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     std::string keyword = tokens[i].getString();
     next_index(i, tokens.size());
 
-    const size_t accepted_keywords_size = 11;
+    const size_t accepted_keywords_size = 12;
     const std::string accepted_keywords[] = {
-        "class", "constant", "def", "dynamic", "enum", "foreign", "import", "link", "private", "public", "type"
+        "class", "constant", "def", "dynamic", "enum", "external", "foreign", "import", "link", "private", "public", "type"
     };
 
     size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
@@ -135,20 +137,23 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     case 4: // enum
         if(parse_enum(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
-    case 5: // foreign
-        if(parse_external(config, tokens, program, i, attr_info, errors) != 0) return 1;
-        break;
-    case 6: // import
-        if(parse_import(config, tokens, program, i, attr_info, errors) != 0) return 1;
-        break;
-    case 7: // link
-        if(parse_lib(config, tokens, program, i, errors) != 0) return 1;
-        break;
-    case 8: // private
-    case 9: // public
+    case 5: // external
         if(parse_attribute(config, tokens, program, --i, errors) != 0) return 1;
         break;
-    case 10: // type
+    case 6: // foreign
+        if(parse_external(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case 7: // import
+        if(parse_import(config, tokens, program, i, attr_info, errors) != 0) return 1;
+        break;
+    case 8: // link
+        if(parse_lib(config, tokens, program, i, errors) != 0) return 1;
+        break;
+    case 9: // private
+    case 10: // public
+        if(parse_attribute(config, tokens, program, --i, errors) != 0) return 1;
+        break;
+    case 11: // type
         if(parse_structure(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
     default:
@@ -324,7 +329,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
 
     // Parse contents of the class
     while(tokens[i].id != TOKENID_END){
-        AttributeInfo member_attr(false, false);
+        AttributeInfo member_attr(false);
 
         // Encountered a keyword inside class definition
         if(tokens[i].id == TOKENID_KEYWORD){
@@ -466,7 +471,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
         delete statement;
     }
 
-    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, &program.origin_info) );
+    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, attr_info.is_external, &program.origin_info) );
     return 0;
 }
 int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, size_t class_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -541,7 +546,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         delete statement;
     }
 
-    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, &program.origin_info);
+    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, &program.origin_info);
     created_method.parent_class_offset = class_offset_plus_one;
     klass->methods.push_back( std::move(created_method) );
     return 0;
@@ -596,6 +601,10 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
         }
         else if(keyword == "private"){
             attr_info.is_public = false;
+            next_index(i, tokens.size());
+        }
+        else if(keyword == "external"){
+            attr_info.is_external = true;
             next_index(i, tokens.size());
         }
         else if(keyword == "static"){
@@ -803,9 +812,11 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
         global->type = type;
         global->is_public = attr_info.is_public;
         global->is_imported = false;
+        global->is_external = attr_info.is_external;
         global->origin = &program.origin_info;
         global->errors = errors;
     }
+
     return 0;
 }
 int parse_type(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors){
@@ -960,15 +971,37 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
     // keyword <unknown syntax follows>
     //    ^
 
-    const size_t accepted_keywords_size = 9;
+    const size_t accepted_keywords_size = 11;
     const std::string accepted_keywords[] = {
-        "defer", "delete", "for", "if", "return", "switch", "unless", "until", "while"
+        "break", "continue", "defer", "delete", "for", "if", "return", "switch", "unless", "until", "while"
     };
 
     size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
 
     switch(string_index){
-    case 0: { // defer
+    case 0: { // break
+        next_index(i, tokens.size());
+
+        if(tokens[i].id != TOKENID_NEWLINE){
+            errors.panic("Expected newline after 'break' keyword");
+            return 1;
+        }
+
+        statements.push_back( new BreakStatement(errors) );
+        break;
+    }
+    case 1: { // continue
+        next_index(i, tokens.size());
+
+        if(tokens[i].id != TOKENID_NEWLINE){
+            errors.panic("Expected newline after 'continue' keyword");
+            return 1;
+        }
+
+        statements.push_back( new ContinueStatement(errors) );
+        break;
+    }
+    case 2: { // defer
         next_index(i, tokens.size());
 
         if(!can_defer){
@@ -994,7 +1027,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
         break;
     }
-    case 1: { // delete
+    case 3: { // delete
             PlainExp* expression;
             bool dangerous = false;
 
@@ -1010,7 +1043,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             statements.push_back( new DeleteStatement(expression, dangerous, errors) );
             break;
         }
-    case 2: { // for
+    case 4: { // for
         // TODO: Clean up this horrible mess of code
 
         StatementList for_condition_statements; // Will hold initialization statement and increament statement - [init ptr, incr ptr]
@@ -1094,7 +1127,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
         statements.push_back( new ForStatement(for_condition_statements[0], expression, for_condition_statements[1], for_statements, errors) );
         break;
     }
-    case 3: { // if
+    case 5: { // if
             next_index(i, tokens.size());
 
             if(tokens[i].id == TOKENID_KEYWORD){
@@ -1114,7 +1147,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
             break;
         }
-    case 4: { // return
+    case 6: { // return
             PlainExp* expression;
             next_index(i, tokens.size());
 
@@ -1131,10 +1164,10 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
             break;
         }
-    case 5: // switch
+    case 7: // switch
         if(parse_block_switch(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
         break;
-    case 6: { // unless
+    case 8: { // unless
             next_index(i, tokens.size());
 
             if(tokens[i].id == TOKENID_KEYWORD){
@@ -1154,10 +1187,10 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
             break;
         }
-    case 7: // until
+    case 9: // until
         if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_UNTIL, errors) != 0) return 1;
         break;
-    case 8: // while
+    case 10: // while
         if(parse_block_conditional(config, tokens, program, statements, defer_statements, i, STATEMENTID_WHILE, errors) != 0) return 1;
         break;
     default:
@@ -1744,6 +1777,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
     case TOKENID_KEYWORD:
         {
             // TODO: Use string_search here
+            // CLEANUP: Clean up this mess (this code is definitely r/badcode worthy)
             std::string keyword = tokens[i].getString();
             next_index(i, tokens.size());
 
@@ -1856,23 +1890,34 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                     int new_amount;
                     next_index(i, tokens.size());
 
-                    if(tokens[i].id != TOKENID_INT){
-                        errors.panic("Expected integer value after '*' in 'new' operator");
+                    if(tokens[i].id == TOKENID_INT){
+                        new_amount = tokens[i].getInt();
+
+                        if(new_amount < 1){
+                            errors.panic("Must allocate at least one object when using the 'new' operator");
+                            return 1;
+                        }
+
+                        amount = new_amount;
+                        next_index(i, tokens.size());
+                        *expression = new AllocExp(new_typename, amount, element_amount, errors);
+                    }
+                    else if(tokens[i].id == TOKENID_OPEN){
+                        PlainExp* amount_expression;
+                        next_index(i, tokens.size());
+                        parse_expression(config, tokens, program, i, &amount_expression, errors);
+                        next_index(i, tokens.size());
+                        *expression = new DynamicAllocExp(new_typename, amount_expression, element_amount, errors);
+                    }
+                    else {
+                        errors.panic("Expected constant integer value or '(' after '*' in 'new' operator");
                         return 1;
                     }
 
-                    new_amount = tokens[i].getInt();
-
-                    if(new_amount < 1){
-                        errors.panic("Must allocate at least one object when using the 'new' operator");
-                        return 1;
-                    }
-
-                    amount = new_amount;
-                    next_index(i, tokens.size());
                 }
-
-                *expression = new AllocExp(new_typename, amount, element_amount, errors);
+                else {
+                    *expression = new AllocExp(new_typename, amount, element_amount, errors);
+                }
             } else {
                 errors.panic( UNEXPECTED_KEYWORD_INEXPR(keyword) );
                 return 1;

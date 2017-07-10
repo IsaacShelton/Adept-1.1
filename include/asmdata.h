@@ -20,6 +20,8 @@ struct AssemblyData {
     std::vector<AssembleGlobal> globals;
     bool assembling_constant_expression;
     int constant_expression_depth;
+    llvm::BasicBlock* break_point;
+    llvm::BasicBlock* continue_point;
 
     // Assembly Context
     AssembleFunction* current_function;

@@ -108,9 +108,9 @@ int jit_run(Configuration* config, AssemblyData& context, std::string func_name,
 
     // Load adept core
     llvm::SMDiagnostic sm_diagnostic;
-    std::unique_ptr<llvm::Module> adept_core_module = llvm::parseIRFile("C:/Users/" + config->username + "/.adept/obj/core/core.bc", sm_diagnostic, context.context);
+    std::unique_ptr<llvm::Module> adept_core_module = llvm::parseIRFile("C:/Users/" + config->username + "/.adept/obj/core/dyncore.bc", sm_diagnostic, context.context);
     if (!adept_core_module) {
-        sm_diagnostic.print("Failed to parse IR File (core.bc) : ", llvm::errs());
+        sm_diagnostic.print("Failed to parse IR File (dyncore.bc) : ", llvm::errs());
         return false;
     }
     adept_core_module->setModuleIdentifier("__adept_core__");

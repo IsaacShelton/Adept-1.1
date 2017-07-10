@@ -32,6 +32,7 @@ Function::Function(){
     this->is_public = false;
     this->is_static = false;
     this->is_stdcall = false;
+    this->is_external = false;
     this->parent_class_offset = 0;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, bool is_public, OriginInfo* origin){
@@ -41,23 +42,12 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_public = is_public;
     this->is_static = false;
     this->is_stdcall = false;
+    this->is_external = false;
     this->parent_class_offset = 0;
     this->origin = origin;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements,
-                   bool is_public, OriginInfo* origin){
-    this->name = name;
-    this->arguments = arguments;
-    this->return_type = return_type;
-    this->statements = statements;
-    this->is_public = is_public;
-    this->is_static = false;
-    this->is_stdcall = false;
-    this->parent_class_offset = 0;
-    this->origin = origin;
-}
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements,
-                   bool is_public, bool is_static, bool is_stdcall, OriginInfo* origin){
+                   bool is_public, bool is_static, bool is_stdcall, bool is_external, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
@@ -65,6 +55,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_public = is_public;
     this->is_static = is_static;
     this->is_stdcall = is_stdcall;
+    this->is_external = is_external;
     this->parent_class_offset = 0;
     this->origin = origin;
 }
@@ -76,6 +67,7 @@ Function::Function(const Function& other){
     is_public = other.is_public;
     is_static = other.is_static;
     is_stdcall = other.is_stdcall;
+    is_external = other.is_external;
     parent_class_offset = other.parent_class_offset;
     origin = other.origin;
 
@@ -140,11 +132,12 @@ Constant::Constant(const std::string& name, PlainExp* value, bool is_public, Ori
 }
 
 Global::Global(){}
-Global::Global(const std::string& name, const std::string& type, bool is_public, ErrorHandler& errors, OriginInfo* origin){
+Global::Global(const std::string& name, const std::string& type, bool is_public, bool is_external, ErrorHandler& errors, OriginInfo* origin){
     this->name = name;
     this->type = type;
     this->is_public = is_public;
     this->is_imported = false;
+    this->is_external = is_external;
     this->errors = errors;
     this->origin = origin;
 }
@@ -271,7 +264,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             arg_typenames[i] = new_func.arguments[i].type;
         }
 
-        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, true, new_func.is_stdcall, new_func.origin);
+        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, !(new_func.is_external), new_func.is_stdcall, new_func.origin);
         externs.push_back(created_external);
     }
 
@@ -899,7 +892,7 @@ int Program::find_func(const std::string& name, External* func){
             external.name = found_function->name;
             external.return_type = found_function->return_type;
             external.is_public = found_function->is_public;
-            external.is_mangled = true;
+            external.is_mangled = !(found_function->is_external);
             external.is_stdcall = found_function->is_stdcall;
             for(Field& field : found_function->arguments) external.arguments.push_back(field.type);
             *func = external;
@@ -935,7 +928,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
             external.is_public = function_found->is_public;
-            external.is_mangled = true;
+            external.is_mangled = !(function_found->is_external);
             external.is_stdcall = function_found->is_stdcall;
             for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
 

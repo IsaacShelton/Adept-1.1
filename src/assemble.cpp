@@ -76,9 +76,10 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     // Link to other libraries specified
     for(const std::string& lib : program.extra_libs){
         linked_objects.push_back(lib);
+        std::cout << lib << std::endl;
     }
 
-    if(config.objall){
+    if(config.obj){
         for(const std::string& obj : linked_objects){
             if(boost::filesystem::exists(filename_name(obj))) remove(filename_name(obj).c_str());
             boost::filesystem::copy_file(boost::filesystem::path(obj), boost::filesystem::path(filename_name(obj)));
@@ -110,7 +111,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         out_stream->flush();
         delete out_stream;
 
-        if(config.objall){
+        if(config.obj){
             native_build_module(context, uncompiled_dependency->target_bc, filename_name(uncompiled_dependency->target_obj), module_build_options);
         }
         else {
@@ -309,7 +310,7 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
         const bool is_constant = false;
         llvm::GlobalVariable* created_global;
         llvm::GlobalVariable::LinkageTypes linkage;
-        AssembleGlobal* asm_global = context->findGlobal(global->name); // TODO add AssemblyData::findGlobal
+        AssembleGlobal* asm_global = context->findGlobal(global->name);
 
         if(asm_global == NULL){
             global->errors.panic("Attempted to assemble global variable '" + global->name + "' but couldn't find assembly data");
@@ -322,7 +323,7 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
             return 1;
         }
 
-        if(global->is_imported){
+        if(global->is_imported or global->is_external){
             linkage = llvm::GlobalVariable::LinkageTypes::ExternalLinkage;
         }
         else {
@@ -338,7 +339,7 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
         created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
                             linkage, nullptr, global->name);
 
-        if(!global->is_imported){
+        if(!global->is_imported and !global->is_external){
             // Resolve if an alias
             program->resolve_if_alias(global->type);
 
@@ -386,7 +387,7 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
             }
         }
 
-        created_global->setExternallyInitialized( (global->is_public or global->is_imported) ); // Assume externally initialized if public
+        created_global->setExternallyInitialized( (global->is_public or global->is_imported or global->is_external) ); // Assume externally initialized if public
         asm_global->variable = created_global;
     }
 
@@ -469,8 +470,8 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
     // Assemble all the functions in a program
 
     for(Function& func : program.functions){
-        std::string mangled_function_name = mangle(program, func);
-        llvm::Function* llvm_function = context.module->getFunction(mangled_function_name);
+        std::string final_function_name = (func.is_external) ? func.name : mangle(program, func);
+        llvm::Function* llvm_function = context.module->getFunction(final_function_name);
 
         if(!llvm_function){
             llvm::Type* llvm_type;
@@ -500,7 +501,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             }
 
             llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-            llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangle(program, func), context.module.get());
+            llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_function_name, context.module.get());
 
             // Create a new basic block to start insertion into.
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
@@ -517,7 +518,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             }
 
             // Create function assembly data
-            AssembleFunction* func_assembly_data = context.addFunction(mangled_function_name);
+            AssembleFunction* func_assembly_data = context.addFunction(final_function_name);
             func_assembly_data->entry = entry;
             func_assembly_data->body = body;
             func_assembly_data->quit = quit;
@@ -555,9 +556,9 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 int assemble_function_bodies(AssemblyData& context, Configuration& config, Program& program){
 
     for(Function& func : program.functions){
-        std::string mangled_function_name = mangle(program, func);
-        llvm::Function* llvm_function = context.module->getFunction(mangled_function_name);
-        AssembleFunction* asm_func = context.getFunction(mangled_function_name);
+        std::string final_function_name = (func.is_external) ? func.name : mangle(program, func);
+        llvm::Function* llvm_function = context.module->getFunction(final_function_name);
+        AssembleFunction* asm_func = context.getFunction(final_function_name);
         context.current_function = asm_func;
 
         if(asm_func == NULL){

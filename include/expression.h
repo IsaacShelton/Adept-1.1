@@ -423,6 +423,27 @@ class AllocExp : public PlainExp {
     llvm::Value* assemble_elements(Program&, Function&, AssemblyData&, std::string*);
 };
 
+class DynamicAllocExp : public PlainExp {
+    public:
+    std::string type_name;
+    PlainExp* amount;
+    size_t element_amount;
+
+    DynamicAllocExp(ErrorHandler&);
+    DynamicAllocExp(const std::string&, ErrorHandler&);
+    DynamicAllocExp(const std::string&, PlainExp*, ErrorHandler&);
+    DynamicAllocExp(const std::string&, PlainExp*, size_t, ErrorHandler&);
+    DynamicAllocExp(const DynamicAllocExp&);
+    ~DynamicAllocExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+
+    private:
+    llvm::Value* assemble_plain(Program&, Function&, AssemblyData&, std::string*);
+    llvm::Value* assemble_elements(Program&, Function&, AssemblyData&, std::string*);
+};
+
 class ArrayDataExp : public PlainExp {
     public:
     std::vector<PlainExp*> elements;

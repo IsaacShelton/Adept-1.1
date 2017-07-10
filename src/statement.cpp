@@ -1431,6 +1431,11 @@ int WhileStatement::assemble(Program& program, Function& func, AssemblyData& con
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
 
+    llvm::BasicBlock* prev_break_point = context.break_point;
+    llvm::BasicBlock* prev_continue_point = context.continue_point;
+    context.break_point = false_block;
+    context.continue_point = test_block;
+
     context.builder.CreateBr(test_block);
     context.builder.SetInsertPoint(test_block);
 
@@ -1461,6 +1466,8 @@ int WhileStatement::assemble(Program& program, Function& func, AssemblyData& con
 
     if(!terminated) context.builder.CreateBr(test_block);
     context.builder.SetInsertPoint(false_block);
+    context.break_point = prev_break_point;
+    context.continue_point = prev_continue_point;
     return 0;
 }
 std::string WhileStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -1520,6 +1527,11 @@ int UntilStatement::assemble(Program& program, Function& func, AssemblyData& con
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
 
+    llvm::BasicBlock* prev_break_point = context.break_point;
+    llvm::BasicBlock* prev_continue_point = context.continue_point;
+    context.break_point = true_block;
+    context.continue_point = test_block;
+
     context.builder.CreateBr(test_block);
     context.builder.SetInsertPoint(test_block);
 
@@ -1550,6 +1562,8 @@ int UntilStatement::assemble(Program& program, Function& func, AssemblyData& con
 
     if(!terminated) context.builder.CreateBr(test_block);
     context.builder.SetInsertPoint(false_block);
+    context.break_point = prev_break_point;
+    context.continue_point = prev_continue_point;
     return 0;
 }
 std::string UntilStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -1870,6 +1884,11 @@ int IfWhileElseStatement::assemble(Program& program, Function& func, AssemblyDat
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
     llvm::BasicBlock* else_block = llvm::BasicBlock::Create(context.context, "else", llvm_function);
 
+    llvm::BasicBlock* prev_break_point = context.break_point;
+    llvm::BasicBlock* prev_continue_point = context.continue_point;
+    context.break_point = false_block;
+    context.continue_point = whiletest_block;
+
     // IF TEST BLOCK
     context.builder.CreateBr(iftest_block);
     context.builder.SetInsertPoint(iftest_block);
@@ -1925,6 +1944,8 @@ int IfWhileElseStatement::assemble(Program& program, Function& func, AssemblyDat
 
     // FALSE BLOCK
     context.builder.SetInsertPoint(false_block);
+    context.break_point = prev_break_point;
+    context.continue_point = prev_continue_point;
     return 0;
 }
 std::string IfWhileElseStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -2005,6 +2026,11 @@ int UnlessUntilElseStatement::assemble(Program& program, Function& func, Assembl
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
     llvm::BasicBlock* else_block = llvm::BasicBlock::Create(context.context, "else", llvm_function);
 
+    llvm::BasicBlock* prev_break_point = context.break_point;
+    llvm::BasicBlock* prev_continue_point = context.continue_point;
+    context.break_point = true_block;
+    context.continue_point = untiltest_block;
+
     // IF TEST BLOCK
     context.builder.CreateBr(unlesstest_block);
     context.builder.SetInsertPoint(unlesstest_block);
@@ -2060,6 +2086,8 @@ int UnlessUntilElseStatement::assemble(Program& program, Function& func, Assembl
 
     // FALSE BLOCK
     context.builder.SetInsertPoint(false_block);
+    context.break_point = prev_break_point;
+    context.continue_point = prev_continue_point;
     return 0;
 }
 std::string UnlessUntilElseStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -2120,7 +2148,7 @@ DeleteStatement::~DeleteStatement(){
 int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& context){
     llvm::Type* llvm_type;
     std::string type_name;
-    llvm::Value* pointer = value->assemble_immutable(program, func, context, &type_name);
+    llvm::Value* pointer = value->assemble(program, func, context, &type_name);
     std::vector<llvm::Value*> free_args(1);
 
     // Declare the 'free' function if it isn't already declared
@@ -2138,7 +2166,30 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
     if(Program::is_array_typename(type_name)){
         // Resolve typename if it's an alias
         program.resolve_if_alias(type_name);
+
+        if(program.find_type(type_name, context, &llvm_type) != 0){
+            errors.panic(UNDECLARED_TYPE(type_name));
+            return 1;
+        }
+
+        if(!value->is_mutable){
+            errors.panic("Can't delete immutable array expression");
+            return 1;
+        }
+
+        // Prepare GEP Indices
+        std::vector<llvm::Value*> indices(2);
+        llvm::Value* constant_zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+        indices[0] = constant_zero;
+        indices[1] = constant_zero;
+
+        free_args[0] = context.builder.CreateLoad(context.builder.CreateGEP(program.llvm_array_type, pointer, indices, "memberptr"));
+        context.builder.CreateCall(free_function, free_args, "deltmp");
         return 0;
+    }
+
+    if(value->is_mutable){
+        pointer = context.builder.CreateLoad(pointer, "loadtmp");
     }
 
     // Make sure expression specified is a pointer
@@ -2289,6 +2340,9 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
     context.builder.SetInsertPoint(current_block);
     llvm::SwitchInst* switch_statement = context.builder.CreateSwitch(switch_value, default_block);
 
+    llvm::BasicBlock* prev_break_point = context.break_point;
+    context.break_point = continue_block;
+
     for(const SwitchStatement::Case& switch_case : this->cases){
         case_condition = switch_case.value->assemble_immutable(program, func, context, &value_typename);
         if(case_condition == NULL) return 1;
@@ -2332,6 +2386,7 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
     }
 
     context.builder.SetInsertPoint(continue_block);
+    context.break_point = prev_break_point;
     return 0;
 }
 std::string SwitchStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -2414,6 +2469,20 @@ int ForStatement::assemble(Program& program, Function& func, AssemblyData& conte
     llvm::BasicBlock* true_block = llvm::BasicBlock::Create(context.context, "true", llvm_function);
     llvm::BasicBlock* false_block = llvm::BasicBlock::Create(context.context, "false", llvm_function);
 
+    if(increament_statement != NULL){
+        incr_block = llvm::BasicBlock::Create(context.context, "incr", llvm_function);
+    }
+
+    llvm::BasicBlock* prev_break_point = context.break_point;
+    llvm::BasicBlock* prev_continue_point = context.continue_point;
+    context.break_point = false_block;
+
+    if(increament_statement != NULL){
+        context.continue_point = incr_block;
+    } else {
+        context.continue_point = test_block;
+    }
+
     context.builder.CreateBr(test_block);
     context.builder.SetInsertPoint(test_block);
 
@@ -2444,10 +2513,8 @@ int ForStatement::assemble(Program& program, Function& func, AssemblyData& conte
 
     if(!terminated){
         if(increament_statement != NULL){
-            incr_block = llvm::BasicBlock::Create(context.context, "incr", llvm_function);
             context.builder.CreateBr(incr_block);
-        }
-        else {
+        } else {
             context.builder.CreateBr(test_block);
         }
     }
@@ -2459,6 +2526,9 @@ int ForStatement::assemble(Program& program, Function& func, AssemblyData& conte
     }
 
     context.builder.SetInsertPoint(false_block);
+
+    context.break_point = prev_break_point;
+    context.continue_point = prev_continue_point;
     return 0;
 }
 std::string ForStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -2490,5 +2560,71 @@ bool ForStatement::isTerminator(){
     return false;
 }
 bool ForStatement::isConditional(){
+    return false;
+}
+
+BreakStatement::BreakStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+BreakStatement::BreakStatement(const BreakStatement& other) : Statement(other) {}
+BreakStatement::~BreakStatement(){}
+int BreakStatement::assemble(Program& program, Function& func, AssemblyData& context){
+    if(context.break_point == NULL){
+        errors.panic("No place to break to");
+        return 1;
+    }
+
+    context.builder.CreateBr(context.break_point);
+    return 0;
+}
+std::string BreakStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    return result + "break";
+}
+BreakStatement* BreakStatement::clone(){
+    return new BreakStatement(this->errors);
+}
+bool BreakStatement::isTerminator(){
+    return true;
+}
+bool BreakStatement::isConditional(){
+    return false;
+}
+
+ContinueStatement::ContinueStatement(ErrorHandler& errors){
+    this->errors = errors;
+}
+ContinueStatement::ContinueStatement(const ContinueStatement& other) : Statement(other) {}
+ContinueStatement::~ContinueStatement(){}
+int ContinueStatement::assemble(Program& program, Function& func, AssemblyData& context){
+    if(context.continue_point == NULL){
+        errors.panic("No place to continue to");
+        return 1;
+    }
+
+    context.builder.CreateBr(context.continue_point);
+    return 0;
+}
+std::string ContinueStatement::toString(unsigned int indent, bool skip_initial_indent){
+    std::string result;
+
+    if(!skip_initial_indent){
+        for(unsigned int i = 0; i != indent; i++) result += "    ";
+    }
+
+    return result + "continue";
+}
+ContinueStatement* ContinueStatement::clone(){
+    return new ContinueStatement(this->errors);
+}
+bool ContinueStatement::isTerminator(){
+    return true;
+}
+bool ContinueStatement::isConditional(){
     return false;
 }

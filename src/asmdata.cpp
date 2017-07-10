@@ -6,6 +6,8 @@
 AssemblyData::AssemblyData() : builder(context) {
     assembling_constant_expression = false;
     constant_expression_depth = 0;
+    break_point = NULL;
+    continue_point = NULL;
 }
 
 AssembleFunction* AssemblyData::addFunction(const std::string& mangled_function_name){

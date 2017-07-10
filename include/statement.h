@@ -442,6 +442,30 @@ class ForStatement : public Statement {
     bool isConditional();
 };
 
+class BreakStatement : public Statement {
+    public:
+    BreakStatement(ErrorHandler&);
+    BreakStatement(const BreakStatement&);
+    ~BreakStatement();
+    int assemble(Program&, Function&, AssemblyData&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    BreakStatement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
+class ContinueStatement : public Statement {
+    public:
+    ContinueStatement(ErrorHandler&);
+    ContinueStatement(const ContinueStatement&);
+    ~ContinueStatement();
+    int assemble(Program&, Function&, AssemblyData&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    ContinueStatement* clone();
+    bool isTerminator();
+    bool isConditional();
+};
+
 void initialize_string(AssemblyData&, Program&, llvm::Value*);
 int assign_string(AssemblyData&, Program&, Function&, llvm::Value*, PlainExp*, ErrorHandler&);
 
