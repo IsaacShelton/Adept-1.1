@@ -2,6 +2,8 @@
 ## A blazing fast low-level language
 Adept is designed for performace and simplicity.<br/>
 Generally it runs as fast or faster than C code.<br/>
+
+[Download Adept 1.1 Installer 64-bit](https://github.com/IsaacShelton/Adept/raw/master/installer/Adept%201.1%20Installer%2064-bit.exe)<br/>
 ![adept_logo](https://github.com/IsaacShelton/Adept/blob/master/res/adept.png)<br/>
 
 # Examples
@@ -110,7 +112,7 @@ public def main() int {
 ```
 
 ### Custom build scripts
-NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai. <br/><br/>
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://twitter.com/Jonathan_Blow)'s programming language Jai. <br/><br/>
 build.adept
 ```
 private import "adept/terminal.adept"
@@ -150,7 +152,7 @@ public def main() int {
 Adept treats any file named ```build.adept``` as a just-in-time build script. When Adept invokes a build script, it uses the 'build' function as an entry point instead of 'main'. So to use ```build.adept``` to compile ```main.adept``` you run the command ```adept build.adept``` or just ```adept```<br>
 
 ### Using functions as operators
-NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://www.youtube.com/user/jblow888)'s programming language Jai.
+NOTE: I did not come up with this concept myself, I got it from [Johnathan Blow](https://twitter.com/Jonathan_Blow)'s programming language Jai.
 ```
 private import "adept/terminal.adept"
 
