@@ -14,6 +14,7 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
+std::string AdeptCompiler::username;
 std::vector<std::string> AdeptCompiler::build_script_arguments;
 
 void AdeptCompiler::execute(int argc, char** argv){
@@ -70,6 +71,8 @@ void AdeptCompiler::execute(int argc, char** argv){
         exit(1);
     }
 
+    username = config.username;
+
     if(program != NULL){
         // A new program was created successfully
 
@@ -121,4 +124,9 @@ void AdeptCompiler::execute(int argc, char** argv){
 void AdeptCompiler::terminate(){
     // Destorys all library resources used
     if( shutdown() != 0 ) exit(1);
+
+    // Attempt to delete all tmp files used
+    try {
+        boost::filesystem::remove_all(boost::filesystem::path("C:/Users/" + username + "/.adept/obj/tmp"));
+    } catch (...) {}
 }

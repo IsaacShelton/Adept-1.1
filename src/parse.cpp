@@ -712,8 +712,8 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     std::string mangled_name = mangle_filename(source_filename);
-    target_obj  = (config.obj)      ? (mangled_name + ".o") : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".o";
-    target_bc   = (config.bytecode) ? (mangled_name + ".bc")  : "C:/Users/" + config.username + "/.adept/obj/module_cache/" + mangled_name + ".bc";
+    target_obj  = (config.obj)      ? (mangled_name + ".o") : "C:/Users/" + config.username + "/.adept/obj/tmp/" + mangled_name + ".o";
+    target_bc   = (config.bytecode) ? (mangled_name + ".bc")  : "C:/Users/" + config.username + "/.adept/obj/tmp/" + mangled_name + ".bc";
 
     // Import the declarations
     if(program.import_merge(import_config, *import_program, attr_info.is_public, errors) != 0){
@@ -1281,8 +1281,8 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
     next_index(i, tokens.size());
 
     if(auto_delete){
-        if(!Program::is_pointer_typename(type)){
-            errors.panic("The non-pointer type '" + type + "' can't be deleted later on in the program.\n    Only pointer types work with '!' deletion.");
+        if(!Program::is_pointer_typename(type) and !Program::is_array_typename(type)){
+            errors.panic("The non-pointer type '" + type + "' can't be deleted later on in the program.\n    Only array and pointer types work with '!' deletion.");
             return 1;
         }
 

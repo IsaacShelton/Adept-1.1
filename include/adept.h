@@ -7,6 +7,7 @@
 
 class AdeptCompiler {
     public:
+    static std::string username;
     static std::vector<std::string> build_script_arguments;
     static void execute(int, char**);
     static void terminate();

@@ -41,6 +41,18 @@
 #include "../include/mangling.h"
 
 int build(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+    if(!boost::filesystem::exists(boost::filesystem::path("C:/Users/isaac/.adept/obj/tmp"))){
+        try {
+            boost::filesystem::create_directory(boost::filesystem::path("C:/Users/isaac/.adept/obj/tmp"));
+        } catch(boost::filesystem::filesystem_error e) {
+            std::cout << "ACCESS DENIED - Failed to create tmp folder" << std::endl;
+            return 1;
+        } catch(...) {
+            std::cout << "Failed to create tmp folder" << std::endl;
+            return 1;
+        }
+    }
+
     if(filename_name(config.filename) == "build.adept"){
         // -=- Build script -=-
         return build_buildscript(context, config, program, errors);
@@ -53,8 +65,8 @@ int build(AssemblyData& context, Configuration& config, Program& program, ErrorH
 int build_program(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
     if(config.time) config.clock.remember();
     std::string target_name = filename_change_ext(config.filename, "exe");
-    std::string target_obj  = (config.obj)      ? filename_change_ext(filename_name(config.filename), "o") : "C:/Users/" + config.username + "/.adept/obj/object.o";
-    std::string target_bc   = (config.bytecode) ? filename_change_ext(filename_name(config.filename), "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
+    std::string target_obj  = (config.obj)      ? filename_change_ext(filename_name(config.filename), "o") : "C:/Users/" + config.username + "/.adept/obj/tmp/object.o";
+    std::string target_bc   = (config.bytecode) ? filename_change_ext(filename_name(config.filename), "bc")  : "C:/Users/" + config.username + "/.adept/obj/tmp/bytecode.bc";
     std::vector<ModuleDependency> dependencies;
     std::vector<ModuleDependency*> compilation_list;
     std::vector<std::string> linked_objects;
@@ -161,7 +173,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
     std::error_code error_str;
     llvm::raw_ostream* out_stream;
     ModuleBuildOptions module_build_options;
-    std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/bytecode.bc";
+    std::string target_bc   = (config.bytecode) ? filename_change_ext(config.filename, "bc")  : "C:/Users/" + config.username + "/.adept/obj/tmp/bytecode.bc";
 
     if(build_function == NULL){
         // Build function does not exist
