@@ -16,6 +16,7 @@ AssembleGlobal::AssembleGlobal(const std::string& name){
     this->name = name;
 }
 
+AssembleFunction::AssembleFunction(){}
 AssembleFunction::AssembleFunction(const std::string& mangled_name){
     this->mangled_name = mangled_name;
 }

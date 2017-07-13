@@ -3840,7 +3840,7 @@
 	"errors.h"
 	"asmdata.h"
 
-1499715442 c:\users\isaac\google drive\adept\include\asmdata.h
+1499889933 c:\users\isaac\google drive\adept\include\asmdata.h
 	<string>
 	<vector>
 	"type.h"
@@ -3849,7 +3849,7 @@
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
 
-1489948805 c:\users\isaac\google drive\adept\include\asmtypes.h
+1499887298 c:\users\isaac\google drive\adept\include\asmtypes.h
 	"llvm/IR/IRBuilder.h"
 	"llvm/IR/LLVMContext.h"
 	"llvm/IR/Module.h"
@@ -3894,9 +3894,9 @@
 	"../include/tokens.h"
 	"../include/asmdata.h"
 
-1499715442 source:c:\users\isaac\google drive\adept\src\asmdata.cpp
-	"../include/strings.h"
+1499889942 source:c:\users\isaac\google drive\adept\src\asmdata.cpp
 	"../include/die.h"
+	"../include/strings.h"
 	"../include/asmdata.h"
 
 1498614974 c:\users\isaac\google drive\adept\include\die.h
@@ -3904,7 +3904,7 @@
 	<iostream>
 	"config.h"
 
-1489948812 source:c:\users\isaac\google drive\adept\src\asmtypes.cpp
+1499887315 source:c:\users\isaac\google drive\adept\src\asmtypes.cpp
 	<iostream>
 	"../include/strings.h"
 	"../include/strings.h"
@@ -4402,7 +4402,7 @@
 	"../include/errors.h"
 	"../include/strings.h"
 
-1499715442 source:c:\users\isaac\google drive\adept\src\expression.cpp
+1499909094 source:c:\users\isaac\google drive\adept\src\expression.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -4993,7 +4993,7 @@
 	"../include/mangling.h"
 	"llvm/Support/DynamicLibrary.h"
 
-1499715442 source:c:\users\isaac\google drive\adept\src\program.cpp
+1499908185 source:c:\users\isaac\google drive\adept\src\program.cpp
 	<iostream>
 	<algorithm>
 	<boost/filesystem.hpp>
@@ -5004,11 +5004,11 @@
 	"../include/assemble.h"
 	"../include/mangling.h"
 
-1489785472 source:c:\users\isaac\google drive\adept\src\search.cpp
+1499889068 source:c:\users\isaac\google drive\adept\src\search.cpp
 	<string>
 	"../include/search.h"
 
-1499715442 source:c:\users\isaac\google drive\adept\src\statement.cpp
+1499909570 source:c:\users\isaac\google drive\adept\src\statement.cpp
 	<iostream>
 	"llvm/ADT/APFloat.h"
 	"llvm/ADT/STLExtras.h"
@@ -5060,7 +5060,7 @@
 	"../include/type.h"
 	"../include/parse.h"
 
-1499797039 source:c:\users\isaac\google drive\adept\src\assemble.cpp
+1499909323 source:c:\users\isaac\google drive\adept\src\assemble.cpp
 	<string>
 	<future>
 	<fstream>
@@ -5101,9 +5101,13 @@
 	"../include/assemble.h"
 	"../include/mangling.h"
 
-1498615031 source:c:\users\isaac\google drive\adept\src\asmutil.cpp
+1499889907 source:c:\users\isaac\google drive\adept\src\asmutil.cpp
+	"../include/die.h"
 	"../include/asmutil.h"
+	"../include/asmtypes.h"
+	"../include/mangling.h"
 
-1498614974 c:\users\isaac\google drive\adept\include\asmutil.h
+1499887186 c:\users\isaac\google drive\adept\include\asmutil.h
+	"asmdata.h"
 	"program.h"
 

@@ -117,6 +117,9 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         Program* dependency_program = program.parent_manager->getProgram(uncompiled_dependency->filename);
         if(assemble(import_context, *uncompiled_dependency->config, *dependency_program, errors) != 0) return 1;
 
+        // Remember this time if we are timing the compilation
+        if(config.time and !config.silent) config.clock.remember();
+
         out_stream = new llvm::raw_fd_ostream(uncompiled_dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
         llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
         out_stream->flush();
@@ -127,6 +130,11 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         }
         else {
             native_build_module(context, uncompiled_dependency->target_bc, uncompiled_dependency->target_obj, module_build_options);
+        }
+
+        if(config.time and !config.silent){
+            config.clock.print_since("NATIVE DONE", filename_name(uncompiled_dependency->filename));
+            config.clock.remember();
         }
     }
 
@@ -227,6 +235,9 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
 
     // Create assembly data for globals
     create_assembly_globals(context, program.globals);
+
+    // Create assembly data for functions & methods
+    create_assembly_functions(context, program);
 
     size_t target_batch_size;
     size_t overflow_batch_size;
@@ -525,11 +536,11 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             // Allocate return variable
             llvm::AllocaInst* exitval;
             if(!llvm_type->isVoidTy()){
-                exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
+                exitval = context.builder.CreateAlloca(llvm_type, 0);
             }
 
             // Create function assembly data
-            AssembleFunction* func_assembly_data = context.addFunction(final_function_name);
+            AssembleFunction* func_assembly_data = context.getFunction(final_function_name);
             func_assembly_data->entry = entry;
             func_assembly_data->body = body;
             func_assembly_data->quit = quit;
@@ -540,7 +551,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             func_assembly_data->variables.reserve(args.size());
 
             for(auto& arg : llvm_function->args()){
-                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, func.arguments[i].name);
+                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
                 context.builder.CreateStore(&arg, alloca);
                 func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
                 i++;
@@ -549,7 +560,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             context.builder.SetInsertPoint(quit);
 
             if(!llvm_type->isVoidTy()){
-                llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
+                llvm::Value* retval = context.builder.CreateLoad(exitval);
                 context.builder.CreateRet(retval);
             }
             else {
@@ -602,6 +613,8 @@ int assemble_function_bodies(AssemblyData& context, Configuration& config, Progr
     return 0;
 }
 int assemble_method(AssemblyData& context, Configuration& config, Program& program, Class& klass, Function& method, bool is_imported){
+    // TODO: SPEED: Make this function operate on a group of methods instead of a single method at a time
+
     std::string mangled_method_name = mangle(klass, method);
     llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
 
@@ -645,11 +658,11 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
 
             llvm::AllocaInst* exitval;
             if(!llvm_type->isVoidTy()){
-                exitval = context.builder.CreateAlloca(llvm_type, 0, "exitval");
+                exitval = context.builder.CreateAlloca(llvm_type, 0);
             }
 
             // Create function assembly data
-            AssembleFunction* func_assembly_data = context.addFunction(mangled_method_name);
+            AssembleFunction* func_assembly_data = context.getFunction(mangled_method_name);
             func_assembly_data->entry = entry;
             func_assembly_data->body = body;
             func_assembly_data->quit = quit;
@@ -663,7 +676,7 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
             for(auto& arg : llvm_function->args()){
                 if(i == 0){
                     // Add variable for 'this'
-                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, "this");
+                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
                     context.builder.CreateStore(&arg, alloca);
                     func_assembly_data->addVariable("this", "*" + klass.name, alloca);
                     i++;
@@ -680,7 +693,7 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
             context.builder.SetInsertPoint(quit);
 
             if(!llvm_type->isVoidTy()){
-                llvm::Value* retval = context.builder.CreateLoad(exitval, "loadtmp");
+                llvm::Value* retval = context.builder.CreateLoad(exitval);
                 context.builder.CreateRet(retval);
             }
             else {
@@ -696,6 +709,8 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
     return 0;
 }
 int assemble_method_body(AssemblyData& context, Configuration& config, Program& program, Class& klass, Function& method){
+    // TODO: SPEED: Make this function operate on a group of methods instead of a single method at a time
+
     std::string mangled_method_name = mangle(klass, method);
     llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
     AssembleFunction* asm_func = context.getFunction(mangled_method_name);
@@ -749,42 +764,42 @@ void assemble_merge_conditional_types(AssemblyData& context, Program& program, s
     switch(str_index){
     case 0: // byte
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, true));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 1: // int
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 2: // long
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, true));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 3: // short
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, true));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 4: // ubyte
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, false));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 5: // uint
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 6: // ulong
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, false));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     case 7: // ushort
         zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, false));
-        *expr = context.builder.CreateICmpNE(*expr, zero, "cmptmp");
+        *expr = context.builder.CreateICmpNE(*expr, zero);
         type = "bool";
         return;
     default:
@@ -806,12 +821,12 @@ int assemble_merge_types(AssemblyData& context, Program& program, std::string ty
     }
     if(type_a[0] == '*' and type_b == "ptr"){
         if(out != NULL) *out = type_a;
-        *expr_b = context.builder.CreateBitCast(*expr_b, (*expr_a)->getType(), "casttmp");
+        *expr_b = context.builder.CreateBitCast(*expr_b, (*expr_a)->getType());
         return 0;
     }
     if(type_b[0] == '*' and type_a == "ptr"){
         if(out != NULL) *out = type_b;
-        *expr_a = context.builder.CreateBitCast(*expr_a, (*expr_b)->getType(), "casttmp");
+        *expr_a = context.builder.CreateBitCast(*expr_a, (*expr_b)->getType());
         return 0;
     }
 
@@ -833,12 +848,12 @@ int assemble_merge_types_oneway(AssemblyData& context, Program& program, std::st
     }
     if(type_b[0] == '*' and type_a == "ptr"){
         if(out != NULL) *out = type_b;
-        *expr_a = context.builder.CreateBitCast(*expr_a, exprtype_b, "casttmp");
+        *expr_a = context.builder.CreateBitCast(*expr_a, exprtype_b);
         return 0;
     }
     if(type_a[0] == '*' and type_b == "ptr"){
         if(out != NULL) *out = type_b;
-        *expr_a = context.builder.CreateBitCast(*expr_a, llvm::Type::getInt8PtrTy(context.context), "casttmp");
+        *expr_a = context.builder.CreateBitCast(*expr_a, llvm::Type::getInt8PtrTy(context.context));
         return 0;
     }
 
@@ -846,7 +861,7 @@ int assemble_merge_types_oneway(AssemblyData& context, Program& program, std::st
         if(out != NULL) *out = type_b;
         llvm::Type* llvm_func_type;
         if(program.function_typename_to_type(type_a, context, &llvm_func_type) != 0) return 1;
-        *expr_a = context.builder.CreateBitCast(*expr_a, llvm_func_type, "casttmp");
+        *expr_a = context.builder.CreateBitCast(*expr_a, llvm_func_type);
         return 0;
     }
 
@@ -854,7 +869,7 @@ int assemble_merge_types_oneway(AssemblyData& context, Program& program, std::st
         if(out != NULL) *out = type_a;
         llvm::Type* llvm_func_type;
         if(program.function_typename_to_type(type_b, context, &llvm_func_type) != 0) return 1;
-        *expr_a = context.builder.CreateBitCast(*expr_a, llvm_func_type, "casttmp");
+        *expr_a = context.builder.CreateBitCast(*expr_a, llvm_func_type);
         return 0;
     }
 

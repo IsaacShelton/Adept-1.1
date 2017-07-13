@@ -1,6 +1,6 @@
 
-#include "../include/strings.h"
 #include "../include/die.h"
+#include "../include/strings.h"
 #include "../include/asmdata.h"
 
 AssemblyData::AssemblyData() : builder(context) {
@@ -8,11 +8,7 @@ AssemblyData::AssemblyData() : builder(context) {
     constant_expression_depth = 0;
     break_point = NULL;
     continue_point = NULL;
-}
-
-AssembleFunction* AssemblyData::addFunction(const std::string& mangled_function_name){
-    functions.push_back( AssembleFunction(mangled_function_name) );
-    return &functions[functions.size()-1];
+    lots_of_functions = false;
 }
 
 AssembleFunction* AssemblyData::getFunction(const std::string& mangled_function_name){
@@ -30,16 +26,11 @@ AssembleFunction* AssemblyData::getFunction(const std::string& mangled_function_
 int AssemblyData::addVariableToFunction(const std::string& mangled_function_name, const std::string& var_name, const std::string& var_type, llvm::Value* alloca){
     // Adds variable assembly data to assembly function data
 
-    for(size_t i = 0; i != functions.size(); i++){
-        if(functions[i].mangled_name == mangled_function_name){
-            functions[i].addVariable(var_name, var_type, alloca);
-            return 0;
-        }
-    }
+    AssembleFunction* target_function = this->getFunction(mangled_function_name);
+    if(target_function == NULL) return 1;
 
-    fail("AssembleFunction requested which doesn't exist inside AssemblyData instance");
-    fail(SUICIDE);
-    return 1;
+    target_function->addVariable(var_name, var_type, alloca);
+    return 0;
 }
 
 void AssemblyData::addGlobal(const std::string& name){

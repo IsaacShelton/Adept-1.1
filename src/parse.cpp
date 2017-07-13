@@ -1752,7 +1752,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         errors.line++;
     }
 
-    // TODO: CLEAN: Clean up code inside each case (probally refactor into different functions or something)
+    // TODO: CLEANUP: Clean up code inside each case (probally refactor into different functions or something)
     switch (tokens[i].id) {
     case TOKENID_WORD:
         next_index(i, tokens.size());

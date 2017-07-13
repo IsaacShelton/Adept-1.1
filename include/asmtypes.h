@@ -33,6 +33,7 @@ struct AssembleFunction {
     llvm::BasicBlock* quit;
     llvm::Value* exitval;
 
+    AssembleFunction();
     AssembleFunction(const std::string&);
     void addVariable(const std::string&, const std::string&, llvm::Value*);
     llvm::Value* getVariableValue(const std::string&);

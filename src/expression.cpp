@@ -46,7 +46,7 @@ inline llvm::Value* PlainExp::assemble_immutable(Program& program, Function& fun
     if(val == NULL) return NULL;
 
     if(this->is_mutable){
-        return context.builder.CreateLoad(val, "loadtmp");
+        return context.builder.CreateLoad(val);
     }
 
 
@@ -95,51 +95,121 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
     if(expr_type != NULL) *expr_type = type_name;
     if(type_name == "") return NULL;
 
-    if(type_name == "int" or type_name == "uint" or type_name == "short" or type_name == "ushort"
-       or type_name == "long" or type_name == "ulong" or type_name == "byte"
-       or type_name == "ubyte" or type_name == "bool"){
-        // TODO: OUTSPEED: Don't use signed versions of operators unless necessary
+    if(type_name[0] == 'u' && (type_name == "uint" or type_name == "ushort" or type_name == "ulong" or type_name == "ubyte")){
         switch (operation) {
         case TOKENID_ADD:
-            return context.builder.CreateAdd(left_value, right_value, "addtmp");
+            return context.builder.CreateAdd(left_value, right_value);
         case TOKENID_SUBTRACT:
-            return context.builder.CreateSub(left_value, right_value, "subtmp");
+            return context.builder.CreateSub(left_value, right_value);
         case TOKENID_MULTIPLY:
-            return context.builder.CreateMul(left_value, right_value, "multmp");
+            return context.builder.CreateMul(left_value, right_value);
         case TOKENID_DIVIDE:
-            return context.builder.CreateSDiv(left_value, right_value, "divtmp");
+            return context.builder.CreateUDiv(left_value, right_value);
         case TOKENID_MODULUS:
-            return context.builder.CreateSRem(left_value, right_value, "remtmp");
+            return context.builder.CreateURem(left_value, right_value);
         case TOKENID_EQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpEQ(left_value, right_value);
         case TOKENID_INEQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpNE(left_value, right_value);
         case TOKENID_LESS:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpSLT(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpULT(left_value, right_value);
         case TOKENID_GREATER:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpSGT(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpUGT(left_value, right_value);
         case TOKENID_LESSEQ:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpSLE(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpULE(left_value, right_value);
         case TOKENID_GREATEREQ:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpSGE(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpUGE(left_value, right_value);
         case TOKENID_AND:
-            if(type_name != "bool"){
-                errors.panic("Operands to operator 'and' must have a type of 'bool'");
-                return NULL;
-            }
-            return context.builder.CreateAnd(left_value, right_value, "andtmp");
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
         case TOKENID_OR:
-            if(type_name != "bool"){
-                errors.panic("Operands to operator 'and' must have a type of 'bool'");
-                return NULL;
-            }
-            return context.builder.CreateOr(left_value, right_value, "ortmp");
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
+        default:
+            errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
+            return NULL;
+        }
+    }
+    else if(type_name == "bool"){
+        switch (operation) {
+        case TOKENID_ADD:
+            errors.panic("The addition operator '+' can't be used on booleans");
+            return NULL;
+        case TOKENID_SUBTRACT:
+            errors.panic("The subtraction operator '-' can't be used on booleans");
+            return NULL;
+        case TOKENID_MULTIPLY:
+            errors.panic("The multiplication operator '*' can't be used on booleans");
+            return NULL;
+        case TOKENID_DIVIDE:
+            errors.panic("The division operator '/' can't be used on booleans");
+            return NULL;
+        case TOKENID_MODULUS:
+            errors.panic("The modulus operator '%' can't be used on booleans");
+            return NULL;
+        case TOKENID_EQUALITY:
+            return context.builder.CreateICmpEQ(left_value, right_value);
+        case TOKENID_INEQUALITY:
+            return context.builder.CreateICmpNE(left_value, right_value);
+        case TOKENID_LESS:
+            return context.builder.CreateICmpSLT(left_value, right_value);
+        case TOKENID_GREATER:
+            return context.builder.CreateICmpSGT(left_value, right_value);
+        case TOKENID_LESSEQ:
+            return context.builder.CreateICmpSLE(left_value, right_value);
+        case TOKENID_GREATEREQ:
+            return context.builder.CreateICmpSGE(left_value, right_value);
+        case TOKENID_AND:
+            return context.builder.CreateAnd(left_value, right_value);
+        case TOKENID_OR:
+            return context.builder.CreateOr(left_value, right_value);
+        default:
+            errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
+            return NULL;
+        }
+    }
+    else if(type_name == "int" or type_name == "short" or type_name == "long" or type_name == "byte"){
+        switch (operation) {
+        case TOKENID_ADD:
+            return context.builder.CreateAdd(left_value, right_value);
+        case TOKENID_SUBTRACT:
+            return context.builder.CreateSub(left_value, right_value);
+        case TOKENID_MULTIPLY:
+            return context.builder.CreateMul(left_value, right_value);
+        case TOKENID_DIVIDE:
+            return context.builder.CreateSDiv(left_value, right_value);
+        case TOKENID_MODULUS:
+            return context.builder.CreateSRem(left_value, right_value);
+        case TOKENID_EQUALITY:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpEQ(left_value, right_value);
+        case TOKENID_INEQUALITY:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpNE(left_value, right_value);
+        case TOKENID_LESS:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSLT(left_value, right_value);
+        case TOKENID_GREATER:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSGT(left_value, right_value);
+        case TOKENID_LESSEQ:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSLE(left_value, right_value);
+        case TOKENID_GREATEREQ:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSGE(left_value, right_value);
+        case TOKENID_AND:
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
+        case TOKENID_OR:
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
         default:
             errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
             return NULL;
@@ -148,33 +218,39 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
     else if(type_name == "float" or type_name == "double" or type_name == "half"){
         switch (operation) {
         case TOKENID_ADD:
-            return context.builder.CreateFAdd(left_value, right_value, "addtmp");
+            return context.builder.CreateFAdd(left_value, right_value);
         case TOKENID_SUBTRACT:
-            return context.builder.CreateFSub(left_value, right_value, "subtmp");
+            return context.builder.CreateFSub(left_value, right_value);
         case TOKENID_MULTIPLY:
-            return context.builder.CreateFMul(left_value, right_value, "multmp");
+            return context.builder.CreateFMul(left_value, right_value);
         case TOKENID_DIVIDE:
-            return context.builder.CreateFDiv(left_value, right_value, "divtmp");
+            return context.builder.CreateFDiv(left_value, right_value);
         case TOKENID_MODULUS:
-            return context.builder.CreateFRem(left_value, right_value, "remtmp");
+            return context.builder.CreateFRem(left_value, right_value);
         case TOKENID_EQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateFCmpOEQ(left_value, right_value, "cmptmp");
+            return context.builder.CreateFCmpOEQ(left_value, right_value);
         case TOKENID_INEQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateFCmpONE(left_value, right_value, "cmptmp");
+            return context.builder.CreateFCmpONE(left_value, right_value);
         case TOKENID_LESS:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateFCmpOLT(left_value, right_value, "cmptmp");
+            return context.builder.CreateFCmpOLT(left_value, right_value);
         case TOKENID_GREATER:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateFCmpOGT(left_value, right_value, "cmptmp");
+            return context.builder.CreateFCmpOGT(left_value, right_value);
         case TOKENID_LESSEQ:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateFCmpOLE(left_value, right_value, "cmptmp");
+            return context.builder.CreateFCmpOLE(left_value, right_value);
         case TOKENID_GREATEREQ:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateFCmpOGE(left_value, right_value, "cmptmp");
+            return context.builder.CreateFCmpOGE(left_value, right_value);
+        case TOKENID_AND:
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
+        case TOKENID_OR:
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
         default:
             errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
             return NULL;
@@ -186,45 +262,63 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
         switch (operation) {
         case TOKENID_ADD:
             {
-                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* value = context.builder.CreateAdd(left_int, right_int, "addtmp");
-                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy(), "cast");
+                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty());
+                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty());
+                llvm::Value* value = context.builder.CreateAdd(left_int, right_int);
+                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy());
             }
         case TOKENID_SUBTRACT:
             {
-                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* value = context.builder.CreateSub(left_int, right_int, "subtmp");
-                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy(), "cast");
+                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty());
+                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty());
+                llvm::Value* value = context.builder.CreateSub(left_int, right_int);
+                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy());
             }
         case TOKENID_MULTIPLY:
             {
-                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* value = context.builder.CreateMul(left_int, right_int, "multmp");
-                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy(), "cast");
+                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty());
+                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty());
+                llvm::Value* value = context.builder.CreateMul(left_int, right_int);
+                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy());
             }
         case TOKENID_DIVIDE:
             {
-                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* value = context.builder.CreateSDiv(left_int, right_int, "divtmp");
-                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy(), "cast");
+                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty());
+                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty());
+                llvm::Value* value = context.builder.CreateSDiv(left_int, right_int);
+                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy());
             }
         case TOKENID_MODULUS:
             {
-                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty(), "cast");
-                llvm::Value* value = context.builder.CreateSRem(left_int, right_int, "remtmp");
-                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy(), "cast");
+                llvm::Value* left_int = context.builder.CreatePtrToInt(left_value, context.builder.getInt64Ty());
+                llvm::Value* right_int = context.builder.CreatePtrToInt(right_value, context.builder.getInt64Ty());
+                llvm::Value* value = context.builder.CreateSRem(left_int, right_int);
+                return context.builder.CreateIntToPtr(value, context.builder.getInt8PtrTy());
             }
         case TOKENID_EQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpEQ(left_value, right_value);
         case TOKENID_INEQUALITY:
             if(expr_type != NULL) *expr_type = "bool";
-            return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
+            return context.builder.CreateICmpNE(left_value, right_value);
+        case TOKENID_LESS:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSLT(left_value, right_value);
+        case TOKENID_GREATER:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSGT(left_value, right_value);
+        case TOKENID_LESSEQ:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSLE(left_value, right_value);
+        case TOKENID_GREATEREQ:
+            if(expr_type != NULL) *expr_type = "bool";
+            return context.builder.CreateICmpSGE(left_value, right_value);
+        case TOKENID_AND:
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
+        case TOKENID_OR:
+            errors.panic("Operands to operator 'and' must have a type of 'bool'");
+            return NULL;
         default:
             errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' in expression");
             return NULL;
@@ -236,22 +330,22 @@ llvm::Value* OperatorExp::assemble(Program& program, Function& func, AssemblyDat
                 switch (operation) {
                 case TOKENID_EQUALITY:
                     if(expr_type != NULL) *expr_type = "bool";
-                    return context.builder.CreateICmpEQ(left_value, right_value, "cmptmp");
+                    return context.builder.CreateICmpEQ(left_value, right_value);
                 case TOKENID_INEQUALITY:
                     if(expr_type != NULL) *expr_type = "bool";
-                    return context.builder.CreateICmpNE(left_value, right_value, "cmptmp");
+                    return context.builder.CreateICmpNE(left_value, right_value);
                 case TOKENID_LESS:
                     if(expr_type != NULL) *expr_type = "bool";
-                    return context.builder.CreateICmpSLT(left_value, right_value, "cmptmp");
+                    return context.builder.CreateICmpSLT(left_value, right_value);
                 case TOKENID_GREATER:
                     if(expr_type != NULL) *expr_type = "bool";
-                    return context.builder.CreateICmpSGT(left_value, right_value, "cmptmp");
+                    return context.builder.CreateICmpSGT(left_value, right_value);
                 case TOKENID_LESSEQ:
                     if(expr_type != NULL) *expr_type = "bool";
-                    return context.builder.CreateICmpSLE(left_value, right_value, "cmptmp");
+                    return context.builder.CreateICmpSLE(left_value, right_value);
                 case TOKENID_GREATEREQ:
                     if(expr_type != NULL) *expr_type = "bool";
-                    return context.builder.CreateICmpSGE(left_value, right_value, "cmptmp");
+                    return context.builder.CreateICmpSGE(left_value, right_value);
                 default:
                     errors.panic("Unexpected operator '" + get_tokenid_syntax(operation) + "' being used on an enum in expression");
                     return NULL;
@@ -798,7 +892,7 @@ llvm::Value* LoadExp::assemble(Program& program, Function& func, AssemblyData& c
     }
 
     if(expr_type != NULL) *expr_type = pointer_typename.substr(1, pointer_typename.length()-1);
-    return context.builder.CreateLoad(pointer_value, "loadtmp");
+    return context.builder.CreateLoad(pointer_value);
 }
 std::string LoadExp::toString(){
     return "*" + value->toString();
@@ -883,7 +977,7 @@ llvm::Value* IndexLoadExp::assemble_lowlevel_array(Program& program, Function& f
     std::vector<llvm::Value*> indices(1);
     indices[0] = index_value;
 
-    pointer_value = context.builder.CreateGEP(pointer_value, indices, "memberptr");
+    pointer_value = context.builder.CreateGEP(pointer_value, indices);
     return pointer_value;
 }
 llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& func, AssemblyData& context, std::string* expr_type,
@@ -899,7 +993,7 @@ llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& 
     member_gep_indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
 
     // Create Member GEP
-    pointer_value = context.builder.CreateGEP(program.llvm_array_type, pointer_value, member_gep_indices, "memberptr");
+    pointer_value = context.builder.CreateGEP(program.llvm_array_type, pointer_value, member_gep_indices);
     pointer_value = context.builder.CreateLoad(pointer_value);
 
     // Cast i8* to the correct type
@@ -908,7 +1002,7 @@ llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& 
         errors.panic(UNDECLARED_TYPE(target_typename));
         return NULL;
     }
-    pointer_value = context.builder.CreateBitCast(pointer_value, target_llvm_type->getPointerTo(), "casttmp");
+    pointer_value = context.builder.CreateBitCast(pointer_value, target_llvm_type->getPointerTo());
 
     std::string index_typename;
     llvm::Value* index_value = index->assemble_immutable(program, func, context, &index_typename);
@@ -927,7 +1021,7 @@ llvm::Value* IndexLoadExp::assemble_highlevel_array(Program& program, Function& 
     std::vector<llvm::Value*> indices(1);
     indices[0] = index_value;
 
-    pointer_value = context.builder.CreateGEP(pointer_value, indices, "memberptr");
+    pointer_value = context.builder.CreateGEP(pointer_value, indices);
     return pointer_value;
 }
 
@@ -1012,7 +1106,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
         }
 
         if(expr_type != NULL) *expr_type = func_data.return_type;
-        llvm::CallInst* call = context.builder.CreateCall(target, argument_values, "calltmp");
+        llvm::CallInst* call = context.builder.CreateCall(target, argument_values);
         call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
         return call;
     }
@@ -1047,7 +1141,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
 
             if(expr_type != NULL) *expr_type = varfunc_return_typename;
             llvm::Value* function_address = context.builder.CreateLoad(func_variable->variable);
-            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
 
             if(Program::function_typename_is_stdcall(func_variable->type)){
                 call->setCallingConv(llvm::CallingConv::X86_StdCall);
@@ -1085,7 +1179,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
 
             if(expr_type != NULL) *expr_type = varfunc_return_typename;
             llvm::Value* function_address = context.builder.CreateLoad(context.findGlobal(name)->variable);
-            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
 
             if(Program::function_typename_is_stdcall(func_global.type)){
                 call->setCallingConv(llvm::CallingConv::X86_StdCall);
@@ -1149,7 +1243,7 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssemblyData&
     if(Program::is_pointer_typename(type_name)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
-        data = context.builder.CreateLoad(data, "loadtmp");
+        data = context.builder.CreateLoad(data);
         type_name = type_name.substr(1, type_name.length()-1);
     }
 
@@ -1206,7 +1300,7 @@ llvm::Value* MemberExp::assemble_struct(Program& program, Function& func, Assemb
     indices[1] = member_index;
 
     // Create GEP and set expr_type if it isn't null
-    llvm::Value* member_ptr = context.builder.CreateGEP(struct_llvm_type, data, indices, "memberptr");
+    llvm::Value* member_ptr = context.builder.CreateGEP(struct_llvm_type, data, indices);
     if(expr_type != NULL) *expr_type = target.members[index].type;
 
     return member_ptr;
@@ -1250,7 +1344,7 @@ llvm::Value* MemberExp::assemble_class(Program& program, Function& func, Assembl
     indices[1] = member_index;
 
     // Create GEP and set expr_type if it isn't null
-    llvm::Value* member_ptr = context.builder.CreateGEP(class_llvm_type, data, indices, "memberptr");
+    llvm::Value* member_ptr = context.builder.CreateGEP(class_llvm_type, data, indices);
     if(expr_type != NULL) *expr_type = field->type;
 
     return member_ptr;
@@ -1277,7 +1371,7 @@ llvm::Value* MemberExp::assemble_array(Program& program, Function& func, Assembl
     indices[1] = member_index;
 
     // Create GEP
-    return context.builder.CreateGEP(program.llvm_array_type, data, indices, "memberptr");
+    return context.builder.CreateGEP(program.llvm_array_type, data, indices);
 }
 
 MemberCallExp::MemberCallExp(ErrorHandler& err){
@@ -1319,7 +1413,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
     if(Program::is_pointer_typename(object_typename)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
-        object_value = context.builder.CreateLoad(object_value, "loadtmp");
+        object_value = context.builder.CreateLoad(object_value);
         object_typename = object_typename.substr(1, object_typename.length()-1);
     }
 
@@ -1396,7 +1490,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
     }
 
     if(expr_type != NULL) *expr_type = func_data.return_type;
-    llvm::Value* call = context.builder.CreateCall(target, argument_values, "calltmp");
+    llvm::Value* call = context.builder.CreateCall(target, argument_values);
     return call;
 }
 std::string MemberCallExp::toString(){
@@ -1460,46 +1554,46 @@ llvm::Value* NotExp::assemble(Program& program, Function& func, AssemblyData& co
     if(expr_type != NULL) *expr_type = "bool";
 
     if(type_name == "bool"){
-        return context.builder.CreateNot(llvm_value, "nottmp");
+        return context.builder.CreateNot(llvm_value);
     }
     else if(type_name == "byte"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, true));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "ubyte"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(8, 0, false));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "short"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, true));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "ushort"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(16, 0, false));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "int"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "uint"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "long"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, true));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else if(type_name == "ulong"){
         llvm::Value* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, false));
-        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero, "cmptmp");
+        llvm_value = context.builder.CreateICmpEQ(llvm_value, zero);
         return llvm_value;
     }
     else {
@@ -1588,20 +1682,20 @@ llvm::Value* CastExp::cast_to_bool(Program& program, Function& func, AssemblyDat
         return llvm_value;
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty());
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty());
     }
     else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty());
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty());
     }
     else if(type_name == "float" or type_name == "double"){
-        llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty(), "cast");
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty(), "cast");
+        llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1620,23 +1714,23 @@ llvm::Value* CastExp::cast_to_byte(Program& program, Function& func, AssemblyDat
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt8Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt8Ty());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
         return llvm_value;
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty());
     }
     else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty());
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty());
     }
     else if(type_name == "float" or type_name == "double"){
-        llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty(), "cast");
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty(), "cast");
+        llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1655,23 +1749,23 @@ llvm::Value* CastExp::cast_to_short(Program& program, Function& func, AssemblyDa
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt16Ty());
     }
     else if(type_name == "ushort" or type_name == "short"){
         return llvm_value;
     }
     else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty());
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty());
     }
     else if(type_name == "float" or type_name == "double"){
-        llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty(), "cast");
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty(), "cast");
+        llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1690,29 +1784,29 @@ llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssemblyData
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty());
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt32Ty());
     }
     else if(type_name == "uint" or type_name == "int"){
         return llvm_value;
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateTrunc(llvm_value, context.builder.getInt32Ty(), "cast");
+        return context.builder.CreateTrunc(llvm_value, context.builder.getInt32Ty());
     }
     else if(type_name == "float" or type_name == "double"){
-        return context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty(), "cast");
+        return context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
     }
     else if(type_name == "ptr"){
-        return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty(), "cast");
+        return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty());
     }
     else if(Program::is_pointer_typename(type_name) or Program::is_function_typename(type_name)){
-        llvm_value = context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
-        return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty(), "cast");
+        llvm_value = context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy());
+        return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1731,25 +1825,25 @@ llvm::Value* CastExp::cast_to_long(Program& program, Function& func, AssemblyDat
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty());
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty());
     }
     else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty(), "cast");
+        return context.builder.CreateZExt(llvm_value, context.builder.getInt64Ty());
     }
     else if(type_name == "ulong" or type_name == "long"){
         return llvm_value;
     }
     else if(type_name == "float" or type_name == "double"){
-        return context.builder.CreateFPToUI(llvm_value, context.builder.getInt64Ty(), "cast");
+        return context.builder.CreateFPToUI(llvm_value, context.builder.getInt64Ty());
     }
     else if(type_name == "ptr"){
-        return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "cast");
+        return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1768,22 +1862,22 @@ llvm::Value* CastExp::cast_to_float(Program& program, Function& func, AssemblyDa
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
     }
     else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
     }
     else if(type_name == "double"){
-        return context.builder.CreateFPTrunc(llvm_value, context.builder.getFloatTy(), "cast");
+        return context.builder.CreateFPTrunc(llvm_value, context.builder.getFloatTy());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1802,19 +1896,19 @@ llvm::Value* CastExp::cast_to_double(Program& program, Function& func, AssemblyD
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
     }
     else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy(), "cast");
+        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1833,25 +1927,25 @@ llvm::Value* CastExp::cast_to_ptr(Program& program, Function& func, AssemblyData
     program.resolve_if_alias(type_name);
 
     if(type_name == "bool"){
-        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy());
     }
     else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy());
     }
     else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy());
     }
     else if(type_name == "uint" or type_name == "int"){
-        return llvm_value = context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return llvm_value = context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy());
     }
     else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return context.builder.CreateIntToPtr(llvm_value, context.builder.getInt8PtrTy());
     }
     else if(Program::is_pointer_typename(type_name)){
-        return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy());
     }
     else if(Program::is_function_typename(type_name)){
-        return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy(), "cast");
+        return context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy());
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -1880,7 +1974,7 @@ llvm::Value* CastExp::cast_to_valueptr(Program& program, Function& func, Assembl
         return NULL;
     }
 
-    return context.builder.CreateBitCast(llvm_value, target_llvm_type, "cast");
+    return context.builder.CreateBitCast(llvm_value, target_llvm_type);
 }
 
 FuncptrExp::FuncptrExp(ErrorHandler& err){
@@ -2059,18 +2153,18 @@ llvm::Value* AllocExp::assemble_plain(Program& program, Function& func, Assembly
     std::vector<llvm::Value*> malloc_args(1);
 
     malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * amount, false));
-    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args);
 
     // Special casting if allocated type is a function pointer
     if(Program::is_function_typename(type_name)){
         llvm::Type* llvm_func_type;
         if(program.function_typename_to_type(type_name, context, &llvm_func_type) != 0) return NULL;
-        heap_memory = context.builder.CreateBitCast(heap_memory, llvm_func_type->getPointerTo(), "casttmp");
+        heap_memory = context.builder.CreateBitCast(heap_memory, llvm_func_type->getPointerTo());
         return heap_memory;
     }
 
     // Otherwise standard pointer cast
-    return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo(), "casttmp");
+    return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo());
 }
 llvm::Value* AllocExp::assemble_elements(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "[]" + type_name;
@@ -2102,10 +2196,10 @@ llvm::Value* AllocExp::assemble_elements(Program& program, Function& func, Assem
     std::vector<llvm::Value*> malloc_args(1);
 
     malloc_args[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * amount * element_amount, false));
-    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args);
 
     std::vector<llvm::Value*> ctor_args = { heap_memory, llvm::ConstantInt::get(context.context, llvm::APInt(32, element_amount, false)) };
-    return context.builder.CreateCall(program.llvm_array_ctor, ctor_args, "calltmp");
+    return context.builder.CreateCall(program.llvm_array_ctor, ctor_args);
 }
 
 DynamicAllocExp::DynamicAllocExp(ErrorHandler& err){
@@ -2201,18 +2295,18 @@ llvm::Value* DynamicAllocExp::assemble_plain(Program& program, Function& func, A
     }
 
     malloc_args[0] = context.builder.CreateMul(llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size, false)), amount_llvm_value);
-    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args);
 
     // Special casting if allocated type is a function pointer
     if(Program::is_function_typename(type_name)){
         llvm::Type* llvm_func_type;
         if(program.function_typename_to_type(type_name, context, &llvm_func_type) != 0) return NULL;
-        heap_memory = context.builder.CreateBitCast(heap_memory, llvm_func_type->getPointerTo(), "casttmp");
+        heap_memory = context.builder.CreateBitCast(heap_memory, llvm_func_type->getPointerTo());
         return heap_memory;
     }
 
     // Otherwise standard pointer cast
-    return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo(), "casttmp");
+    return context.builder.CreateBitCast(heap_memory, llvm_type->getPointerTo());
 }
 llvm::Value* DynamicAllocExp::assemble_elements(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     if(expr_type != NULL) *expr_type = "[]" + type_name;
@@ -2254,10 +2348,10 @@ llvm::Value* DynamicAllocExp::assemble_elements(Program& program, Function& func
     }
 
     malloc_args[0] = context.builder.CreateMul(llvm::ConstantInt::get(context.context, llvm::APInt(32, type_size * element_amount, false)), amount_llvm_value);
-    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args, "newtmp");
+    llvm::Value* heap_memory = context.builder.CreateCall(malloc_function, malloc_args);
 
     std::vector<llvm::Value*> ctor_args = { heap_memory, llvm::ConstantInt::get(context.context, llvm::APInt(32, element_amount, false)) };
-    return context.builder.CreateCall(program.llvm_array_ctor, ctor_args, "calltmp");
+    return context.builder.CreateCall(program.llvm_array_ctor, ctor_args);
 }
 
 ArrayDataExp::ArrayDataExp(ErrorHandler& err){
@@ -2335,7 +2429,7 @@ llvm::Value* ArrayDataExp::assemble(Program& program, Function& func, AssemblyDa
     global_data = new llvm::GlobalVariable(*(context.module.get()), array_type, true,
                                            llvm::GlobalVariable::LinkageTypes::InternalLinkage, constant, ".constdata");
 
-    global_data = context.builder.CreateBitCast(global_data, element_type->getPointerTo(), "casttmp");
+    global_data = context.builder.CreateBitCast(global_data, element_type->getPointerTo());
     if(expr_type != NULL) *expr_type = "*" + element_typename;
     return global_data;
 }

@@ -69,7 +69,7 @@ int DeclareStatement::assemble(Program& program, Function& func, AssemblyData& c
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
     context.builder.SetInsertPoint(context.current_function->entry);
-    allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
+    allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0);
 
     context.current_function->addVariable(this->variable_name, this->variable_type, allocation_instance);
     context.builder.SetInsertPoint(previous_block);
@@ -128,7 +128,7 @@ int DeclareAssignStatement::assemble(Program& program, Function& func, AssemblyD
     llvm::BasicBlock* previous_block = context.builder.GetInsertBlock();
 
     context.builder.SetInsertPoint(context.current_function->entry);
-    allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, this->variable_name.c_str());
+    allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0);
 
     context.builder.SetInsertPoint(previous_block);
     llvm::Value* llvm_value = variable_value->assemble_immutable(program, func, context, &expression_type);
@@ -195,7 +195,7 @@ int MultiDeclareStatement::assemble(Program& program, Function& func, AssemblyDa
             return 1;
         }
 
-        allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, variable_name.c_str());
+        allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0);
         context.current_function->addVariable(variable_name, this->variable_type, allocation_instance);
     }
 
@@ -273,7 +273,7 @@ int MultiDeclareAssignStatement::assemble(Program& program, Function& func, Asse
         }
 
         context.builder.SetInsertPoint(context.current_function->entry);
-        allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0, variable_name.c_str());
+        allocation_instance = context.builder.CreateAlloca(variable_llvmtype, 0);
 
         context.builder.SetInsertPoint(previous_block);
         context.builder.CreateStore(llvm_value, allocation_instance);
@@ -491,16 +491,16 @@ int AdditionAssignStatement::assemble(Program& program, Function& func, Assembly
     if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
        or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
        or location_typename == "ubyte" or location_typename == "bool"){
-        llvm_value = context.builder.CreateAdd(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateAdd(store_value, llvm_value);
     }
     else if(location_typename == "float" or location_typename == "double"){
-        llvm_value = context.builder.CreateFAdd(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateFAdd(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
-        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* added_value = context.builder.CreateAdd(left_int, right_int, "addtmp");
-        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
+        llvm::Value* added_value = context.builder.CreateAdd(left_int, right_int);
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
         errors.panic("The '+=' operator can't be used on type '" + location_typename + "'");
@@ -585,16 +585,16 @@ int SubtractionAssignStatement::assemble(Program& program, Function& func, Assem
     if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
        or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
        or location_typename == "ubyte" or location_typename == "bool"){
-        llvm_value = context.builder.CreateSub(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateSub(store_value, llvm_value);
     }
     else if(location_typename == "float" or location_typename == "double"){
-        llvm_value = context.builder.CreateFSub(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateFSub(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
-        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* added_value = context.builder.CreateSub(left_int, right_int, "addtmp");
-        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
+        llvm::Value* added_value = context.builder.CreateSub(left_int, right_int);
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
         errors.panic("The '-=' operator can't be used on type '" + location_typename + "'");
@@ -679,16 +679,16 @@ int MultiplicationAssignStatement::assemble(Program& program, Function& func, As
     if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
        or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
        or location_typename == "ubyte" or location_typename == "bool"){
-        llvm_value = context.builder.CreateMul(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateMul(store_value, llvm_value);
     }
     else if(location_typename == "float" or location_typename == "double"){
-        llvm_value = context.builder.CreateFMul(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateFMul(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
-        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* added_value = context.builder.CreateMul(left_int, right_int, "addtmp");
-        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
+        llvm::Value* added_value = context.builder.CreateMul(left_int, right_int);
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
         errors.panic("The '*=' operator can't be used on type '" + location_typename + "'");
@@ -773,16 +773,16 @@ int DivisionAssignStatement::assemble(Program& program, Function& func, Assembly
     if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
        or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
        or location_typename == "ubyte" or location_typename == "bool"){
-        llvm_value = context.builder.CreateSDiv(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateSDiv(store_value, llvm_value);
     }
     else if(location_typename == "float" or location_typename == "double"){
-        llvm_value = context.builder.CreateFDiv(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateFDiv(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
-        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* added_value = context.builder.CreateSDiv(left_int, right_int, "addtmp");
-        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
+        llvm::Value* added_value = context.builder.CreateSDiv(left_int, right_int);
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
         errors.panic("The '/=' operator can't be used on type '" + location_typename + "'");
@@ -867,16 +867,16 @@ int ModulusAssignStatement::assemble(Program& program, Function& func, AssemblyD
     if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
        or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
        or location_typename == "ubyte" or location_typename == "bool"){
-        llvm_value = context.builder.CreateSRem(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateSRem(store_value, llvm_value);
     }
     else if(location_typename == "float" or location_typename == "double"){
-        llvm_value = context.builder.CreateFRem(store_value, llvm_value, "addtmp");
+        llvm_value = context.builder.CreateFRem(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
-        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty(), "casttmp");
-        llvm::Value* added_value = context.builder.CreateSRem(left_int, right_int, "addtmp");
-        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy(), "casttmp");
+        llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
+        llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
+        llvm::Value* added_value = context.builder.CreateSRem(left_int, right_int);
+        llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
         errors.panic("The '%=' operator can't be used on type '" + location_typename + "'");
@@ -981,7 +981,7 @@ int CallStatement::assemble(Program& program, Function& func, AssemblyData& cont
             }
         }
 
-        llvm::CallInst* call = context.builder.CreateCall(target, argument_values, "calltmp");
+        llvm::CallInst* call = context.builder.CreateCall(target, argument_values);
         call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
         return 0;
     }
@@ -1014,7 +1014,7 @@ int CallStatement::assemble(Program& program, Function& func, AssemblyData& cont
             }
 
             llvm::Value* function_address = context.builder.CreateLoad(func_variable->variable);
-            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
 
             if(Program::function_typename_is_stdcall(func_variable->type)){
                 call->setCallingConv(llvm::CallingConv::X86_StdCall);
@@ -1051,7 +1051,7 @@ int CallStatement::assemble(Program& program, Function& func, AssemblyData& cont
             }
 
             llvm::Value* function_address = context.builder.CreateLoad(context.findGlobal(name)->variable);
-            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values, "calltmp");
+            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
 
             if(Program::function_typename_is_stdcall(global.type)){
                 call->setCallingConv(llvm::CallingConv::X86_StdCall);
@@ -1127,7 +1127,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
     if(Program::is_pointer_typename(object_typename)){
         // The type is actually a pointer to a structure or class, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
-        object_value = context.builder.CreateLoad(object_value, "loadtmp");
+        object_value = context.builder.CreateLoad(object_value);
         object_typename = object_typename.substr(1, object_typename.length()-1);
     }
 
@@ -1204,7 +1204,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
         }
     }
 
-    context.builder.CreateCall(target, argument_values, "calltmp");
+    context.builder.CreateCall(target, argument_values);
     return 0;
 }
 std::string MemberCallStatement::toString(unsigned int indent, bool skip_initial_indent){
@@ -2183,13 +2183,13 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
         indices[0] = constant_zero;
         indices[1] = constant_zero;
 
-        free_args[0] = context.builder.CreateLoad(context.builder.CreateGEP(program.llvm_array_type, pointer, indices, "memberptr"));
-        context.builder.CreateCall(free_function, free_args, "deltmp");
+        free_args[0] = context.builder.CreateLoad(context.builder.CreateGEP(program.llvm_array_type, pointer, indices));
+        context.builder.CreateCall(free_function, free_args);
         return 0;
     }
 
     if(value->is_mutable){
-        pointer = context.builder.CreateLoad(pointer, "loadtmp");
+        pointer = context.builder.CreateLoad(pointer);
     }
 
     // Make sure expression specified is a pointer
@@ -2210,8 +2210,8 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
         errors.warn("Deleting data pointed to by a 'ptr' won't correctly delete types that require special deletion\n    To suppress this warning, put the 'dangerous' keyword immediately after the 'delete' keyword");
     }
 
-    free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context), "casttmp");
-    context.builder.CreateCall(free_function, free_args, "deltmp");
+    free_args[0] = context.builder.CreateBitCast(pointer, llvm::Type::getInt8PtrTy(context.context));
+    context.builder.CreateCall(free_function, free_args);
     return 0;
 }
 std::string DeleteStatement::toString(unsigned int indent, bool skip_initial_indent){

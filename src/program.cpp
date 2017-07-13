@@ -739,7 +739,7 @@ int Program::generate_types(AssemblyData& context){
     }
 
     // Standard language types
-    types.push_back( Type("void", llvm::Type::getInt8Ty(llvm_context)) );
+    types.push_back( Type("void", llvm::Type::getVoidTy(llvm_context)) );
     types.push_back( Type("bool", llvm::Type::getInt1Ty(llvm_context)) );
     types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(llvm_context)) );
     types.push_back( Type("int", llvm::Type::getInt32Ty(llvm_context)) );
