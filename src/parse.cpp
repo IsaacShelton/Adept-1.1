@@ -473,10 +473,11 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
 
     next_index(i, tokens.size());
-    if(parse_block(config, tokens, program, statements, defer_statements, i, true, errors) != 0) return 1;
+    if(parse_block(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
 
     // If function not terminated, make sure to add defer statements
     if(statements.size() != 0){
+        // If we haven't already terminated the function and dumped the defered statements, do it now
         if(!statements[statements.size()-1]->isTerminator()){
             for(size_t i = defer_statements.size(); i-- > 0;){
                 statements.push_back( defer_statements[i]->clone() );
@@ -556,10 +557,11 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     next_index(i, tokens.size());
-    if(parse_block(config, tokens, program, statements, defer_statements, i, true, errors) != 0) return 1;
+    if(parse_block(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
 
     // If method not terminated, make sure to add defer statements
     if(statements.size() != 0){
+        // If we haven't already terminated the function and dumped the defered statements, do it now
         if(!statements[statements.size()-1]->isTerminator()){
             for(size_t i = defer_statements.size(); i-- > 0;){
                 statements.push_back( defer_statements[i]->clone() );
@@ -966,7 +968,7 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
     return 0;
 }
 
-int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, bool can_defer, ErrorHandler& errors){
+int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
     // { some code; some more code; }
     //    ^
 
@@ -977,7 +979,7 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
             next_index(i, tokens.size());
             break;
         case TOKENID_KEYWORD:
-            if(parse_block_keyword(config, tokens, program, statements, defer_statements, i, tokens[i].getString(), can_defer, errors) != 0) return 1;
+            if(parse_block_keyword(config, tokens, program, statements, defer_statements, i, tokens[i].getString(), errors) != 0) return 1;
             break;
         case TOKENID_WORD:
             if(parse_block_word(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
@@ -993,7 +995,7 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
 
     return 0;
 }
-int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string keyword, bool can_defer, ErrorHandler& errors){
+int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string keyword, ErrorHandler& errors){
     // keyword <unknown syntax follows>
     //    ^
 
@@ -1030,15 +1032,10 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
     case 2: { // defer
         next_index(i, tokens.size());
 
-        if(!can_defer){
-            errors.panic("Statements currently can't be defered while in conditionals");
-            return 1;
-        }
-
         switch(tokens[i].id){
         case TOKENID_KEYWORD:
             // NOTE: 'defer defer <statement>' acts the same ways as 'defer <statement>' (Number of defers does not metter, maybe add a check here idk)
-            if(parse_block_keyword(config, tokens, program, defer_statements, defer_statements, i, tokens[i].getString(), true, errors) != 0) return 1;
+            if(parse_block_keyword(config, tokens, program, defer_statements, defer_statements, i, tokens[i].getString(), errors) != 0) return 1;
             break;
         case TOKENID_WORD:
             if(parse_block_word(config, tokens, program, defer_statements, defer_statements, i, errors) != 0) return 1;
@@ -1083,7 +1080,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             next_index(i, tokens.size());
             break;
         case TOKENID_KEYWORD:
-            if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), false, errors) != 0) return 1;
+            if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), errors) != 0) return 1;
             break;
         case TOKENID_WORD:
             if(parse_block_word(config, tokens, program, for_condition_statements, defer_statements, i, errors) != 0) return 1;
@@ -1114,7 +1111,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
             next_index(i, tokens.size());
             break;
         case TOKENID_KEYWORD:
-            if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), false, errors) != 0) return 1;
+            if(parse_block_keyword(config, tokens, program, for_condition_statements, defer_statements, i, tokens[i].getString(), errors) != 0) return 1;
             break;
         case TOKENID_WORD:
             if(parse_block_word(config, tokens, program, for_condition_statements, defer_statements, i, errors) != 0) return 1;
@@ -1141,7 +1138,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
         }
 
         next_index(i, tokens.size());
-        if(parse_block(config, tokens, program, for_statements, defer_statements, i, false, errors) != 0) return 1;
+        if(parse_block(config, tokens, program, for_statements, defer_statements, i, errors) != 0) return 1;
         next_index(i, tokens.size());
 
         // Skip any newlines
@@ -1506,6 +1503,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
 
     PlainExp* expression;
     StatementList conditional_statements;
+    size_t original_defer_count = defer_statements.size();
     next_index(i, tokens.size());
 
     if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
@@ -1515,8 +1513,15 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
     }
 
     next_index(i, tokens.size());
-    if(parse_block(config, tokens, program, conditional_statements, defer_statements, i, false, errors) != 0) return 1;
+    if(parse_block(config, tokens, program, conditional_statements, defer_statements, i, errors) != 0) return 1;
     next_index(i, tokens.size());
+
+    if(original_defer_count != defer_statements.size()){
+        for(size_t i = defer_statements.size() - 1; i != original_defer_count - 1; i--){
+            conditional_statements.push_back(defer_statements[i]);
+        }
+        defer_statements.resize(original_defer_count);
+    }
 
     // Skip any newlines
     while(tokens[i].id == TOKENID_NEWLINE){
@@ -1532,8 +1537,15 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
 
             if(tokens[i].id == TOKENID_BEGIN){
                 next_index(i, tokens.size());
-                if(parse_block(config, tokens, program, else_statements, defer_statements, i, false, errors) != 0) return 1;
+                if(parse_block(config, tokens, program, else_statements, defer_statements, i, errors) != 0) return 1;
                 next_index(i, tokens.size());
+
+                if(original_defer_count != defer_statements.size()){
+                    for(size_t i = defer_statements.size() - 1; i != original_defer_count - 1; i--){
+                        else_statements.push_back(defer_statements[i]);
+                    }
+                    defer_statements.resize(original_defer_count);
+                }
             }
             else if(tokens[i].id == TOKENID_KEYWORD){
                 uint16_t else_conditional_type;
@@ -1726,7 +1738,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
                         return 1;
                     }
 
-                    if(parse_block_keyword(config, tokens, program, possible_statements, defer_statements, i, keyword, false, errors) != 0) return 1;
+                    if(parse_block_keyword(config, tokens, program, possible_statements, defer_statements, i, keyword, errors) != 0) return 1;
                 }
                 break;
             }

@@ -35,8 +35,8 @@ int parse_constant(Configuration& config, TokenList& tokens, Program& program, s
 int parse_global(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string name, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_type(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors);
 
-int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, bool can_defer, ErrorHandler& errors);
-int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string name, bool can_defer, ErrorHandler& errors);
+int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors);
+int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string name, ErrorHandler& errors);
 int parse_block_word(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors);
 int parse_block_variable_declaration(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string name, ErrorHandler& errors);
 int parse_block_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors);
