@@ -442,3 +442,24 @@ public def main() int {
     return 0
 }
 ```
+
+### The 'string' type
+The '```string```' type is literally just an alias for the type '```[]ubyte```'<br/><br/>
+<b>String literals that are of the type '```string```' use single quotes!</b><br/>
+(Instead of double quotes which are used for '```*ubyte```' string literals)<br/><br/>
+In addition, all the functions defined in '```adept/string.adept```' used for string manipulation also have a variant that takes a '```string```' instead of a '```*ubyte```'.
+```
+private import "adept/string.adept"
+private improt "adept/terminal.adept"
+
+public def main() int {
+    hello_world string = 'Hello World'
+    println(hello_world)
+    
+    name ! string = new [256] ubyte
+    input(name)
+    greeting ! string = join('Welcome ', name, '!')
+    println(greeting)
+    return 0
+}
+```
