@@ -180,7 +180,12 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
             tokens.push_back(TOKENID_MODULUS);
             break;
         case '.':
-            tokens.push_back(TOKEN_MEMBER); i++;
+            if(i + 2 < code_size && code.substr(i, 2) == ".."){
+                tokens.push_back(TOKEN_ELLIPSIS);
+                i += 3;
+            } else {
+                tokens.push_back(TOKEN_MEMBER); i++;
+            }
             break;
         case '&':
             tokens.push_back(TOKEN_ADDRESS); i++;

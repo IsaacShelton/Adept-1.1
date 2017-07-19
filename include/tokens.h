@@ -56,6 +56,7 @@
 #define TOKEN_LESSEQ         Token(60)
 #define TOKEN_GREATEREQ      Token(61)
 #define TOKEN_NAMESPACE      Token(62)
+#define TOKEN_ELLIPSIS       Token(63)
 
 // Indices : Literals 0-19
 #define TOKENID_NONE          0
@@ -108,6 +109,7 @@
 #define TOKENID_LESSEQ        60
 #define TOKENID_GREATEREQ     61
 #define TOKENID_NAMESPACE     62
+#define TOKENID_ELLIPSIS      63
 
 struct Token {
     uint16_t id;

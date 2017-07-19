@@ -33,6 +33,7 @@ Function::Function(){
     this->is_static = false;
     this->is_stdcall = false;
     this->is_external = false;
+    this->is_variable_args = false;
     this->parent_class_offset = 0;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, bool is_public, OriginInfo* origin){
@@ -43,11 +44,12 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_static = false;
     this->is_stdcall = false;
     this->is_external = false;
+    this->is_variable_args = false;
     this->parent_class_offset = 0;
     this->origin = origin;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements,
-                   bool is_public, bool is_static, bool is_stdcall, bool is_external, OriginInfo* origin){
+                   bool is_public, bool is_static, bool is_stdcall, bool is_external, bool is_variable_args, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
@@ -56,6 +58,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->is_static = is_static;
     this->is_stdcall = is_stdcall;
     this->is_external = is_external;
+    this->is_variable_args = is_variable_args;
     this->parent_class_offset = 0;
     this->origin = origin;
 }
@@ -68,6 +71,7 @@ Function::Function(const Function& other){
     is_static = other.is_static;
     is_stdcall = other.is_stdcall;
     is_external = other.is_external;
+    is_variable_args = other.is_variable_args;
     parent_class_offset = other.parent_class_offset;
     origin = other.origin;
 
@@ -86,13 +90,14 @@ void Function::print_statements(){
 
 External::External(){}
 External::External(const std::string& name, const std::vector<std::string>& arguments, const std::string& return_type, bool is_public,
-                   bool is_mangled, bool is_stdcall, OriginInfo* origin){
+                   bool is_mangled, bool is_stdcall, bool is_variable_args, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
     this->is_public = is_public;
     this->is_mangled = is_mangled;
     this->is_stdcall = is_stdcall;
+    this->is_variable_args = is_variable_args;
     this->origin = origin;
 }
 std::string External::toString(){
@@ -264,7 +269,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             arg_typenames[i] = new_func.arguments[i].type;
         }
 
-        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, !(new_func.is_external), new_func.is_stdcall, new_func.origin);
+        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, !(new_func.is_external), new_func.is_stdcall, new_func.is_variable_args, new_func.origin);
         externs.push_back(created_external);
     }
 
@@ -690,7 +695,7 @@ int Program::function_typename_to_type(const std::string& type_name, AssemblyDat
     if(this->extract_function_pointer_info(type_name, llvm_args, context, &return_llvm_type) != 0) return 1;
 
     llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, llvm_args, false);
-    *type = function_type->getPointerTo();
+    if(type != NULL) *type = function_type->getPointerTo();
     return 0;
 }
 void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers) const {
@@ -894,6 +899,7 @@ int Program::find_func(const std::string& name, External* func){
             external.is_public = found_function->is_public;
             external.is_mangled = !(found_function->is_external);
             external.is_stdcall = found_function->is_stdcall;
+            external.is_variable_args = found_function->is_variable_args;
             for(Field& field : found_function->arguments) external.arguments.push_back(field.type);
             *func = external;
             return 0;
@@ -910,13 +916,18 @@ int Program::find_func(const std::string& name, External* func){
     return 1;
 }
 int Program::find_func(const std::string& name, const std::vector<std::string>& args, External* func){
+    bool args_match;
+
+    // Check for matching non-var-arg functions
     for(size_t i = 0; i != functions.size(); i++){
         if(functions[i].name == name){
             External external;
-            bool args_match = true;
             Function* function_found = &functions[i];
 
-            if(args.size() != function_found->arguments.size()) continue;
+            if(function_found->is_variable_args) continue; // Prefer non-var-args functions if possible
+            if(args.size() != function_found->arguments.size()) continue; // Continue if different amount of arguments
+
+            args_match = true;
             for(size_t a = 0; a != args.size(); a++){
                 if( !assemble_types_mergeable(*this, args[a], function_found->arguments[a].type) ){
                     args_match = false;
@@ -930,6 +941,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             external.is_public = function_found->is_public;
             external.is_mangled = !(function_found->is_external);
             external.is_stdcall = function_found->is_stdcall;
+            external.is_variable_args = function_found->is_variable_args;
             for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -937,12 +949,17 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
         }
     }
 
+    // Check for matching non-var-args externals
     for(size_t i = 0; i != externs.size(); i++){
         if(externs[i].name == name){
-            bool args_match = true;
-            if(args.size() != externs[i].arguments.size()) continue;
+            External* external = &externs[i];
+
+            if(external->is_variable_args) continue; // Perfer non-var-args externals if possible
+            if(args.size() != external->arguments.size()) continue; // Continue if different amount of arguments
+
+            args_match = true;
             for(size_t a = 0; a != args.size(); a++){
-                if( !assemble_types_mergeable(*this, args[a], externs[i].arguments[a]) ){
+                if( !assemble_types_mergeable(*this, args[a], external->arguments[a]) ){
                     args_match = false;
                     break;
                 }
@@ -950,6 +967,89 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             if(!args_match) continue;
 
             *func = externs[i];
+            return 0;
+        }
+    }
+
+    // Check for compatible var-args functions
+    for(size_t i = 0; i != functions.size(); i++){
+        if(functions[i].name == name){
+            External external;
+            Function* function_found = &functions[i];
+
+            // We already checked for functions that don't take a variable number of arguments
+            if(!function_found->is_variable_args) continue;
+
+            size_t a;
+            size_t last_arg = function_found->arguments.size() - 1;
+            args_match = true;
+
+            for(a = 0; a != last_arg; a++){
+                if( !assemble_types_mergeable(*this, args[a], function_found->arguments[a].type) ){
+                    args_match = false;
+                    break;
+                }
+            }
+            if(!args_match) continue;
+
+            std::string target_va_type = function_found->arguments[last_arg].type;
+            target_va_type = target_va_type.substr(2, target_va_type.length() - 2);
+
+            while(a != args.size()){
+                if( !assemble_types_mergeable(*this, args[a], target_va_type) ){
+                    args_match = false;
+                    break;
+                }
+                a++;
+            }
+            if(!args_match) continue;
+
+            external.name = function_found->name;
+            external.return_type = function_found->return_type;
+            external.is_public = function_found->is_public;
+            external.is_mangled = !(function_found->is_external);
+            external.is_stdcall = function_found->is_stdcall;
+            external.is_variable_args = function_found->is_variable_args;
+            for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
+
+            *func = external;
+            return 0;
+        }
+    }
+
+    // Check for matching var-args externals
+    for(size_t i = 0; i != externs.size(); i++){
+        if(externs[i].name == name){
+            External* external = &externs[i];
+
+            // We already checked for externals that don't take a variable number of arguments
+            if(!external->is_variable_args) continue;
+
+            size_t a;
+            size_t last_arg = external->arguments.size() - 1;
+            args_match = true;
+
+            for(a = 0; a != last_arg; a++){
+                if( !assemble_types_mergeable(*this, args[a], external->arguments[a]) ){
+                    args_match = false;
+                    break;
+                }
+            }
+            if(!args_match) continue;
+
+            std::string target_va_type = external->arguments[last_arg];
+            target_va_type = target_va_type.substr(2, target_va_type.length() - 2);
+
+            while(a != args.size()){
+                if( !assemble_types_mergeable(*this, args[a], target_va_type) ){
+                    args_match = false;
+                    break;
+                }
+                a++;
+            }
+            if(!args_match) continue;
+
+            *func = *external;
             return 0;
         }
     }

@@ -497,7 +497,13 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 
         if(!llvm_function){
             llvm::Type* llvm_type;
-            std::vector<llvm::Type*> args(func.arguments.size());
+            std::vector<llvm::Type*> args;
+
+            if(func.is_variable_args){
+                args.resize(func.arguments.size());
+            } else {
+                args.resize(func.arguments.size());
+            }
 
             // Throw an error if main is private
             if(func.name == "main"){
@@ -546,10 +552,11 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             func_assembly_data->quit = quit;
             func_assembly_data->return_type = llvm_type;
             func_assembly_data->exitval = exitval;
+            func_assembly_data->va_args = NULL;
 
-            size_t i = 0;
             func_assembly_data->variables.reserve(args.size());
 
+            size_t i = 0;
             for(auto& arg : llvm_function->args()){
                 llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
                 context.builder.CreateStore(&arg, alloca);
@@ -576,7 +583,6 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
     return 0;
 }
 int assemble_function_bodies(AssemblyData& context, Configuration& config, Program& program){
-
     for(Function& func : program.functions){
         std::string final_function_name = (func.is_external) ? func.name : mangle(program, func);
         llvm::Function* llvm_function = context.module->getFunction(final_function_name);
@@ -607,7 +613,6 @@ int assemble_function_bodies(AssemblyData& context, Configuration& config, Progr
         context.builder.CreateBr(asm_func->body);
 
         llvm::verifyFunction(*llvm_function);
-
     }
 
     return 0;
@@ -668,6 +673,7 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
             func_assembly_data->quit = quit;
             func_assembly_data->return_type = llvm_type;
             func_assembly_data->exitval = exitval;
+            func_assembly_data->va_args = NULL;
 
             size_t i = 0;
             func_assembly_data->variables.reserve(args.size() + 1);

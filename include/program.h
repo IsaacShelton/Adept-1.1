@@ -62,13 +62,14 @@ class Function {
     bool is_static;
     bool is_stdcall;
     bool is_external;
+    bool is_variable_args;
     size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
 
     OriginInfo* origin;
 
     Function();
     Function(const std::string&, const std::vector<Field>&, const std::string&, bool, OriginInfo*);
-    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool, bool, OriginInfo*);
+    Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool, bool, bool, OriginInfo*);
     Function(const Function&);
     ~Function();
     void print_statements();
@@ -82,11 +83,12 @@ class External {
     bool is_public;
     bool is_mangled;
     bool is_stdcall;
+    bool is_variable_args;
 
     OriginInfo* origin;
 
     External();
-    External(const std::string&, const std::vector<std::string>&, const std::string&, bool, bool, bool, OriginInfo*);
+    External(const std::string&, const std::vector<std::string>&, const std::string&, bool, bool, bool, bool, OriginInfo*);
     std::string toString();
 };
 

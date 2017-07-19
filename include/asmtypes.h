@@ -32,6 +32,7 @@ struct AssembleFunction {
     llvm::BasicBlock* body;
     llvm::BasicBlock* quit;
     llvm::Value* exitval;
+    llvm::Value* va_args;
 
     AssembleFunction();
     AssembleFunction(const std::string&);

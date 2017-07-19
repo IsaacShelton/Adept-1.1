@@ -21,6 +21,7 @@ std::string mangle(const Class& klass, const Function& method){
     for(const Field& arg : method.arguments){
         mangled_name += "@" + arg.type;
     }
+
     return mangled_name;
 }
 

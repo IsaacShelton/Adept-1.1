@@ -170,6 +170,11 @@ int parse_structure(Configuration& config, TokenList& tokens, Program& program, 
     std::string name = tokens[i].getString();
     std::vector<Field> members;
 
+    if(name == "llvm"){
+        errors.panic("The name 'llvm' is reserved");
+        return 1;
+    }
+
     // Make sure that is hasn't been already declared
     for(size_t i = 0; i != program.structures.size(); i++){
         if(name == program.structures[i].name){
@@ -284,6 +289,11 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     //           ^
 
     std::string name = tokens[i].getString();
+
+    if(name == "llvm"){
+        errors.panic("The name 'llvm' is reserved");
+        return 1;
+    }
 
     // Make sure that is hasn't been already declared
     for(size_t i = 0; i != program.classes.size(); i++){
@@ -427,6 +437,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     std::string return_type;
     StatementList statements;
     StatementList defer_statements;
+    bool is_variable_args = false;
 
     while(tokens[i].id != TOKENID_CLOSE){
         if(tokens[i].id != TOKENID_WORD){
@@ -438,11 +449,18 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
         std::string type;
         next_index(i, tokens.size());
 
+        if(tokens[i].id == TOKENID_ELLIPSIS){
+            is_variable_args = true;
+            next_index(i, tokens.size());
+        }
+
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
+        if(is_variable_args) type = "[]" + type;
         arguments.push_back( Field{name, type} );
+        if(is_variable_args) break;
     }
 
     if(tokens[i].id == TOKENID_BEGIN){
@@ -471,7 +489,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
         delete statement;
     }
 
-    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, attr_info.is_external, &program.origin_info) );
+    program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, attr_info.is_external, is_variable_args, &program.origin_info) );
     return 0;
 }
 int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, size_t class_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -546,7 +564,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         delete statement;
     }
 
-    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, &program.origin_info);
+    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, false, &program.origin_info);
     created_method.parent_class_offset = class_offset_plus_one;
     klass->methods.push_back( std::move(created_method) );
     return 0;
@@ -582,7 +600,7 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
     next_index(i, tokens.size());
 
     errors.line++;
-    program.externs.push_back( External(name, arguments, return_type, attr_info.is_public, false, attr_info.is_stdcall, &program.origin_info) );
+    program.externs.push_back( External(name, arguments, return_type, attr_info.is_public, false, attr_info.is_stdcall, false, &program.origin_info) );
     return 0;
 }
 int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
