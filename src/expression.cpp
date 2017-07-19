@@ -1078,7 +1078,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             errors.panic_undeclared_func(name, argument_types);
             return NULL;
         }
-        assert(func_data.arguments.size() == target->arg_size());
+        ensure(func_data.arguments.size() == target->arg_size());
 
         if(func_data.is_variable_args){
             AssembleFunction* asm_func = context.getFunction( (!func.is_external) ? mangle(program, func) : func.name );
@@ -1554,29 +1554,125 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
 
     ensure(func_data.arguments.size() + 1 == target->arg_size());
 
-    if (target->arg_size() != args.size()+1){
-        // NOTE: This error should never appear
-        errors.panic("Incorrect method argument count for method '" + object_typename + "." + name + "'");
-        return NULL;
-    }
+    if(func_data.is_variable_args){
+        AssembleFunction* asm_func = context.getFunction( (!func.is_external) ? mangle(program, func) : func.name );
+        std::string va_arg_typename = func_data.arguments[func_data.arguments.size()-1];
+        va_arg_typename = va_arg_typename.substr(2, va_arg_typename.length() - 2);
 
-    for(size_t i = 1; i != argument_values.size(); i++){
-        if(program.find_type(func_data.arguments[i-1], context, &expected_arg_type) != 0){
-            errors.panic( UNDECLARED_TYPE(func_data.arguments[i-1]) );
+        llvm::Type* va_arg_type;
+        if(program.find_type(va_arg_typename, context, &va_arg_type) != 0){
+            errors.panic( UNDECLARED_TYPE(va_arg_typename) );
+            return 1;
+        }
+
+        if(asm_func->va_args == NULL){
+            llvm::BasicBlock* prev_block = context.builder.GetInsertBlock();
+            context.builder.SetInsertPoint(asm_func->entry);
+            asm_func->va_args = context.builder.CreateAlloca(program.llvm_array_type);
+            context.builder.SetInsertPoint(prev_block);
+        }
+
+        llvm::Function* malloc_function = context.module->getFunction("malloc");
+        llvm::Function* free_function = context.module->getFunction("free");
+
+        if(!malloc_function){
+            // Declare the malloc function if it doesn't already exist
+            llvm::Type* return_llvm_type;
+
+            std::vector<llvm::Type*> args(1);
+            args[0] = llvm::Type::getInt32Ty(context.context);
+            return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
+
+            llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+            malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
+        }
+
+        if(!free_function){
+            // Declare the malloc function if it doesn't already exist
+            llvm::Type* return_llvm_type;
+
+            std::vector<llvm::Type*> args(1);
+            args[0] = llvm::Type::getInt8PtrTy(context.context);
+            return_llvm_type = llvm::Type::getVoidTy(context.context);
+
+            llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+            free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
+        }
+
+        uint64_t va_arguments_count = args.size() - func_data.arguments.size() + 1;
+        uint64_t va_arg_type_size = context.module->getDataLayout().getTypeAllocSize(va_arg_type);
+
+        std::vector<llvm::Value*> call_values(1);
+        call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_type_size * va_arguments_count, false));
+        llvm::Value* arguments_memory = context.builder.CreateCall(malloc_function, call_values);
+        llvm::Value* va_data = context.builder.CreateBitCast(asm_func->va_args, llvm::Type::getInt8PtrTy(context.context)->getPointerTo());
+
+        // Store allocated memory inside va_data
+        context.builder.CreateStore(arguments_memory, va_data);
+
+        // Store length of allocated memory inside va_length
+        std::vector<llvm::Value*> indices(2);
+        indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+        indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 1, false));
+
+        llvm::Value* va_length = context.builder.CreateGEP(program.llvm_array_type, asm_func->va_args, indices);
+        context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arguments_count, false)), va_length);
+
+        // Call the function with the new argument values
+        std::vector<llvm::Value*> new_argument_values(func_data.arguments.size() + 1);
+
+        // Add variable arguments into array
+        size_t va_index = 0;
+        std::vector<llvm::Value*> array_gep_indices(1);
+        llvm::Value* raw_values_array = context.builder.CreateBitCast(arguments_memory, va_arg_type->getPointerTo());
+        for(size_t i = func_data.arguments.size(); i != argument_values.size(); i++){
+            array_gep_indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_index, false));
+            context.builder.CreateStore(argument_values[i], context.builder.CreateGEP(raw_values_array, array_gep_indices));
+            va_index++;
+        }
+
+        // Add argument values and va argument values together
+        size_t j;
+        for(j = 0; j != new_argument_values.size()-1; j++){
+            new_argument_values[j] = argument_values[j];
+        }
+        new_argument_values[new_argument_values.size()-1] = context.builder.CreateLoad(asm_func->va_args);
+
+        // Pass arguments
+        if(expr_type != NULL) *expr_type = func_data.return_type;
+        llvm::CallInst* call = context.builder.CreateCall(target, new_argument_values);
+        call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
+
+        // Free variable argument array
+        call_values[0] = arguments_memory;
+        context.builder.CreateCall(free_function, call_values);
+        return call;
+    }
+    else {
+        if (target->arg_size() != args.size()+1){
+            // NOTE: This error should never appear
+            errors.panic("Incorrect method argument count for method '" + object_typename + "." + name + "'");
             return NULL;
         }
 
-        if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
-            // NOTE: This error should never occur
-            errors.panic("Incorrect type for argument " + to_str(i+1) + " of method '" + object_typename + "." + name + "'\n    Definition: " + func_data.toString() +
-                 "\n    Expected type '" + func_data.arguments[i-1] + "' but received type '" + argument_types[i] + "'");
-            return NULL;
-        }
-    }
+        for(size_t i = 1; i != argument_values.size(); i++){
+            if(program.find_type(func_data.arguments[i-1], context, &expected_arg_type) != 0){
+                errors.panic( UNDECLARED_TYPE(func_data.arguments[i-1]) );
+                return NULL;
+            }
 
-    if(expr_type != NULL) *expr_type = func_data.return_type;
-    llvm::Value* call = context.builder.CreateCall(target, argument_values);
-    return call;
+            if(assemble_merge_types_oneway(context, program, argument_types[i], func_data.arguments[i-1], &argument_values[i], expected_arg_type, NULL) != 0){
+                // NOTE: This error should never occur
+                errors.panic("Incorrect type for argument " + to_str(i+1) + " of method '" + object_typename + "." + name + "'\n    Definition: " + func_data.toString() +
+                     "\n    Expected type '" + func_data.arguments[i-1] + "' but received type '" + argument_types[i] + "'");
+                return NULL;
+            }
+        }
+
+        if(expr_type != NULL) *expr_type = func_data.return_type;
+        llvm::Value* call = context.builder.CreateCall(target, argument_values);
+        return call;
+    }
 }
 std::string MemberCallExp::toString(){
     std::string args_str;

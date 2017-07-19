@@ -583,6 +583,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
     return 0;
 }
 int assemble_function_bodies(AssemblyData& context, Configuration& config, Program& program){
+
     for(Function& func : program.functions){
         std::string final_function_name = (func.is_external) ? func.name : mangle(program, func);
         llvm::Function* llvm_function = context.module->getFunction(final_function_name);

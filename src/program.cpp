@@ -1058,6 +1058,8 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 }
 int Program::find_method(const std::string& class_name, const std::string& name, const std::vector<std::string>& args, External* func){
     Class klass;
+    bool args_match;
+
     if(this->find_class(class_name, &klass) != 0){
         fail( UNDECLARED_CLASS(class_name) );
         return 1;
@@ -1066,10 +1068,12 @@ int Program::find_method(const std::string& class_name, const std::string& name,
     for(size_t i = 0; i != klass.methods.size(); i++){
         if(klass.methods[i].name == name){
             External external;
-            bool args_match = true;
             Function* found_method = &klass.methods[i];
 
+            if(found_method->is_variable_args) continue; // Perfer non-var-args methods
             if(args.size() != found_method->arguments.size()) continue;
+
+            args_match = true;
             for(size_t a = 0; a != args.size(); a++){
                 if( !assemble_types_mergeable(*this, args[a], found_method->arguments[a].type) ){
                     args_match = false;
@@ -1083,6 +1087,51 @@ int Program::find_method(const std::string& class_name, const std::string& name,
             external.is_public = found_method->is_public;
             external.is_mangled = true;
             external.is_stdcall = found_method->is_stdcall;
+            external.is_variable_args = found_method ->is_variable_args;
+            for(Field& field : found_method->arguments) external.arguments.push_back(field.type);
+
+            *func = external;
+            return 0;
+        }
+    }
+
+    for(size_t i = 0; i != klass.methods.size(); i++){
+        if(klass.methods[i].name == name){
+            External external;
+            Function* found_method = &klass.methods[i];
+
+            if(!found_method->is_variable_args) continue; // We already checked for matching non-var-args methods
+
+            size_t a;
+            size_t last_arg = found_method->arguments.size() - 1;
+            args_match = true;
+
+            for(a = 0; a != last_arg; a++){
+                if( !assemble_types_mergeable(*this, args[a], found_method->arguments[a].type) ){
+                    args_match = false;
+                    break;
+                }
+            }
+            if(!args_match) continue;
+
+            std::string target_va_type = found_method->arguments[last_arg].type;
+            target_va_type = target_va_type.substr(2, target_va_type.length() - 2);
+
+            while(a != args.size()){
+                if( !assemble_types_mergeable(*this, args[a], target_va_type) ){
+                    args_match = false;
+                    break;
+                }
+                a++;
+            }
+            if(!args_match) continue;
+
+            external.name = found_method->name;
+            external.return_type = found_method->return_type;
+            external.is_public = found_method->is_public;
+            external.is_mangled = true;
+            external.is_stdcall = found_method->is_stdcall;
+            external.is_variable_args = found_method->is_variable_args;
             for(Field& field : found_method->arguments) external.arguments.push_back(field.type);
 
             *func = external;

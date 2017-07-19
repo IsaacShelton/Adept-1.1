@@ -515,6 +515,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     std::string return_type;
     StatementList statements;
     StatementList defer_statements;
+    bool is_variable_args = false;
 
     while(tokens[i].id != TOKENID_CLOSE){
         if(tokens[i].id != TOKENID_WORD){
@@ -526,11 +527,18 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         std::string type;
         next_index(i, tokens.size());
 
+        if(tokens[i].id == TOKENID_ELLIPSIS){
+            is_variable_args = true;
+            next_index(i, tokens.size());
+        }
+
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
         if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
+        if(is_variable_args) type = "[]" + type;
         arguments.push_back( Field{name, type} );
+        if(is_variable_args) break;
     }
 
     if(tokens[i].id == TOKENID_BEGIN){
@@ -564,7 +572,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         delete statement;
     }
 
-    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, false, &program.origin_info);
+    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, is_variable_args, &program.origin_info);
     created_method.parent_class_offset = class_offset_plus_one;
     klass->methods.push_back( std::move(created_method) );
     return 0;
