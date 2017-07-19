@@ -412,3 +412,33 @@ private def printIntegers(integers ... int) void {
     }
 }
 ```
+
+### String Manipulation
+The Adept library ```adept/string.adept``` contains lots of useful functions for manipulating strings.
+```
+private import "adept/string.adept"
+private improt "adept/terminal.adept"
+
+public def main() int {
+    // Request a string from the terminal
+    name *ubyte = new ubyte * 256
+    print("Enter your name: ")
+    input(name)
+    
+    // Print a greeting
+    greeting ! *ubyte = join("Welcome ", name)
+    println(greeting)
+    
+    // Create another greeting and print it
+    cloned_greeting ! *ubyte = clone(greeting)
+    new_greeting ! *ubyte = join(cloned_greeting, "!!!")
+    println(new_greeting)
+    
+    // Copy a string into a buffer
+    buffer ! *ubyte = new ubyte * 1024
+    copy(buffer, "This is the string that will be copied into the buffer")
+    print("The length of the string in the buffer is: ")
+    println(length(buffer))
+    return 0
+}
+```
