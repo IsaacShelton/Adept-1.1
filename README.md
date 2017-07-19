@@ -384,3 +384,61 @@ public def main() int {
     return 0
 }
 ```
+
+### Variable Argument Functions (and methods)
+NOTE: Try to avoid variable argument functions if and when performance matters.
+Currently the implementation of calling them isn't the fastest :\\
+<br/><br/>
+NOTE: Variable argument functions can also be called by passing an ```[]``` type containing the extra arguments.
+```
+private import "adept/terminal.adept"
+
+public def main() int {
+    // Call the function with a different amount of integers each time
+    printIntegers(10, 20, 30, 40)
+    printIntegers(11, 12, 13, 14, 15, 16, 17)
+    
+    // You can also pass an array containing the integers instead
+    integer_array [] int
+    integer_array.data = {1, 2, 3}
+    integer_array.length = 3ui
+    printIntegers(integer_array)
+    return 0
+}
+
+private def printIntegers(integers ... int) void {
+    for i usize = 0ui, i != integers.length, i += 1ui {
+        println(integers[i])
+    }
+}
+```
+
+### String Manipulation
+The Adept library ```adept/string.adept``` contains lots of useful functions for manipulating strings.
+```
+private import "adept/string.adept"
+private improt "adept/terminal.adept"
+
+public def main() int {
+    // Request a string from the terminal
+    name *ubyte = new ubyte * 256
+    print("Enter your name: ")
+    input(name)
+    
+    // Print a greeting
+    greeting ! *ubyte = join("Welcome ", name)
+    println(greeting)
+    
+    // Create another greeting and print it
+    cloned_greeting ! *ubyte = clone(greeting)
+    new_greeting ! *ubyte = join(cloned_greeting, "!!!")
+    println(new_greeting)
+    
+    // Copy a string into a buffer
+    buffer ! *ubyte = new ubyte * 1024
+    copy(buffer, "This is the string that will be copied into the buffer")
+    print("The length of the string in the buffer is: ")
+    println(length(buffer))
+    return 0
+}
+```
