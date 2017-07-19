@@ -318,6 +318,52 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 i++;
             }
             break;
+        case '\'':
+            {
+                std::string content;
+                std::string escaped_content;
+
+                // CRASH: Fix forever on going string crash
+                while(code[++i] != '\'' or code[i-1] == '\\'){
+                    content += code[i];
+                }
+                for(size_t j = 0; j != content.size(); j++){
+                    if(content[j] == '\\'){
+                        if(++j == content.size()){
+                            errors.panic("Unexpected string termination");
+                            return 1;
+                        }
+
+                        switch(content[j]){
+                        case 'n':
+                            escaped_content += "\n";
+                            break;
+                        case '0':
+                            escaped_content += "\0";
+                            break;
+                        case 'a':
+                            escaped_content += "\a";
+                            break;
+                        case '\\':
+                            escaped_content += "\\";
+                            break;
+                        case '\'':
+                            escaped_content += "'";
+                            break;
+                        default:
+                            errors.panic("Unknown escape sequence '\\" + content.substr(j, content.size()-j) + "'");
+                            return 1;
+                        }
+                    }
+                    else {
+                        escaped_content += content[j];
+                    }
+                }
+
+                tokens.push_back( TOKEN_LENGTHSTRING(new std::string(escaped_content)) );
+                i++;
+            }
+            break;
         case '$':
             {
                 std::string word;

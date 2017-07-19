@@ -220,6 +220,19 @@ class StringExp : public PlainExp {
     PlainExp* clone();
 };
 
+class LengthStringExp : public PlainExp {
+    public:
+    std::string value;
+
+    LengthStringExp(ErrorHandler&);
+    LengthStringExp(const std::string&, ErrorHandler&);
+    LengthStringExp(const LengthStringExp&);
+    ~LengthStringExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
 class WordExp : public PlainExp {
     public:
     std::string value;
@@ -233,14 +246,14 @@ class WordExp : public PlainExp {
     PlainExp* clone();
 };
 
-class AddrWordExp : public PlainExp {
+class AddrExp : public PlainExp {
     public:
     PlainExp* value;
 
-    AddrWordExp(ErrorHandler&);
-    AddrWordExp(PlainExp*, ErrorHandler&);
-    AddrWordExp(const AddrWordExp&);
-    ~AddrWordExp();
+    AddrExp(ErrorHandler&);
+    AddrExp(PlainExp*, ErrorHandler&);
+    AddrExp(const AddrExp&);
+    ~AddrExp();
     llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
     std::string toString();
     PlainExp* clone();

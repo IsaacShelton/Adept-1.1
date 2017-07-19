@@ -720,6 +720,7 @@ bool Program::already_imported(OriginInfo* origin){
 void Program::generate_type_aliases(){
     // Standard type aliases
     type_aliases.push_back( TypeAlias("usize", "uint", false, &origin_info) );
+    type_aliases.push_back( TypeAlias("string", "[]ubyte", false, &origin_info) );
 }
 int Program::generate_types(AssemblyData& context){
     // NOTE: Requires types vector to be empty

@@ -1304,8 +1304,8 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
     next_index(i, tokens.size());
 
     if(auto_delete){
-        if(!Program::is_pointer_typename(type) and !Program::is_array_typename(type)){
-            errors.panic("The non-pointer type '" + type + "' can't be deleted later on in the program.\n    Only array and pointer types work with '!' deletion.");
+        if(!Program::is_pointer_typename(type) and !Program::is_array_typename(type) and type != "string"){
+            errors.panic("The non-pointer type '" + type + "' can't be deleted later on in the program.\n    Only array and pointer types work with '!' deletion. (Aliases not supported yet)");
             return 1;
         }
 
@@ -1982,7 +1982,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 if(parse_expression_operator_right(config, tokens, program, i, 0, &mutable_expression, true, errors) != 0) return 1;
             }
 
-            *expression = new AddrWordExp( mutable_expression, errors );
+            *expression = new AddrExp( mutable_expression, errors );
         }
         return 0;
     case TOKENID_MULTIPLY: // Dereference
@@ -2041,6 +2041,10 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         return 0;
     case TOKENID_STRING:
         *expression = new StringExp( tokens[i].getString(), errors );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_LENGTHSTRING:
+        *expression = new LengthStringExp( tokens[i].getString(), errors );
         next_index(i, tokens.size());
         return 0;
     case TOKENID_OPEN:

@@ -2341,6 +2341,8 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
         free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
     }
 
+    program.resolve_if_alias(type_name);
+
     // If we're trying to delete an '[]' type, skip all of the normal steps and do this instead
     if(Program::is_array_typename(type_name)){
         // Resolve typename if it's an alias

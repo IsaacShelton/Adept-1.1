@@ -766,7 +766,7 @@ StringExp::StringExp(const StringExp& other) : PlainExp(other) {
 StringExp::~StringExp(){}
 llvm::Value* StringExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     // Constant Definitions
-    llvm::Constant* string_data = llvm::ConstantDataArray::getString(context.context, value.c_str(), true);
+    llvm::Constant* string_data = llvm::ConstantDataArray::getString(context.context, this->value.c_str(), true);
 
     llvm::GlobalVariable* global_array = new llvm::GlobalVariable(*context.module, string_data->getType(), true, llvm::GlobalValue::PrivateLinkage, 0, "$.str");
     global_array->setAlignment(1);
@@ -787,6 +787,52 @@ std::string StringExp::toString(){
 }
 PlainExp* StringExp::clone(){
     return new StringExp(*this);
+}
+
+LengthStringExp::LengthStringExp(ErrorHandler& err){
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+LengthStringExp::LengthStringExp(const std::string& val, ErrorHandler& err){
+    value = val;
+    is_mutable = false;
+    is_constant = true;
+    errors = err;
+}
+LengthStringExp::LengthStringExp(const LengthStringExp& other) : PlainExp(other) {
+    value = other.value;
+    is_mutable = false;
+    is_constant = true;
+}
+LengthStringExp::~LengthStringExp(){}
+llvm::Value* LengthStringExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+    // Constant Definitions
+    llvm::Constant* string_data = llvm::ConstantDataArray::getString(context.context, this->value.c_str(), true);
+
+    llvm::GlobalVariable* global_array = new llvm::GlobalVariable(*context.module, string_data->getType(), true, llvm::GlobalValue::PrivateLinkage, 0, "$.str");
+    global_array->setAlignment(1);
+
+    std::vector<llvm::Constant*> gep_indices(2);
+    llvm::ConstantInt* zero = llvm::ConstantInt::get(context.context, llvm::APInt(64, 0, 10));
+    gep_indices[0] = zero;
+    gep_indices[1] = zero;
+    llvm::Constant* const_string = llvm::ConstantExpr::getGetElementPtr(string_data->getType(), global_array, gep_indices);
+
+    std::vector<llvm::Constant*> length_string_values(2);
+    length_string_values[0] = const_string;
+    length_string_values[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, this->value.length()));
+
+    // Global Variable Definitions
+    global_array->setInitializer(string_data);
+    if(expr_type != NULL) *expr_type = "[]ubyte";
+    return llvm::ConstantStruct::get(program.llvm_array_type, length_string_values);
+}
+std::string LengthStringExp::toString(){
+    return "\"" + string_replace_all(value, "\n", "\\n") + "\"";
+}
+PlainExp* LengthStringExp::clone(){
+    return new LengthStringExp(*this);
 }
 
 WordExp::WordExp(ErrorHandler& err){
@@ -830,24 +876,24 @@ PlainExp* WordExp::clone(){
     return new WordExp(*this);
 }
 
-AddrWordExp::AddrWordExp(ErrorHandler& err){
+AddrExp::AddrExp(ErrorHandler& err){
     is_mutable = false;
     is_constant = false;
     errors = err;
 }
-AddrWordExp::AddrWordExp(PlainExp* val, ErrorHandler& err){
+AddrExp::AddrExp(PlainExp* val, ErrorHandler& err){
     value = val;
     is_mutable = false;
     is_constant = false;
     errors = err;
 }
-AddrWordExp::AddrWordExp(const AddrWordExp& other) : PlainExp(other) {
+AddrExp::AddrExp(const AddrExp& other) : PlainExp(other) {
     value = other.value->clone();
     is_mutable = false;
     is_constant = false;
 }
-AddrWordExp::~AddrWordExp(){}
-llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
+AddrExp::~AddrExp(){}
+llvm::Value* AddrExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     std::string type_name;
     llvm::Value* llvm_value = this->value->assemble(program, func, context, &type_name);
     if(llvm_value == NULL) return NULL;
@@ -855,11 +901,11 @@ llvm::Value* AddrWordExp::assemble(Program& program, Function& func, AssemblyDat
     if(expr_type != NULL) *expr_type = "*" + type_name;
     return llvm_value;
 }
-std::string AddrWordExp::toString(){
+std::string AddrExp::toString(){
     return "&" + value->toString();
 }
-PlainExp* AddrWordExp::clone(){
-    return new AddrWordExp(*this);
+PlainExp* AddrExp::clone(){
+    return new AddrExp(*this);
 }
 
 LoadExp::LoadExp(ErrorHandler& err){
@@ -955,6 +1001,11 @@ llvm::Value* IndexLoadExp::assemble_lowlevel_array(Program& program, Function& f
 
     if(!Program::is_pointer_typename(pointer_typename) or !pointer_value->getType()->isPointerTy()){
         errors.panic("Can't dereference non-pointer type '" + pointer_typename + "'");
+        return NULL;
+    }
+
+    if(pointer_typename == "ptr"){
+        errors.panic("Can't dereference generic pointer type 'ptr'\n    (It must be casted to the appropriate type first)");
         return NULL;
     }
 
