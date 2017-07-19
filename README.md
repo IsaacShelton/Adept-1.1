@@ -447,7 +447,7 @@ public def main() int {
 The '```string```' type is literally just an alias for the type '```[]ubyte```'<br/><br/>
 <b>String literals that are of the type '```string```' use single quotes!</b><br/>
 (Instead of double quotes which are used for '```*ubyte```' string literals)<br/><br/>
-In addition, all the functions defined in '```adept/string.adept```' used for string manipulation also have a variant that takes a '```string```' instead of a '```*ubyte```'.
+All the functions defined in '```adept/string.adept```' used for string manipulation also have a variant that takes a '```string```' instead of a '```*ubyte```'. Also, ```string.data``` is always guaranteed to be a valid null-terminated string.
 ```
 private import "adept/string.adept"
 private improt "adept/terminal.adept"
