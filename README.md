@@ -384,3 +384,31 @@ public def main() int {
     return 0
 }
 ```
+
+### Variable Argument Functions (and methods)
+NOTE: Try to avoid variable argument functions if and when performance matters.
+Currently the implementation of calling them isn't the fastest :\\
+<br/><br/>
+NOTE: Variable argument functions can also be called by passing an ```[]``` type containing the extra arguments.
+```
+private import "adept/terminal.adept"
+
+public def main() int {
+    // Call the function with a different amount of integers each time
+    printIntegers(10, 20, 30, 40)
+    printIntegers(11, 12, 13, 14, 15, 16, 17)
+    
+    // You can also pass an array containing the integers instead
+    integer_array [] int
+    integer_array.data = {1, 2, 3}
+    integer_array.length = 3ui
+    printIntegers(integer_array)
+    return 0
+}
+
+private def printIntegers(integers ... int) void {
+    for i usize = 0ui, i != integers.length, i += 1ui {
+        println(integers[i])
+    }
+}
+```
