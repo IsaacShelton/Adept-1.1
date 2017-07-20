@@ -22,4 +22,7 @@
   #define ADEPT_BUILD_NAME "Release 64-bit"
 #endif // ADEPT_RELEASE_64
 
+void print_compiler_info();
+void print_help();
+
 #endif // INFO_H_INCLUDED

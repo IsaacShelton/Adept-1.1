@@ -7,6 +7,7 @@
 
 #include "../include/info.h"
 #include "../include/cache.h"
+#include "../include/clock.h"
 #include "../include/lexer.h"
 #include "../include/parse.h"
 #include "../include/errors.h"
@@ -25,6 +26,11 @@ void AdeptCompiler::execute(int argc, char** argv){
 
     using namespace boost::filesystem;
 
+    Clock clock;
+    double lexer_time = 0.0;
+    double parser_time = 0.0;
+    double assembler_time = 0.0;
+    double complete_time = 0.0;
     bool arguments_altered = false;
 
     if(argc == 1 and exists("build.adept")){
@@ -39,13 +45,17 @@ void AdeptCompiler::execute(int argc, char** argv){
 
     if(argc < 2){
         // Print compiler version info
-        std::cout << "Adept Compiler Version 1.1.0 - " << ADEPT_BUILD_NAME << std::endl;
-        std::cout << "Copyright (c) 2016-2017 Isaac Shelton" << std::endl << std::endl;
-
-        std::cout << "Usage: adept <filename> [options]" << std::endl << std::endl;
+        print_compiler_info();
         if(arguments_altered) delete argv;
         return 1;
     }
+
+    if(strcmp(argv[1], "--help") == 0 or strcmp(argv[1], "-help") == 0){
+        print_help();
+        return 1;
+    }
+
+    clock.start();
 
     // Get the full filename of the source file that we want to compile
     std::string source_filename = absolute(path(argv[1]), current_path()).string();
@@ -72,19 +82,42 @@ void AdeptCompiler::execute(int argc, char** argv){
     }
 
     username = config.username;
+    if(config.time) clock.remember();
 
-    if(program != NULL){
-        // A new program was created successfully
+    if(config.time){
+        if(program != NULL){
+            // A new program was created successfully
 
-        // Compiler Frontend
-        if( tokenize(config, source_filename, tokens, errors) != 0 ) exit(1);
-        if( parse(config, tokens, *program, errors) != 0 ) exit(1);
-        free_tokens(*tokens); // Free data held by tokens
-        delete tokens; // Free the token list itself
+            // Compiler Frontend
+            if( tokenize(config, source_filename, tokens, errors) != 0 ) exit(1);
+            lexer_time = clock.since();
+            clock.remember();
+
+            if( parse(config, tokens, *program, errors) != 0 ) exit(1);
+            free_tokens(*tokens); // Free data held by tokens
+            delete tokens; // Free the token list itself
+            parser_time = clock.since();
+            clock.remember();
+        }
+        else {
+            // A program with the same filename already exists
+            program = cache_manager.getProgram(source_filename);
+        }
     }
     else {
-        // A program with the same filename already exists
-        program = cache_manager.getProgram(source_filename);
+        if(program != NULL){
+            // A new program was created successfully
+
+            // Compiler Frontend
+            if( tokenize(config, source_filename, tokens, errors) != 0 ) exit(1);
+            if( parse(config, tokens, *program, errors) != 0 ) exit(1);
+            free_tokens(*tokens); // Free data held by tokens
+            delete tokens; // Free the token list itself
+        }
+        else {
+            // A program with the same filename already exists
+            program = cache_manager.getProgram(source_filename);
+        }
     }
 
     // Compiler Backend
@@ -98,6 +131,12 @@ void AdeptCompiler::execute(int argc, char** argv){
         }
         exit(1);
     }
+
+    if(config.time){
+        assembler_time = clock.since();
+        clock.remember();
+    }
+
     if( finalize(context, config, *program, errors) != 0 ){
         if(arguments_altered) delete argv;
         cache_manager.free();
@@ -107,6 +146,14 @@ void AdeptCompiler::execute(int argc, char** argv){
             std::cin.get();
         }
         exit(1);
+    }
+
+    if(config.time){
+        complete_time = clock.since_start();
+        std::cout << "Successfully compiled '" << filename_name(source_filename) << "' in " << complete_time << " seconds" << std::endl;
+        std::cout << "    Lexer     : " << lexer_time << " seconds" << std::endl;
+        std::cout << "    Parser    : " << parser_time << " seconds" << std::endl;
+        std::cout << "    Assembler : " << assembler_time << " seconds" << std::endl;
     }
 
     // If altered, free argv

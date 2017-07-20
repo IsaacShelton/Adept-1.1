@@ -11,7 +11,7 @@
 #include "../include/strings.h"
 
 int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens, ErrorHandler& errors){
-    if(config.time) config.clock.remember();
+    if(config.time_verbose) config.time_verbose_clock.remember();
     std::ifstream adept;
 
     adept.open(filename.c_str());
@@ -32,9 +32,9 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
     adept.close();
 
     // Print Lexer Time
-    if(config.time and !config.silent){
-        config.clock.print_since("LEXER DONE", filename_name(config.filename));
-        config.clock.remember();
+    if(config.time_verbose and !config.silent){
+        config.time_verbose_clock.print_since("LEXER DONE", filename_name(config.filename));
+        config.time_verbose_clock.remember();
     }
 
     return 0;

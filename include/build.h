@@ -25,11 +25,13 @@ void buildscript_AdeptConfig_free(AdeptConfig*);
 void buildscript_AdeptConfig_defaults(AdeptConfig*);
 
 void buildscript_AdeptConfig_setTiming(AdeptConfig*, bool);
+void buildscript_AdeptConfig_setTimingVerbose(AdeptConfig*, bool);
 void buildscript_AdeptConfig_setSilent(AdeptConfig*, bool);
 void buildscript_AdeptConfig_setJIT(AdeptConfig*, bool);
 void buildscript_AdeptConfig_setOptimization(AdeptConfig*, char);
 
 bool buildscript_AdeptConfig_isTiming(AdeptConfig*);
+bool buildscript_AdeptConfig_isTimingVerbose(AdeptConfig*);
 bool buildscript_AdeptConfig_isSilent(AdeptConfig*);
 bool buildscript_AdeptConfig_isJIT(AdeptConfig*);
 char buildscript_AdeptConfig_getOptimization(AdeptConfig*);

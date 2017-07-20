@@ -63,7 +63,7 @@ int build(AssemblyData& context, Configuration& config, Program& program, ErrorH
     }
 }
 int build_program(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
-    if(config.time) config.clock.remember();
+    if(config.time_verbose) config.time_verbose_clock.remember();
     std::string target_name = filename_change_ext(config.filename, "exe");
     std::string target_obj  = (config.obj)      ? filename_change_ext(filename_name(config.filename), "o") : "C:/Users/" + config.username + "/.adept/obj/tmp/object.o";
     std::string target_bc   = (config.bytecode) ? filename_change_ext(filename_name(config.filename), "bc")  : "C:/Users/" + config.username + "/.adept/obj/tmp/bytecode.bc";
@@ -118,7 +118,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         if(assemble(import_context, *uncompiled_dependency->config, *dependency_program, errors) != 0) return 1;
 
         // Remember this time if we are timing the compilation
-        if(config.time and !config.silent) config.clock.remember();
+        if(config.time_verbose and !config.silent) config.time_verbose_clock.remember();
 
         out_stream = new llvm::raw_fd_ostream(uncompiled_dependency->target_bc.c_str(), error_str, llvm::sys::fs::F_None);
         llvm::WriteBitcodeToFile(import_context.module.get(), *out_stream);
@@ -132,18 +132,18 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
             native_build_module(context, uncompiled_dependency->target_bc, uncompiled_dependency->target_obj, module_build_options);
         }
 
-        if(config.time and !config.silent){
-            config.clock.print_since("NATIVE DONE", filename_name(uncompiled_dependency->filename));
-            config.clock.remember();
+        if(config.time_verbose and !config.silent){
+            config.time_verbose_clock.print_since("NATIVE DONE", filename_name(uncompiled_dependency->filename));
+            config.time_verbose_clock.remember();
         }
     }
 
     native_build_module(context, target_bc, target_obj, module_build_options);
 
     // Print Native Export Time
-    if(config.time and !config.silent){
-        config.clock.print_since("NATIVE DONE", filename_name(config.filename));
-        config.clock.remember();
+    if(config.time_verbose and !config.silent){
+        config.time_verbose_clock.print_since("NATIVE DONE", filename_name(config.filename));
+        config.time_verbose_clock.remember();
     }
 
     if(config.link and !config.obj and !config.bytecode){
@@ -164,17 +164,17 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
         }
 
         // Print Linker Time
-        if(config.time and !config.silent){
-            config.clock.print_since("LINKER DONE", filename_name(config.filename));
+        if(config.time_verbose and !config.silent){
+            config.time_verbose_clock.print_since("LINKER DONE", filename_name(config.filename));
         }
     }
 
-    config.clock.remember();
+    config.time_verbose_clock.remember();
     return 0;
 
 }
 int build_buildscript(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
-    if(config.time) config.clock.remember();
+    if(config.time_verbose) config.time_verbose_clock.remember();
     std::string build_result;
     AssemblyData build_context;
     llvm::Function* build_function = context.module->getFunction("build");
@@ -202,7 +202,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
         ModuleDependency* dependency = &program.dependencies[i];
         Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
 
-        dependency->config->clock.remember();
+        dependency->config->time_verbose_clock.remember();
         if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
 
         if(!dependency->is_nothing){
@@ -226,7 +226,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
     return 0;
 }
 int assemble(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
-    if(config.time) config.clock.remember();
+    if(config.time_verbose) config.time_verbose_clock.remember();
 
     context.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), context.context);
     if(program.generate_types(context) != 0) return 1;
@@ -311,9 +311,9 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
     if(assemble_function_bodies(context, config, program) != 0) return 1;
 
     // Print Assembler Time
-    if(config.time and !config.silent){
-        config.clock.print_since("ASSEMBLER DONE", filename_name(config.filename));
-        config.clock.remember();
+    if(config.time_verbose and !config.silent){
+        config.time_verbose_clock.print_since("ASSEMBLER DONE", filename_name(config.filename));
+        config.time_verbose_clock.remember();
     }
 
     if(!config.jit and config.link){

@@ -29,6 +29,7 @@
 #include "asmdata.h"
 
 void jit_init();
-int jit_run(Configuration* config, AssemblyData&, std::string, std::vector<ModuleDependency>& dependencies, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
+int jit_run(Configuration* config, AssemblyData&, const std::string&, std::vector<ModuleDependency>& dependencies, std::string&, std::vector<llvm::GenericValue> args = std::vector<llvm::GenericValue>(0));
+int jit_run_main(Configuration* config, AssemblyData&, std::vector<ModuleDependency>& dependencies, int&);
 
 #endif // JIT_H_INCLUDED

@@ -78,24 +78,26 @@ void build_add_api(Program* program){
     klass->is_imported = true;
     klass->members.push_back( ClassField{"", "ptr", false, false} );
 
-    klass->methods.resize(14);
+    klass->methods.resize(16);
     klass->methods[0] = Function("create", {}, "void", true, &program->origin_info);
     klass->methods[1] = Function("free", {}, "void", true, &program->origin_info);
     klass->methods[2] = Function("defaults", {}, "void", true, &program->origin_info);
 
     klass->methods[3] = Function("setTiming", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[4] = Function("setSilent", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[5] = Function("setJIT", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[6] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true, &program->origin_info);
+    klass->methods[4] = Function("setTimingVerbose", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    klass->methods[5] = Function("setSilent", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    klass->methods[6] = Function("setJIT", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    klass->methods[7] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true, &program->origin_info);
 
-    klass->methods[7] = Function("isTiming", {}, "bool", true, &program->origin_info);
-    klass->methods[8] = Function("isSilent", {}, "bool", true, &program->origin_info);
-    klass->methods[9] = Function("isJIT", {}, "bool", true, &program->origin_info);
-    klass->methods[10] = Function("getOptimization", {}, "ubyte", true, &program->origin_info);
+    klass->methods[8] = Function("isTiming", {}, "bool", true, &program->origin_info);
+    klass->methods[9] = Function("isTimingVerbose", {}, "bool", true, &program->origin_info);
+    klass->methods[10] = Function("isSilent", {}, "bool", true, &program->origin_info);
+    klass->methods[11] = Function("isJIT", {}, "bool", true, &program->origin_info);
+    klass->methods[12] = Function("getOptimization", {}, "ubyte", true, &program->origin_info);
 
-    klass->methods[11] = Function("compile", { Field{"", "*ubyte"} }, "int", true, &program->origin_info);
-    klass->methods[12] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
-    klass->methods[13] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
+    klass->methods[13] = Function("compile", { Field{"", "*ubyte"} }, "int", true, &program->origin_info);
+    klass->methods[14] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
+    klass->methods[15] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
 }
 
 extern "C" {
@@ -115,6 +117,7 @@ void buildscript_AdeptConfig_defaults(AdeptConfig* config){
     raw_config->link = true;
     raw_config->silent = false;
     raw_config->time = false;
+    raw_config->time_verbose = false;
     raw_config->optimization = 0;
     raw_config->load_dyn = true;
 
@@ -129,6 +132,9 @@ void buildscript_AdeptConfig_defaults(AdeptConfig* config){
 void buildscript_AdeptConfig_setTiming(AdeptConfig* config, bool whether){
     (*config)->time = whether;
 }
+void buildscript_AdeptConfig_setTimingVerbose(AdeptConfig* config, bool whether){
+    (*config)->time_verbose = whether;
+}
 void buildscript_AdeptConfig_setSilent(AdeptConfig* config, bool whether){
     (*config)->silent = whether;
 }
@@ -141,6 +147,9 @@ void buildscript_AdeptConfig_setOptimization(AdeptConfig* config, char value){
 
 bool buildscript_AdeptConfig_isTiming(AdeptConfig* config){
     return (*config)->time;
+}
+bool buildscript_AdeptConfig_isTimingVerbose(AdeptConfig* config){
+    return (*config)->time_verbose;
 }
 bool buildscript_AdeptConfig_isSilent(AdeptConfig* config){
     return (*config)->silent;
@@ -167,7 +176,7 @@ int buildscript_AdeptConfig_compile(AdeptConfig* config, const char* filename){
 
     // Start clock
     std::cout << std::fixed;
-    raw_config->clock.start();
+    raw_config->time_verbose_clock.start();
 
     // Compiler Frontend
     if(program != NULL){
@@ -186,7 +195,7 @@ int buildscript_AdeptConfig_compile(AdeptConfig* config, const char* filename){
     if( finalize(context, *raw_config, *program, errors) != 0 ) return 1;
 
     // Output divider if needed
-    if(raw_config->time and !raw_config->silent){
+    if(raw_config->time_verbose and !raw_config->silent){
         printf("-------------------------------------------------\n");
     }
 

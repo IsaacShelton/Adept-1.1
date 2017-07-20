@@ -15,11 +15,12 @@ struct Configuration {
     bool load_dyn;
     bool silent;
     bool time;
+    bool time_verbose;
     char optimization;
     bool add_build_api;
     bool wait;
 
-    Clock clock;
+    Clock time_verbose_clock;
     std::string username;
     std::string filename;
     std::string extra_options;

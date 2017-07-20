@@ -10,13 +10,13 @@
 #include "../include/finalize.h"
 
 int finalize(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
-    if(config.time and !config.silent){
-        config.clock.print_since_start("DONE", filename_name(config.filename));
-        config.clock.remember();
+    if(config.time_verbose and !config.silent){
+        config.time_verbose_clock.print_since_start("DONE", filename_name(config.filename));
+        config.time_verbose_clock.remember();
     }
 
     if(config.jit){
-        std::string result;
+        int result;
         AssemblyData build_context;
         llvm::Function* main_function = context.module->getFunction("main");
         std::error_code error_str;
@@ -43,7 +43,7 @@ int finalize(AssemblyData& context, Configuration& config, Program& program, Err
             ModuleDependency* dependency = &program.dependencies[i];
             Program* dependency_program = program.parent_manager->getProgram(dependency->filename);
 
-            dependency->config->clock.remember();
+            dependency->config->time_verbose_clock.remember();
             if(assemble(import_context, *dependency->config, *dependency_program, errors) != 0) return 1;
 
             if(!dependency->is_nothing){
@@ -55,13 +55,13 @@ int finalize(AssemblyData& context, Configuration& config, Program& program, Err
         }
 
         // Run 'main()'
-        if(jit_run(&config, context, "main", program.dependencies, result) != 0) return 1;
+        if(jit_run_main(&config, context, program.dependencies, result) != 0) return 1;
 
         // Print Execution Time
-        if(config.time and !config.silent){
-            config.clock.print_since("EXECUTION DONE", filename_name(config.filename));
-            printf("=> %s\n", result.c_str());
-            config.clock.remember();
+        if(config.time_verbose and !config.silent){
+            config.time_verbose_clock.print_since("EXECUTION DONE", filename_name(config.filename));
+            printf("=> %s\n", to_str(result).c_str());
+            config.time_verbose_clock.remember();
         }
     }
 

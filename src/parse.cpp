@@ -14,7 +14,7 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
-    if(config.time) config.clock.remember();
+    if(config.time_verbose) config.time_verbose_clock.remember();
 
     // Generate standard type aliases
     program.generate_type_aliases();
@@ -30,9 +30,9 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
     }
 
     // Print Parser Time
-    if(config.time and !config.silent){
-        config.clock.print_since("PARSER DONE", filename_name(config.filename));
-        config.clock.remember();
+    if(config.time_verbose and !config.silent){
+        config.time_verbose_clock.print_since("PARSER DONE", filename_name(config.filename));
+        config.time_verbose_clock.remember();
     }
     return 0;
 }
@@ -685,8 +685,6 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     std::string target_bc;
     std::string target_obj;
 
-    import_config->silent = config.silent;
-    import_config->time = config.time;
     import_config->link = false;
     import_config->obj = false;
     import_config->bytecode = false;

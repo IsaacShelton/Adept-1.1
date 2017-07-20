@@ -135,6 +135,7 @@
 		<Unit filename="src/errors.cpp" />
 		<Unit filename="src/expression.cpp" />
 		<Unit filename="src/finalize.cpp" />
+		<Unit filename="src/info.cpp" />
 		<Unit filename="src/jit.cpp" />
 		<Unit filename="src/lexer.cpp" />
 		<Unit filename="src/main.cpp" />
