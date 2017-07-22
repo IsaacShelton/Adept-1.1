@@ -25,16 +25,21 @@ struct Field {
     std::string type;
 };
 
+#define CLASSFIELD_PUBLIC 0x01
+#define CLASSFIELD_STATIC 0x02
+
 struct ClassField {
     std::string name;
     std::string type;
-    bool is_public;
-    bool is_static;
+    char flags;
 };
 
 struct OriginInfo {
     std::string filename;
 };
+
+#define STRUCT_PUBLIC 0x01
+#define STRUCT_PACKED 0x02
 
 class Structure {
     public:
@@ -50,6 +55,12 @@ class Structure {
     int find_index(std::string name, int* index);
 };
 
+#define FUNC_PUBLIC   0x01
+#define FUNC_STATIC   0x02
+#define FUNC_STDCALL  0x04
+#define FUNC_EXTERNAL 0x08
+#define FUNC_VARARGS  0x10
+
 class Function {
     // NOTE: This class is also used for methods
 
@@ -58,11 +69,7 @@ class Function {
     std::vector<Field> arguments;
     std::string return_type;
     StatementList statements;
-    bool is_public;
-    bool is_static;
-    bool is_stdcall;
-    bool is_external;
-    bool is_variable_args;
+    char flags;
     size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
 
     OriginInfo* origin;
@@ -75,15 +82,17 @@ class Function {
     void print_statements();
 };
 
+#define EXTERN_PUBLIC  0x01
+#define EXTERN_MANGLED 0x02
+#define EXTERN_STDCALL 0x04
+#define EXTERN_VARARGS 0x08
+
 class External {
     public:
     std::string name;
     std::vector<std::string> arguments;
     std::string return_type;
-    bool is_public;
-    bool is_mangled;
-    bool is_stdcall;
-    bool is_variable_args;
+    char flags;
 
     OriginInfo* origin;
 
@@ -123,13 +132,15 @@ class Constant {
     Constant(const std::string&, PlainExp*, bool, OriginInfo*);
 };
 
+#define GLOBAL_PUBLIC   0x01
+#define GLOBAL_IMPORTED 0x02
+#define GLOBAL_EXTERNAL 0x04
+
 class Global {
     public:
     std::string name;
     std::string type;
-    bool is_public;
-    bool is_imported;
-    bool is_external;
+    char flags;
     ErrorHandler errors;
 
     OriginInfo* origin;
@@ -138,13 +149,15 @@ class Global {
     Global(const std::string&, const std::string&, bool, bool, ErrorHandler&, OriginInfo*);
 };
 
+#define CLASS_PUBLIC   0x01
+#define CLASS_IMPORTED 0x02
+
 class Class {
     public:
     std::string name;
     std::vector<ClassField> members;
     std::vector<Function> methods;
-    bool is_public;
-    bool is_imported;
+    char flags;
 
     OriginInfo* origin;
 

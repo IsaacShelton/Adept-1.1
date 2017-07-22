@@ -1065,7 +1065,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
     if(program.find_func(name, argument_types, &func_data) == 0){
         // Standard function exists
 
-        std::string final_name = (func_data.is_mangled) ? mangle(name, func_data.arguments) : name;
+        std::string final_name = (func_data.flags & EXTERN_MANGLED) ? mangle(name, func_data.arguments) : name;
         llvm::Function* target = context.module->getFunction(final_name);
         if (!target){
             errors.panic_undeclared_func(name, argument_types);
@@ -1073,8 +1073,8 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
         }
         ensure(func_data.arguments.size() == target->arg_size());
 
-        if(func_data.is_variable_args){
-            AssembleFunction* asm_func = context.getFunction( (!func.is_external) ? mangle(program, func) : func.name );
+        if(func_data.flags & EXTERN_VARARGS){
+            AssembleFunction* asm_func = context.getFunction( !(func.flags & FUNC_EXTERNAL) ? mangle(program, func) : func.name );
             std::string va_arg_typename = func_data.arguments[func_data.arguments.size()-1];
             va_arg_typename = va_arg_typename.substr(2, va_arg_typename.length() - 2);
 
@@ -1160,7 +1160,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             // Pass arguments
             if(expr_type != NULL) *expr_type = func_data.return_type;
             llvm::CallInst* call = context.builder.CreateCall(target, new_argument_values);
-            call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
+            call->setCallingConv(func_data.flags & EXTERN_STDCALL ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
 
             // Free variable argument array
             call_values[0] = arguments_memory;
@@ -1184,7 +1184,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
 
             if(expr_type != NULL) *expr_type = func_data.return_type;
             llvm::CallInst* call = context.builder.CreateCall(target, argument_values);
-            call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
+            call->setCallingConv(func_data.flags & EXTERN_STDCALL ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
             return call;
         }
     }
@@ -1395,11 +1395,11 @@ llvm::Value* MemberExp::assemble_class(Program& program, Function& func, Assembl
     ClassField* field = &target.members[index];
     std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
 
-    if(!field->is_public and parent_class_name != data_typename){
+    if(!(field->flags & CLASSFIELD_PUBLIC) and parent_class_name != data_typename){
         errors.panic("The member '" + member + "' of class '" + target.name + "' is private");
         return NULL;
     }
-    if(field->is_static){
+    if(field->flags & CLASSFIELD_STATIC){
         errors.panic("The member '" + member + "' of class '" + target.name + "' is static");
         return NULL;
     }
@@ -1523,7 +1523,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
     std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
 
     // Ensure the function is public
-    if(!func_data.is_public and parent_class_name != object_typename){
+    if(!(func_data.flags & EXTERN_PUBLIC) and parent_class_name != object_typename){
         errors.panic("The method '" + object_typename + "." + name + "' is private");
         return NULL;
     }
@@ -1541,8 +1541,8 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
 
     ensure(func_data.arguments.size() + 1 == target->arg_size());
 
-    if(func_data.is_variable_args){
-        AssembleFunction* asm_func = context.getFunction( (!func.is_external) ? mangle(program, func) : func.name );
+    if(func_data.flags & EXTERN_VARARGS){
+        AssembleFunction* asm_func = context.getFunction( !(func.flags & FUNC_EXTERNAL) ? mangle(program, func) : func.name );
         std::string va_arg_typename = func_data.arguments[func_data.arguments.size()-1];
         va_arg_typename = va_arg_typename.substr(2, va_arg_typename.length() - 2);
 
@@ -1628,7 +1628,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
         // Pass arguments
         if(expr_type != NULL) *expr_type = func_data.return_type;
         llvm::CallInst* call = context.builder.CreateCall(target, new_argument_values);
-        call->setCallingConv(func_data.is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
+        call->setCallingConv(func_data.flags & EXTERN_STDCALL ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
 
         // Free variable argument array
         call_values[0] = arguments_memory;
@@ -2180,7 +2180,7 @@ llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssemblyData
         return NULL;
     }
 
-    final_name = (function_data.is_mangled ? mangle(function_name, function_arguments) : function_name);
+    final_name = (function_data.flags & EXTERN_MANGLED ? mangle(function_name, function_arguments) : function_name);
     llvm::Function* target_function = context.module->getFunction(final_name);
 
     std::string args_str;

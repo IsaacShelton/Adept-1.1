@@ -23,18 +23,18 @@ void create_assembly_functions(AssemblyData& assembly_data, Program& program){
     size_t index = 0;
 
     for(const Class& klass : ast_classes){
-        if(klass.is_imported) continue;
+        if(klass.flags & CLASS_IMPORTED) continue;
         ast_classes_method_count += klass.methods.size();
     }
 
     export_functions.resize(ast_functions.size() + ast_classes_method_count);
 
     for(const Function& func : ast_functions){
-        export_functions[index++].mangled_name = (func.is_external) ? func.name : mangle(program, func);
+        export_functions[index++].mangled_name = (func.flags & FUNC_EXTERNAL) ? func.name : mangle(program, func);
     }
 
     for(const Class& klass : ast_classes){
-        if(klass.is_imported) continue;
+        if(klass.flags & CLASS_IMPORTED) continue;
 
         for(const Function& method : klass.methods){
             export_functions[index++].mangled_name = mangle(klass, method);

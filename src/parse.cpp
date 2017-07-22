@@ -318,9 +318,8 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     size_t class_offset_plus_one = classes->size();
 
     // Fill in the class data
-    klass->name = name;
-    klass->is_public = attr_info.is_public;
-    klass->is_imported = false;
+    klass->name = name;;
+    klass->flags = (attr_info.is_public) ? CLASS_PUBLIC : 0x00;
     klass->origin = &program.origin_info;
 
     // Skip over class name and '{'
@@ -399,7 +398,11 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
 
         next_index(i, tokens.size());
-        klass->members.push_back( ClassField{name, type, member_attr.is_public, member_attr.is_static} );
+
+        char member_flags = 0x00;
+        if(member_attr.is_public) member_flags |= CLASSFIELD_PUBLIC;
+        if(member_attr.is_static) member_flags |= CLASSFIELD_STATIC;
+        klass->members.push_back( ClassField{name, type, member_flags} );
 
         while(tokens[i].id == TOKENID_NEWLINE){
             errors.line++;
@@ -836,9 +839,11 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
         Global* global = &( (*globals)[globals->size()-1] );
         global->name = name;
         global->type = type;
-        global->is_public = attr_info.is_public;
-        global->is_imported = false;
-        global->is_external = attr_info.is_external;
+
+        char global_flags = 0x00;
+        if(attr_info.is_public) global_flags   |= GLOBAL_PUBLIC;
+        if(attr_info.is_external) global_flags |= GLOBAL_EXTERNAL;
+        global->flags = global_flags;
         global->origin = &program.origin_info;
         global->errors = errors;
     }

@@ -74,9 +74,8 @@ void build_add_api(Program* program){
     Class* klass = &program->classes[program->classes.size()-1];
 
     klass->name = "AdeptConfig";
-    klass->is_public = false;
-    klass->is_imported = true;
-    klass->members.push_back( ClassField{"", "ptr", false, false} );
+    klass->flags = CLASS_IMPORTED;
+    klass->members.push_back( ClassField{"", "ptr", 0x00} );
 
     klass->methods.resize(16);
     klass->methods[0] = Function("create", {}, "void", true, &program->origin_info);

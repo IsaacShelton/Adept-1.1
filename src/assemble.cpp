@@ -345,11 +345,11 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
             return 1;
         }
 
-        if(global->is_imported or global->is_external){
+        if(global->flags & GLOBAL_IMPORTED or global->flags & GLOBAL_EXTERNAL){
             linkage = llvm::GlobalVariable::LinkageTypes::ExternalLinkage;
         }
         else {
-            if(global->is_public and !config->add_build_api and !config->jit){
+            if(global->flags & GLOBAL_PUBLIC and !config->add_build_api and !config->jit){
                 // If global variable is public and is not a part of a build script
                 linkage = llvm::GlobalVariable::LinkageTypes::CommonLinkage;
             } else {
@@ -361,7 +361,7 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
         created_global = new llvm::GlobalVariable(*(context->module.get()), global_llvm_type, is_constant,
                             linkage, nullptr, global->name);
 
-        if(!global->is_imported and !global->is_external){
+        if(!(global->flags & GLOBAL_IMPORTED) and !(global->flags & GLOBAL_EXTERNAL)){
             // Resolve if an alias
             program->resolve_if_alias(global->type);
 
@@ -409,7 +409,8 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
             }
         }
 
-        created_global->setExternallyInitialized( (global->is_public or global->is_imported or global->is_external) ); // Assume externally initialized if public
+        // Assume externally initialized if public
+        created_global->setExternallyInitialized( (global->flags & GLOBAL_PUBLIC or global->flags & GLOBAL_IMPORTED or global->flags & GLOBAL_EXTERNAL) );
         asm_global->variable = created_global;
     }
 
@@ -420,7 +421,7 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
 
     for(size_t e = 0; e != externs_count; e++){
         External* external = &externs[e];
-        std::string final_name = (external->is_mangled) ? mangle(external->name, external->arguments) : external->name;
+        std::string final_name = (external->flags & EXTERN_MANGLED) ? mangle(external->name, external->arguments) : external->name;
         llvm::Function* llvm_function = context->module->getFunction(final_name);
 
         if(!llvm_function){
@@ -455,7 +456,7 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
 int assemble_class_skeletons(AssemblyData& context, Configuration& config, Program& program){
     for(Class& klass : program.classes){
         for(Function& method : klass.methods){
-            if(assemble_method(context, config, program, klass, method, klass.is_imported) != 0) return 1;
+            if(assemble_method(context, config, program, klass, method, klass.flags & CLASS_IMPORTED) != 0) return 1;
         }
     }
 
@@ -476,10 +477,7 @@ int assemble_class_bodies(AssemblyData& context, Configuration& config, Program&
     // Anyways....
 
     for(Class& klass : program.classes){
-        if(klass.is_imported){
-            // Don't assemble the class if it was imported
-            continue;
-        }
+        if(klass.flags & CLASS_IMPORTED) continue; // Don't assemble the class if it was imported
 
         for(Function& method : klass.methods){
             if(assemble_method_body(context, config, program, klass, method) != 0) return 1;
@@ -492,14 +490,14 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
     // Assemble all the functions in a program
 
     for(Function& func : program.functions){
-        std::string final_function_name = (func.is_external) ? func.name : mangle(program, func);
+        std::string final_function_name = (func.flags & FUNC_EXTERNAL) ? func.name : mangle(program, func);
         llvm::Function* llvm_function = context.module->getFunction(final_function_name);
 
         if(!llvm_function){
             llvm::Type* llvm_type;
             std::vector<llvm::Type*> args;
 
-            if(func.is_variable_args){
+            if(func.flags & FUNC_VARARGS){
                 args.resize(func.arguments.size());
             } else {
                 args.resize(func.arguments.size());
@@ -507,7 +505,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 
             // Throw an error if main is private
             if(func.name == "main"){
-                if(!func.is_public){
+                if(!(func.flags & FUNC_PUBLIC)){
                     fail_filename(config, MAIN_IS_PRIVATE);
                     return 1;
                 }
@@ -529,7 +527,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             }
 
             llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);
-            llvm_function = llvm::Function::Create(function_type, (func.is_public) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_function_name, context.module.get());
+            llvm_function = llvm::Function::Create(function_type, (func.flags & FUNC_PUBLIC) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, final_function_name, context.module.get());
 
             // Create a new basic block to start insertion into.
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
@@ -585,7 +583,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 int assemble_function_bodies(AssemblyData& context, Configuration& config, Program& program){
 
     for(Function& func : program.functions){
-        std::string final_function_name = (func.is_external) ? func.name : mangle(program, func);
+        std::string final_function_name = (func.flags & FUNC_EXTERNAL) ? func.name : mangle(program, func);
         llvm::Function* llvm_function = context.module->getFunction(final_function_name);
         AssembleFunction* asm_func = context.getFunction(final_function_name);
         context.current_function = asm_func;
@@ -651,7 +649,7 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
         }
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
-        llvm_function = llvm::Function::Create(function_type, (method.is_public or is_imported) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangled_method_name, context.module.get());
+        llvm_function = llvm::Function::Create(function_type, (is_imported or method.flags & FUNC_PUBLIC) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangled_method_name, context.module.get());
         assert(llvm_function != NULL);
 
         if(!is_imported){

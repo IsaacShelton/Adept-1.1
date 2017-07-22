@@ -29,22 +29,14 @@ int Structure::find_index(std::string member_name, int* index){
 }
 
 Function::Function(){
-    this->is_public = false;
-    this->is_static = false;
-    this->is_stdcall = false;
-    this->is_external = false;
-    this->is_variable_args = false;
+    this->flags = 0x00;
     this->parent_class_offset = 0;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, bool is_public, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
-    this->is_public = is_public;
-    this->is_static = false;
-    this->is_stdcall = false;
-    this->is_external = false;
-    this->is_variable_args = false;
+    this->flags = (is_public) ? FUNC_PUBLIC : 0x00;
     this->parent_class_offset = 0;
     this->origin = origin;
 }
@@ -54,11 +46,15 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->arguments = arguments;
     this->return_type = return_type;
     this->statements = statements;
-    this->is_public = is_public;
-    this->is_static = is_static;
-    this->is_stdcall = is_stdcall;
-    this->is_external = is_external;
-    this->is_variable_args = is_variable_args;
+
+    char new_flags = 0x00;
+    if(is_public)        new_flags |= FUNC_PUBLIC;
+    if(is_static)        new_flags |= FUNC_STATIC;
+    if(is_stdcall)       new_flags |= FUNC_STDCALL;
+    if(is_external)      new_flags |= FUNC_EXTERNAL;
+    if(is_variable_args) new_flags |= FUNC_VARARGS;
+
+    this->flags = new_flags;
     this->parent_class_offset = 0;
     this->origin = origin;
 }
@@ -67,11 +63,7 @@ Function::Function(const Function& other){
     arguments = other.arguments;
     return_type = other.return_type;
     statements.resize(other.statements.size());
-    is_public = other.is_public;
-    is_static = other.is_static;
-    is_stdcall = other.is_stdcall;
-    is_external = other.is_external;
-    is_variable_args = other.is_variable_args;
+    flags = other.flags;
     parent_class_offset = other.parent_class_offset;
     origin = other.origin;
 
@@ -94,17 +86,21 @@ External::External(const std::string& name, const std::vector<std::string>& argu
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
-    this->is_public = is_public;
-    this->is_mangled = is_mangled;
-    this->is_stdcall = is_stdcall;
-    this->is_variable_args = is_variable_args;
+
+    char new_flags = 0x00;
+    if(is_public)        new_flags |= EXTERN_PUBLIC;
+    if(is_mangled)       new_flags |= EXTERN_MANGLED;
+    if(is_stdcall)       new_flags |= EXTERN_STDCALL;
+    if(is_variable_args) new_flags |= EXTERN_VARARGS;
+
+    this->flags = new_flags;
     this->origin = origin;
 }
 std::string External::toString(){
-    std::string prefix = std::string(is_public ? "public " : "private ");
+    std::string prefix = std::string(flags & EXTERN_PUBLIC ? "public " : "private ");
     std::string arg_str;
 
-    if(this->is_stdcall) prefix += "stdcall ";
+    if(flags & EXTERN_STDCALL) prefix += "stdcall ";
 
     for(size_t a = 0; a != arguments.size(); a++){
         arg_str += arguments[a];
@@ -140,29 +136,34 @@ Global::Global(){}
 Global::Global(const std::string& name, const std::string& type, bool is_public, bool is_external, ErrorHandler& errors, OriginInfo* origin){
     this->name = name;
     this->type = type;
-    this->is_public = is_public;
-    this->is_imported = false;
-    this->is_external = is_external;
+
+    char new_flags = 0x00;
+    if(is_public) new_flags |= GLOBAL_PUBLIC;
+    if(is_external) new_flags |= GLOBAL_EXTERNAL;
+
+    this->flags = new_flags;
     this->errors = errors;
     this->origin = origin;
 }
 
 Class::Class(){
-    this->is_public = false;
-    this->is_imported = false;
+    this->flags = 0x00;
     this->origin = NULL;
 }
 Class::Class(const std::string& name, bool is_public, bool is_imported, OriginInfo* origin){
     this->name = name;
-    this->is_public = is_public;
-    this->is_imported = is_imported;
+
+    char new_flags = 0x00;
+    if(is_public)   new_flags |= CLASS_PUBLIC;
+    if(is_imported) new_flags |= CLASS_IMPORTED;
+
+    this->flags = new_flags;
     this->origin = origin;
 }
 Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public, OriginInfo* origin){
     this->name = name;
     this->members = members;
-    this->is_public = is_public;
-    this->is_imported = false;
+    this->flags = (is_public) ? CLASS_PUBLIC : 0x00;
     this->origin = origin;
 }
 int Class::find_index(std::string member_name, int* index){
@@ -245,7 +246,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
 
     // Merge Functions
     for(const Function& new_func : other.functions){
-        if(!new_func.is_public) continue;
+        if(!(new_func.flags & FUNC_PUBLIC)) continue;
         if(this->already_imported(new_func.origin)) continue;
         std::string new_final_name = mangle(other, new_func);
 
@@ -257,7 +258,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
         }
 
         for(const External& external : externs){
-            if( new_final_name == (external.is_mangled ? mangle(external.name, external.arguments) : external.name) ){
+            if( new_final_name == (external.flags & EXTERN_MANGLED ? mangle(external.name, external.arguments) : external.name) ){
                 errors.panic(DUPLICATE_FUNC(new_func.name));
                 return 1;
             }
@@ -269,7 +270,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             arg_typenames[i] = new_func.arguments[i].type;
         }
 
-        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, !(new_func.is_external), new_func.is_stdcall, new_func.is_variable_args, new_func.origin);
+        External created_external(new_func.name, arg_typenames, new_func.return_type, public_import, !(new_func.flags & FUNC_EXTERNAL), new_func.flags & FUNC_STDCALL, new_func.flags & FUNC_VARARGS, new_func.origin);
         externs.push_back(created_external);
     }
 
@@ -313,7 +314,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
 
     // Merge Classes
     for(const Class& new_class : other.classes){
-        if(!new_class.is_public) continue;
+        if(!(new_class.flags & CLASS_PUBLIC)) continue;
         if(this->already_imported(new_class.origin)) continue;
 
         for(const Class& klass : classes){
@@ -348,8 +349,9 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
         Class* target = &classes[classes.size()-1];
 
         *target = new_class;
-        target->is_public = public_import;
-        target->is_imported = true;
+
+        if((target->flags & CLASS_PUBLIC) != public_import) target->flags ^= CLASS_PUBLIC;
+        target->flags |= CLASS_IMPORTED;
 
         for(size_t i = 0; i != target->methods.size(); i++){
             target->methods[i].parent_class_offset = classes.size();
@@ -358,18 +360,18 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
 
     // Merge Externals
     for(const External& new_external : other.externs){
-        if(!new_external.is_public) continue;
+        if(!(new_external.flags & EXTERN_PUBLIC)) continue;
         if(this->already_imported(new_external.origin)) continue;
-        std::string new_external_final_name = (new_external.is_mangled) ? mangle(new_external.name, new_external.arguments) : new_external.name;
+        std::string new_external_final_name = (new_external.flags & EXTERN_MANGLED) ? mangle(new_external.name, new_external.arguments) : new_external.name;
 
         for(const External& external : externs){
-            if( new_external_final_name == (external.is_mangled ? mangle(external.name, external.arguments) : external.name) ){
+            if( new_external_final_name == (external.flags & EXTERN_MANGLED ? mangle(external.name, external.arguments) : external.name) ){
                 errors.panic(DUPLICATE_FUNC(new_external.name));
             }
         }
 
         External target = new_external;
-        target.is_public = public_import;
+        if((target.flags & EXTERN_PUBLIC) != public_import) target.flags ^= EXTERN_PUBLIC;
         externs.push_back(target);
     }
 
@@ -407,7 +409,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
 
     // Merge Globals
     for(Global& new_global : other.globals){
-        if(!new_global.is_public) continue;
+        if(!(new_global.flags & GLOBAL_PUBLIC)) continue;
         if(this->already_imported(new_global.origin)) continue;
 
         for(const Global& global : globals){
@@ -418,8 +420,8 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
         }
 
         Global cloned_global = new_global;
-        cloned_global.is_imported = true;
-        cloned_global.is_public = public_import;
+        cloned_global.flags |= GLOBAL_IMPORTED;
+        if((cloned_global.flags & GLOBAL_PUBLIC) != public_import) cloned_global.flags ^= GLOBAL_PUBLIC;
         globals.push_back(std::move(cloned_global));
     }
 
@@ -897,10 +899,14 @@ int Program::find_func(const std::string& name, External* func){
             External external;
             external.name = found_function->name;
             external.return_type = found_function->return_type;
-            external.is_public = found_function->is_public;
-            external.is_mangled = !(found_function->is_external);
-            external.is_stdcall = found_function->is_stdcall;
-            external.is_variable_args = found_function->is_variable_args;
+
+            char new_flags = 0x00;
+            if(found_function->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
+            if(!(found_function->flags & FUNC_EXTERNAL)) new_flags |= EXTERN_MANGLED;
+            if(found_function->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
+            if(found_function->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
+
+            external.flags = new_flags;
             for(Field& field : found_function->arguments) external.arguments.push_back(field.type);
             *func = external;
             return 0;
@@ -925,7 +931,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             External external;
             Function* function_found = &functions[i];
 
-            if(function_found->is_variable_args) continue; // Prefer non-var-args functions if possible
+            if(function_found->flags & FUNC_VARARGS) continue; // Prefer non-var-args functions if possible
             if(args.size() != function_found->arguments.size()) continue; // Continue if different amount of arguments
 
             args_match = true;
@@ -939,10 +945,14 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
-            external.is_public = function_found->is_public;
-            external.is_mangled = !(function_found->is_external);
-            external.is_stdcall = function_found->is_stdcall;
-            external.is_variable_args = function_found->is_variable_args;
+
+            char new_flags = 0x00;
+            if(function_found->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
+            if(!(function_found->flags & FUNC_EXTERNAL)) new_flags |= EXTERN_MANGLED;
+            if(function_found->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
+            if(function_found->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
+
+            external.flags = new_flags;
             for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -955,7 +965,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
         if(externs[i].name == name){
             External* external = &externs[i];
 
-            if(external->is_variable_args) continue; // Perfer non-var-args externals if possible
+            if(external->flags & EXTERN_VARARGS) continue; // Perfer non-var-args externals if possible
             if(args.size() != external->arguments.size()) continue; // Continue if different amount of arguments
 
             args_match = true;
@@ -979,7 +989,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             Function* function_found = &functions[i];
 
             // We already checked for functions that don't take a variable number of arguments
-            if(!function_found->is_variable_args) continue;
+            if(!(function_found->flags & FUNC_VARARGS)) continue;
 
             size_t a;
             size_t last_arg = function_found->arguments.size() - 1;
@@ -1007,10 +1017,14 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
-            external.is_public = function_found->is_public;
-            external.is_mangled = !(function_found->is_external);
-            external.is_stdcall = function_found->is_stdcall;
-            external.is_variable_args = function_found->is_variable_args;
+
+            char new_flags = 0x00;
+            if(function_found->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
+            if(!(function_found->flags & FUNC_EXTERNAL)) new_flags |= EXTERN_MANGLED;
+            if(function_found->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
+            if(function_found->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
+
+            external.flags = new_flags;
             for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -1024,7 +1038,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             External* external = &externs[i];
 
             // We already checked for externals that don't take a variable number of arguments
-            if(!external->is_variable_args) continue;
+            if(!(external->flags & EXTERN_VARARGS)) continue;
 
             size_t a;
             size_t last_arg = external->arguments.size() - 1;
@@ -1071,7 +1085,7 @@ int Program::find_method(const std::string& class_name, const std::string& name,
             External external;
             Function* found_method = &klass.methods[i];
 
-            if(found_method->is_variable_args) continue; // Perfer non-var-args methods
+            if(found_method->flags & FUNC_VARARGS) continue; // Perfer non-var-args methods
             if(args.size() != found_method->arguments.size()) continue;
 
             args_match = true;
@@ -1085,10 +1099,13 @@ int Program::find_method(const std::string& class_name, const std::string& name,
 
             external.name = found_method->name;
             external.return_type = found_method->return_type;
-            external.is_public = found_method->is_public;
-            external.is_mangled = true;
-            external.is_stdcall = found_method->is_stdcall;
-            external.is_variable_args = found_method ->is_variable_args;
+
+            char new_flags = EXTERN_MANGLED;
+            if(found_method->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
+            if(found_method->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
+            if(found_method->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
+
+            external.flags = new_flags;
             for(Field& field : found_method->arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -1101,7 +1118,7 @@ int Program::find_method(const std::string& class_name, const std::string& name,
             External external;
             Function* found_method = &klass.methods[i];
 
-            if(!found_method->is_variable_args) continue; // We already checked for matching non-var-args methods
+            if(!(found_method->flags & FUNC_VARARGS)) continue; // We already checked for matching non-var-args methods
 
             size_t a;
             size_t last_arg = found_method->arguments.size() - 1;
@@ -1129,10 +1146,13 @@ int Program::find_method(const std::string& class_name, const std::string& name,
 
             external.name = found_method->name;
             external.return_type = found_method->return_type;
-            external.is_public = found_method->is_public;
-            external.is_mangled = true;
-            external.is_stdcall = found_method->is_stdcall;
-            external.is_variable_args = found_method->is_variable_args;
+
+            char new_flags = EXTERN_MANGLED;
+            if(found_method->flags & FUNC_PUBLIC)  new_flags |= EXTERN_PUBLIC;
+            if(found_method->flags & FUNC_STDCALL) new_flags |= EXTERN_STDCALL;
+            if(found_method->flags & FUNC_VARARGS) new_flags |= EXTERN_VARARGS;
+
+            external.flags = new_flags;
             for(Field& field : found_method->arguments) external.arguments.push_back(field.type);
 
             *func = external;
@@ -1195,7 +1215,7 @@ void Program::print(){
 }
 void Program::print_functions(){
     for(Function& f : functions){
-        std::cout << (f.is_public ? "public " : "private ");
+        std::cout << (f.flags & FUNC_PUBLIC ? "public " : "private ");
         std::cout << "def " << f.name << "(";
         for(size_t a = 0; a != f.arguments.size(); a++){
             std::cout << f.arguments[a].name << " " << f.arguments[a].type;
@@ -1210,8 +1230,8 @@ void Program::print_functions(){
 }
 void Program::print_externals(){
     for(External& e : externs){
-        std::cout << (e.is_public ? "public " : "private ");
-        if(e.is_stdcall) std::cout << "stdcall ";
+        std::cout << (e.flags & EXTERN_PUBLIC ? "public " : "private ");
+        if(e.flags & EXTERN_STDCALL) std::cout << "stdcall ";
         std::cout << "foreign " << e.name << "(";
         for(size_t a = 0; a != e.arguments.size(); a++){
             std::cout << e.arguments[a];
@@ -1234,20 +1254,20 @@ void Program::print_structures(){
 }
 void Program::print_classes(){
     for(Class& klass : classes){
-        std::cout << (klass.is_public ? "public " : "private ");
+        std::cout << (klass.flags & CLASS_PUBLIC ? "public " : "private ");
         std::cout << "class " << klass.name << " {" << std::endl;
 
         for(ClassField& f : klass.members){
             std::cout << "    ";
-            std::cout << (f.is_public ? "public " : "private ");
-            if(f.is_static) std::cout << "static ";
+            std::cout << (f.flags & CLASSFIELD_PUBLIC ? "public " : "private ");
+            if(f.flags & CLASSFIELD_STATIC) std::cout << "static ";
             std::cout << f.name << " " << f.type << std::endl;
         }
 
         for(Function& m : klass.methods){
             std::cout << "    ";
-            std::cout << (m.is_public ? "public " : "private ");
-            if(m.is_static) std::cout << "static ";
+            std::cout << (m.flags & FUNC_PUBLIC ? "public " : "private ");
+            if(m.flags & FUNC_STATIC) std::cout << "static ";
             std::cout << "def " << m.name << "(";
             for(size_t a = 0; a != m.arguments.size(); a++){
                 std::cout << m.arguments[a].name << " " << m.arguments[a].type;
@@ -1265,7 +1285,7 @@ void Program::print_classes(){
 }
 void Program::print_globals(){
     for(const Global& global : globals){
-        std::cout << (global.is_public ? "public " : "private ") << global.name << " " << global.type << std::endl;
+        std::cout << (global.flags & GLOBAL_PUBLIC ? "public " : "private ") << global.name << " " << global.type << std::endl;
     }
 }
 void Program::print_enums(){
