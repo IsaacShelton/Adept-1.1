@@ -478,7 +478,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
     // If function not terminated, make sure to add defer statements
     if(statements.size() != 0){
         // If we haven't already terminated the function and dumped the defered statements, do it now
-        if(!statements[statements.size()-1]->isTerminator()){
+        if(!(statements[statements.size()-1]->flags & STMT_TERMINATOR)){
             for(size_t i = defer_statements.size(); i-- > 0;){
                 statements.push_back( defer_statements[i]->clone() );
             }
@@ -562,7 +562,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     // If method not terminated, make sure to add defer statements
     if(statements.size() != 0){
         // If we haven't already terminated the function and dumped the defered statements, do it now
-        if(!statements[statements.size()-1]->isTerminator()){
+        if(!(statements[statements.size()-1]->flags & STMT_TERMINATOR)){
             for(size_t i = defer_statements.size(); i-- > 0;){
                 statements.push_back( defer_statements[i]->clone() );
             }

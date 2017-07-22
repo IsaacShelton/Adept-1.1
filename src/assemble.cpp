@@ -601,7 +601,7 @@ int assemble_function_bodies(AssemblyData& context, Configuration& config, Progr
         bool terminated = false;
 
         for(Statement* statement : func.statements){
-            if(statement->isTerminator()) terminated = true;
+            if(statement->flags & STMT_TERMINATOR) terminated = true;
             if(statement->assemble(program, func, context) != 0){
                 return 1;
             }
@@ -728,7 +728,7 @@ int assemble_method_body(AssemblyData& context, Configuration& config, Program& 
     bool terminated = false;
 
     for(size_t i = 0; i != method.statements.size(); i++){
-        if(method.statements[i]->isTerminator()) terminated = true;
+        if(method.statements[i]->flags & STMT_TERMINATOR) terminated = true;
 
         if(method.statements[i]->assemble(program, method, context) != 0){
             return 1;

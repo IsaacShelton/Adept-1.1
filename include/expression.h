@@ -9,6 +9,9 @@
 #include "errors.h"
 #include "asmdata.h"
 
+#define EXP_CONSTANT 0x01
+#define EXP_MUTABLE  0x02
+
 struct Program;
 struct Function;
 struct Structure;
@@ -16,11 +19,7 @@ struct Class;
 
 class PlainExp {
     public:
-    // Indicates whether or not this value can be modified
-    bool is_mutable;
-
-    // Indicates whether or not this is a constant value
-    bool is_constant;
+    char flags;
 
     // Filename & line in case of error
     ErrorHandler errors;

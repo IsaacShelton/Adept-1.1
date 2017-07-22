@@ -30,26 +30,27 @@
 Statement::Statement(){}
 Statement::Statement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00;
 }
 Statement::Statement(const Statement& other){
     this->errors = other.errors;
 }
 Statement::~Statement(){}
-bool Statement::isConditional(){
-    return false;
-}
 
 DeclareStatement::DeclareStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeclareStatement::DeclareStatement(const std::string& variable_name, const std::string& variable_type, ErrorHandler& errors){
     this->variable_name = variable_name;
     this->variable_type = variable_type;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeclareStatement::DeclareStatement(const DeclareStatement& other) : Statement(other) {
     this->variable_name = other.variable_name;
     this->variable_type = other.variable_type;
+    this->flags = 0x00;
 }
 DeclareStatement::~DeclareStatement(){}
 int DeclareStatement::assemble(Program& program, Function& func, AssemblyData& context){
@@ -88,24 +89,24 @@ std::string DeclareStatement::toString(unsigned int indent, bool skip_initial_in
 Statement* DeclareStatement::clone(){
     return new DeclareStatement(*this);
 }
-bool DeclareStatement::isTerminator(){
-    return false;
-}
 
 DeclareAssignStatement::DeclareAssignStatement(ErrorHandler& errors){
     this->variable_value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeclareAssignStatement::DeclareAssignStatement(const std::string& variable_name, const std::string& variable_type, PlainExp* variable_value, ErrorHandler& errors){
     this->variable_name = variable_name;
     this->variable_type = variable_type;
     this->variable_value = variable_value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeclareAssignStatement::DeclareAssignStatement(const DeclareAssignStatement& other) : Statement(other) {
     this->variable_name = other.variable_name;
     this->variable_type = other.variable_type;
     this->variable_value = other.variable_value->clone();
+    this->flags = 0x00;
 }
 DeclareAssignStatement::~DeclareAssignStatement(){
     delete this->variable_value;
@@ -157,21 +158,21 @@ std::string DeclareAssignStatement::toString(unsigned int indent, bool skip_init
 Statement* DeclareAssignStatement::clone(){
     return new DeclareAssignStatement(*this);
 }
-bool DeclareAssignStatement::isTerminator(){
-    return false;
-}
 
 MultiDeclareStatement::MultiDeclareStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00;
 }
 MultiDeclareStatement::MultiDeclareStatement(const std::vector<std::string>& variable_names, const std::string& variable_type, ErrorHandler& errors){
     this->variable_names = variable_names;
     this->variable_type = variable_type;
     this->errors = errors;
+    this->flags = 0x00;
 }
 MultiDeclareStatement::MultiDeclareStatement(const MultiDeclareStatement& other) : Statement(other) {
     this->variable_names = other.variable_names;
     this->variable_type = other.variable_type;
+    this->flags = 0x00;
 }
 MultiDeclareStatement::~MultiDeclareStatement(){}
 int MultiDeclareStatement::assemble(Program& program, Function& func, AssemblyData& context){
@@ -221,23 +222,23 @@ std::string MultiDeclareStatement::toString(unsigned int indent, bool skip_initi
 Statement* MultiDeclareStatement::clone(){
     return new MultiDeclareStatement(*this);
 }
-bool MultiDeclareStatement::isTerminator(){
-    return false;
-}
 
 MultiDeclareAssignStatement::MultiDeclareAssignStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00;
 }
 MultiDeclareAssignStatement::MultiDeclareAssignStatement(const std::vector<std::string>& variable_names, const std::string& variable_type, PlainExp* variable_value, ErrorHandler& errors){
     this->variable_names = variable_names;
     this->variable_type = variable_type;
     this->variable_value = variable_value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 MultiDeclareAssignStatement::MultiDeclareAssignStatement(const MultiDeclareAssignStatement& other) : Statement(other) {
     this->variable_names = other.variable_names;
     this->variable_type = other.variable_type;
     this->variable_value = other.variable_value->clone();
+    this->flags = 0x00;
 }
 MultiDeclareAssignStatement::~MultiDeclareAssignStatement(){
     delete this->variable_value;
@@ -301,17 +302,16 @@ std::string MultiDeclareAssignStatement::toString(unsigned int indent, bool skip
 Statement* MultiDeclareAssignStatement::clone(){
     return new MultiDeclareAssignStatement(*this);
 }
-bool MultiDeclareAssignStatement::isTerminator(){
-    return false;
-}
 
 ReturnStatement::ReturnStatement(ErrorHandler& errors){
     this->return_value = NULL;
     this->errors = errors;
+    this->flags = STMT_TERMINATOR;
 }
 ReturnStatement::ReturnStatement(PlainExp* return_value, ErrorHandler& errors) {
     this->return_value = return_value;
     this->errors = errors;
+    this->flags = STMT_TERMINATOR;
 }
 ReturnStatement::ReturnStatement(const ReturnStatement& other) : Statement(other) {
     if(other.return_value != NULL){
@@ -319,6 +319,7 @@ ReturnStatement::ReturnStatement(const ReturnStatement& other) : Statement(other
     } else {
         this->return_value = NULL;
     }
+    this->flags = STMT_TERMINATOR;
 }
 ReturnStatement::~ReturnStatement(){
     delete this->return_value;
@@ -360,23 +361,23 @@ std::string ReturnStatement::toString(unsigned int indent, bool skip_initial_ind
 Statement* ReturnStatement::clone(){
     return new ReturnStatement(*this);
 }
-bool ReturnStatement::isTerminator(){
-    return true;
-}
 
 AssignStatement::AssignStatement(ErrorHandler& errors){
     this->location = NULL;
     this->value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 AssignStatement::AssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
     this->location = location;
     this->value = value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 AssignStatement::AssignStatement(const AssignStatement& other) : Statement(other) {
     this->location = other.location->clone();
     this->value = other.value->clone();
+    this->flags = 0x00;
 }
 AssignStatement::~AssignStatement(){
     delete this->location;
@@ -389,7 +390,7 @@ int AssignStatement::assemble(Program& program, Function& func, AssemblyData& co
     std::string location_typename;
     std::string expression_typename;
 
-    if(!location->is_mutable){
+    if(!(location->flags & EXP_MUTABLE)){
         errors.panic("Can't assign immutable expression to a value");
         return 1;
     }
@@ -430,23 +431,23 @@ std::string AssignStatement::toString(unsigned int indent, bool skip_initial_ind
 Statement* AssignStatement::clone(){
     return new AssignStatement(*this);
 }
-bool AssignStatement::isTerminator(){
-    return false;
-}
 
 AdditionAssignStatement::AdditionAssignStatement(ErrorHandler& errors){
     this->location = NULL;
     this->value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 AdditionAssignStatement::AdditionAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
     this->location = location;
     this->value = value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 AdditionAssignStatement::AdditionAssignStatement(const AdditionAssignStatement& other) : Statement(other) {
     this->location = other.location->clone();
     this->value = other.value->clone();
+    this->flags = 0x00;
 }
 AdditionAssignStatement::~AdditionAssignStatement(){
     delete this->location;
@@ -460,7 +461,7 @@ int AdditionAssignStatement::assemble(Program& program, Function& func, Assembly
     std::string location_typename;
     std::string expression_typename;
 
-    if(!location->is_mutable){
+    if(!(location->flags & EXP_MUTABLE)){
         errors.panic("Can't assign immutable expression to a value");
         return 1;
     }
@@ -522,23 +523,23 @@ std::string AdditionAssignStatement::toString(unsigned int indent, bool skip_ini
 Statement* AdditionAssignStatement::clone(){
     return new AdditionAssignStatement(*this);
 }
-bool AdditionAssignStatement::isTerminator(){
-    return false;
-}
 
 SubtractionAssignStatement::SubtractionAssignStatement(ErrorHandler& errors){
     this->location = NULL;
     this->value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 SubtractionAssignStatement::SubtractionAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
     this->location = location;
     this->value = value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 SubtractionAssignStatement::SubtractionAssignStatement(const SubtractionAssignStatement& other) : Statement(other) {
     this->location = other.location->clone();
     this->value = other.value->clone();
+    this->flags = 0x00;
 }
 SubtractionAssignStatement::~SubtractionAssignStatement(){
     delete this->location;
@@ -552,7 +553,7 @@ int SubtractionAssignStatement::assemble(Program& program, Function& func, Assem
     std::string location_typename;
     std::string expression_typename;
 
-    if(!location->is_mutable){
+    if(!(location->flags & EXP_MUTABLE)){
         errors.panic("Can't assign immutable expression to a value");
         return 1;
     }
@@ -614,23 +615,23 @@ std::string SubtractionAssignStatement::toString(unsigned int indent, bool skip_
 Statement* SubtractionAssignStatement::clone(){
     return new SubtractionAssignStatement(*this);
 }
-bool SubtractionAssignStatement::isTerminator(){
-    return false;
-}
 
 MultiplicationAssignStatement::MultiplicationAssignStatement(ErrorHandler& errors){
     this->location = NULL;
     this->value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 MultiplicationAssignStatement::MultiplicationAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
     this->location = location;
     this->value = value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 MultiplicationAssignStatement::MultiplicationAssignStatement(const MultiplicationAssignStatement& other) : Statement(other) {
     this->location = other.location->clone();
     this->value = other.value->clone();
+    this->flags = 0x00;
 }
 MultiplicationAssignStatement::~MultiplicationAssignStatement(){
     delete this->location;
@@ -644,7 +645,7 @@ int MultiplicationAssignStatement::assemble(Program& program, Function& func, As
     std::string location_typename;
     std::string expression_typename;
 
-    if(!location->is_mutable){
+    if(!(location->flags & EXP_MUTABLE)){
         errors.panic("Can't assign immutable expression to a value");
         return 1;
     }
@@ -706,23 +707,23 @@ std::string MultiplicationAssignStatement::toString(unsigned int indent, bool sk
 Statement* MultiplicationAssignStatement::clone(){
     return new MultiplicationAssignStatement(*this);
 }
-bool MultiplicationAssignStatement::isTerminator(){
-    return false;
-}
 
 DivisionAssignStatement::DivisionAssignStatement(ErrorHandler& errors){
     this->location = NULL;
     this->value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DivisionAssignStatement::DivisionAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
     this->location = location;
     this->value = value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DivisionAssignStatement::DivisionAssignStatement(const DivisionAssignStatement& other) : Statement(other) {
     this->location = other.location->clone();
     this->value = other.value->clone();
+    this->flags = 0x00;
 }
 DivisionAssignStatement::~DivisionAssignStatement(){
     delete this->location;
@@ -736,7 +737,7 @@ int DivisionAssignStatement::assemble(Program& program, Function& func, Assembly
     std::string location_typename;
     std::string expression_typename;
 
-    if(!location->is_mutable){
+    if(!(location->flags & EXP_MUTABLE)){
         errors.panic("Can't assign immutable expression to a value");
         return 1;
     }
@@ -800,23 +801,23 @@ std::string DivisionAssignStatement::toString(unsigned int indent, bool skip_ini
 Statement* DivisionAssignStatement::clone(){
     return new DivisionAssignStatement(*this);
 }
-bool DivisionAssignStatement::isTerminator(){
-    return false;
-}
 
 ModulusAssignStatement::ModulusAssignStatement(ErrorHandler& errors){
     this->location = NULL;
     this->value = NULL;
     this->errors = errors;
+    this->flags = 0x00;
 }
 ModulusAssignStatement::ModulusAssignStatement(PlainExp* location, PlainExp* value, ErrorHandler& errors){
     this->location = location;
     this->value = value;
     this->errors = errors;
+    this->flags = 0x00;
 }
 ModulusAssignStatement::ModulusAssignStatement(const ModulusAssignStatement& other) : Statement(other) {
     this->location = other.location->clone();
     this->value = other.value->clone();
+    this->flags = 0x00;
 }
 ModulusAssignStatement::~ModulusAssignStatement(){
     delete this->location;
@@ -830,7 +831,7 @@ int ModulusAssignStatement::assemble(Program& program, Function& func, AssemblyD
     std::string location_typename;
     std::string expression_typename;
 
-    if(!location->is_mutable){
+    if(!(location->flags & EXP_MUTABLE)){
         errors.panic("Can't assign immutable expression to a value");
         return 1;
     }
@@ -894,21 +895,21 @@ std::string ModulusAssignStatement::toString(unsigned int indent, bool skip_init
 Statement* ModulusAssignStatement::clone(){
     return new ModulusAssignStatement(*this);
 }
-bool ModulusAssignStatement::isTerminator(){
-    return false;
-}
 
 CallStatement::CallStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00;
 }
 CallStatement::CallStatement(const std::string& name, const std::vector<PlainExp*>& args, ErrorHandler& errors){
     this->name = name;
     this->args = args;
     this->errors = errors;
+    this->flags = 0x00;
 }
 CallStatement::CallStatement(const CallStatement& other) : Statement(other) {
     this->name = other.name;
     this->args.resize(other.args.size());
+    this->flags = 0x00;
 
     for(size_t i = 0; i != args.size(); i++){
         args[i] = other.args[i]->clone();
@@ -1167,23 +1168,23 @@ std::string CallStatement::toString(unsigned int indent, bool skip_initial_inden
 Statement* CallStatement::clone(){
     return new CallStatement(*this);
 }
-bool CallStatement::isTerminator(){
-    return false;
-}
 
 MemberCallStatement::MemberCallStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00;
 }
 MemberCallStatement::MemberCallStatement(PlainExp* object, const std::string& name, const std::vector<PlainExp*>& args, ErrorHandler& errors){
     this->object = object;
     this->name = name;
     this->args = args;
     this->errors = errors;
+    this->flags = 0x00;
 }
 MemberCallStatement::MemberCallStatement(const MemberCallStatement& other) : Statement(other) {
     this->object = other.object->clone();
     this->name = other.name;
     this->args.resize(other.args.size());
+    this->flags = 0x00;
 
     for(size_t i = 0; i != args.size(); i++){
         args[i] = other.args[i]->clone();
@@ -1215,7 +1216,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
     }
 
     // Ensure the object is mutable
-    if(!object->is_mutable){
+    if(!(object->flags & EXP_MUTABLE)){
         errors.panic("Can't call method of object because it is immutable");
         return 1;
     }
@@ -1399,22 +1400,22 @@ std::string MemberCallStatement::toString(unsigned int indent, bool skip_initial
 Statement* MemberCallStatement::clone(){
     return new MemberCallStatement(*this);
 }
-bool MemberCallStatement::isTerminator(){
-    return false;
-}
 
 IfStatement::IfStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 IfStatement::IfStatement(PlainExp* condition, const StatementList& positive_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 IfStatement::IfStatement(const IfStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -1448,10 +1449,10 @@ int IfStatement::assemble(Program& program, Function& func, AssemblyData& contex
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1481,25 +1482,22 @@ std::string IfStatement::toString(unsigned int indent, bool skip_initial_indent)
 Statement* IfStatement::clone(){
     return new IfStatement(*this);
 }
-bool IfStatement::isTerminator(){
-    return false;
-}
-bool IfStatement::isConditional(){
-    return true;
-}
 
 UnlessStatement::UnlessStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UnlessStatement::UnlessStatement(PlainExp* condition, const StatementList& positive_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UnlessStatement::UnlessStatement(const UnlessStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -1533,10 +1531,10 @@ int UnlessStatement::assemble(Program& program, Function& func, AssemblyData& co
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1566,25 +1564,22 @@ std::string UnlessStatement::toString(unsigned int indent, bool skip_initial_ind
 Statement* UnlessStatement::clone(){
     return new UnlessStatement(*this);
 }
-bool UnlessStatement::isTerminator(){
-    return false;
-}
-bool UnlessStatement::isConditional(){
-    return true;
-}
 
 WhileStatement::WhileStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 WhileStatement::WhileStatement(PlainExp* condition, const StatementList& positive_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 WhileStatement::WhileStatement(const WhileStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -1627,10 +1622,10 @@ int WhileStatement::assemble(Program& program, Function& func, AssemblyData& con
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1662,25 +1657,22 @@ std::string WhileStatement::toString(unsigned int indent, bool skip_initial_inde
 Statement* WhileStatement::clone(){
     return new WhileStatement(*this);
 }
-bool WhileStatement::isTerminator(){
-    return false;
-}
-bool WhileStatement::isConditional(){
-    return true;
-}
 
 UntilStatement::UntilStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UntilStatement::UntilStatement(PlainExp* condition, const StatementList& positive_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UntilStatement::UntilStatement(const UntilStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -1723,10 +1715,10 @@ int UntilStatement::assemble(Program& program, Function& func, AssemblyData& con
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1758,27 +1750,24 @@ std::string UntilStatement::toString(unsigned int indent, bool skip_initial_inde
 Statement* UntilStatement::clone(){
     return new UntilStatement(*this);
 }
-bool UntilStatement::isTerminator(){
-    return false;
-}
-bool UntilStatement::isConditional(){
-    return true;
-}
 
 IfElseStatement::IfElseStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 IfElseStatement::IfElseStatement(PlainExp* condition, const StatementList& positive_statements, const StatementList& negative_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->negative_statements = negative_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 IfElseStatement::IfElseStatement(const IfElseStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->negative_statements.resize(other.negative_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -1819,10 +1808,10 @@ int IfElseStatement::assemble(Program& program, Function& func, AssemblyData& co
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1833,10 +1822,10 @@ int IfElseStatement::assemble(Program& program, Function& func, AssemblyData& co
     context.builder.SetInsertPoint(false_block);
 
     terminated = false;
-    for(size_t s = 0; s != this->negative_statements.size(); s++){
-        if(this->negative_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->negative_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->negative_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1862,7 +1851,7 @@ std::string IfElseStatement::toString(unsigned int indent, bool skip_initial_ind
     for(unsigned int i = 0; i != indent; i++) result += "    ";
 
     if(this->negative_statements.size() == 1){
-        if(this->negative_statements[0]->isConditional()){
+        if(this->negative_statements[0]->flags & STMT_CONDITIONAL){
             result += "} else " + this->negative_statements[0]->toString(indent, true);
             // Break early to avoid rest of "} else { ... }"
             return result;
@@ -1881,27 +1870,24 @@ std::string IfElseStatement::toString(unsigned int indent, bool skip_initial_ind
 Statement* IfElseStatement::clone(){
     return new IfElseStatement(*this);
 }
-bool IfElseStatement::isTerminator(){
-    return false;
-}
-bool IfElseStatement::isConditional(){
-    return true;
-}
 
 UnlessElseStatement::UnlessElseStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UnlessElseStatement::UnlessElseStatement(PlainExp* condition, const StatementList& positive_statements, const StatementList& negative_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->negative_statements = negative_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UnlessElseStatement::UnlessElseStatement(const UnlessElseStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->negative_statements.resize(other.negative_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -1942,10 +1928,10 @@ int UnlessElseStatement::assemble(Program& program, Function& func, AssemblyData
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1956,10 +1942,10 @@ int UnlessElseStatement::assemble(Program& program, Function& func, AssemblyData
     context.builder.SetInsertPoint(false_block);
 
     terminated = false;
-    for(size_t s = 0; s != this->negative_statements.size(); s++){
-        if(this->negative_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->negative_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->negative_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -1985,7 +1971,7 @@ std::string UnlessElseStatement::toString(unsigned int indent, bool skip_initial
     for(unsigned int i = 0; i != indent; i++) result += "    ";
 
     if(this->negative_statements.size() == 1){
-        if(this->negative_statements[0]->isConditional()){
+        if(this->negative_statements[0]->flags & STMT_CONDITIONAL){
             result += "} else " + this->negative_statements[0]->toString(indent, true);
             // Break early to avoid rest of "} else { ... }"
             return result;
@@ -2004,27 +1990,24 @@ std::string UnlessElseStatement::toString(unsigned int indent, bool skip_initial
 Statement* UnlessElseStatement::clone(){
     return new UnlessElseStatement(*this);
 }
-bool UnlessElseStatement::isTerminator(){
-    return false;
-}
-bool UnlessElseStatement::isConditional(){
-    return true;
-}
 
 IfWhileElseStatement::IfWhileElseStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 IfWhileElseStatement::IfWhileElseStatement(PlainExp* condition, const StatementList& positive_statements, const StatementList& negative_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->negative_statements = negative_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 IfWhileElseStatement::IfWhileElseStatement(const IfWhileElseStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->negative_statements.resize(other.negative_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -2087,10 +2070,10 @@ int IfWhileElseStatement::assemble(Program& program, Function& func, AssemblyDat
     context.builder.SetInsertPoint(true_block);
     terminated = false;
 
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -2103,10 +2086,10 @@ int IfWhileElseStatement::assemble(Program& program, Function& func, AssemblyDat
     context.builder.SetInsertPoint(else_block);
 
     terminated = false;
-    for(size_t s = 0; s != this->negative_statements.size(); s++){
-        if(this->negative_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->negative_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->negative_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -2146,27 +2129,24 @@ std::string IfWhileElseStatement::toString(unsigned int indent, bool skip_initia
 Statement* IfWhileElseStatement::clone(){
     return new IfWhileElseStatement(*this);
 }
-bool IfWhileElseStatement::isTerminator(){
-    return false;
-}
-bool IfWhileElseStatement::isConditional(){
-    return true;
-}
 
 UnlessUntilElseStatement::UnlessUntilElseStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UnlessUntilElseStatement::UnlessUntilElseStatement(PlainExp* condition, const StatementList& positive_statements, const StatementList& negative_statements, ErrorHandler& errors){
     this->condition = condition;
     this->positive_statements = positive_statements;
     this->negative_statements = negative_statements;
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 }
 UnlessUntilElseStatement::UnlessUntilElseStatement(const UnlessUntilElseStatement& other) : Statement(other) {
     this->condition = other.condition->clone();
     this->positive_statements.resize(other.positive_statements.size());
     this->negative_statements.resize(other.negative_statements.size());
     this->errors = errors;
+    this->flags = STMT_CONDITIONAL;
 
     for(size_t i = 0; i != this->positive_statements.size(); i++){
         this->positive_statements[i] = other.positive_statements[i]->clone();
@@ -2229,10 +2209,10 @@ int UnlessUntilElseStatement::assemble(Program& program, Function& func, Assembl
     context.builder.SetInsertPoint(true_block);
     terminated = false;
 
-    for(size_t s = 0; s != this->positive_statements.size(); s++){
-        if(this->positive_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->positive_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->positive_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -2245,10 +2225,10 @@ int UnlessUntilElseStatement::assemble(Program& program, Function& func, Assembl
     context.builder.SetInsertPoint(else_block);
 
     terminated = false;
-    for(size_t s = 0; s != this->negative_statements.size(); s++){
-        if(this->negative_statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->negative_statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->negative_statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -2288,32 +2268,30 @@ std::string UnlessUntilElseStatement::toString(unsigned int indent, bool skip_in
 Statement* UnlessUntilElseStatement::clone(){
     return new UnlessUntilElseStatement(*this);
 }
-bool UnlessUntilElseStatement::isTerminator(){
-    return false;
-}
-bool UnlessUntilElseStatement::isConditional(){
-    return true;
-}
 
 DeleteStatement::DeleteStatement(ErrorHandler& errors){
     this->value = NULL;
     this->dangerous = false;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeleteStatement::DeleteStatement(PlainExp* value, ErrorHandler& errors){
     this->value = value;
     this->dangerous = false;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeleteStatement::DeleteStatement(PlainExp* value, bool dangerous, ErrorHandler& errors){
     this->value = value;
     this->dangerous = dangerous;
     this->errors = errors;
+    this->flags = 0x00;
 }
 DeleteStatement::DeleteStatement(const DeleteStatement& other) : Statement(other) {
     this->value = other.value->clone();
     this->dangerous = other.dangerous;
     this->errors = other.errors;
+    this->flags = 0x00;
 }
 DeleteStatement::~DeleteStatement(){
     delete this->value;
@@ -2347,7 +2325,7 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
             return 1;
         }
 
-        if(!value->is_mutable){
+        if(!(value->flags & EXP_MUTABLE)){
             errors.panic("Can't delete immutable array expression");
             return 1;
         }
@@ -2363,7 +2341,7 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
         return 0;
     }
 
-    if(value->is_mutable){
+    if(value->flags & EXP_MUTABLE){
         pointer = context.builder.CreateLoad(pointer);
     }
 
@@ -2402,12 +2380,6 @@ std::string DeleteStatement::toString(unsigned int indent, bool skip_initial_ind
 Statement* DeleteStatement::clone(){
     return new DeleteStatement(*this);
 }
-bool DeleteStatement::isTerminator(){
-    return false;
-}
-bool DeleteStatement::isConditional(){
-    return false;
-}
 
 SwitchStatement::Case::Case(){}
 SwitchStatement::Case::Case(PlainExp* value, const StatementList& statements){
@@ -2417,12 +2389,14 @@ SwitchStatement::Case::Case(PlainExp* value, const StatementList& statements){
 
 SwitchStatement::SwitchStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00; // Not really a conditional (or at least we don't treat is as one)
 }
 SwitchStatement::SwitchStatement(PlainExp* condition, const std::vector<SwitchStatement::Case>& cases, const StatementList& default_statements, ErrorHandler& errors){
     this->condition = condition;
     this->cases = cases;
     this->default_statements = default_statements;
     this->errors = errors;
+    this->flags = 0x00; // Not really a conditional (or at least we don't treat is as one)
 }
 SwitchStatement::SwitchStatement(const SwitchStatement& other) : Statement(other) {
     SwitchStatement::Case* this_case;
@@ -2432,6 +2406,7 @@ SwitchStatement::SwitchStatement(const SwitchStatement& other) : Statement(other
     this->errors = errors;
     this->cases.resize(other.cases.size());
     this->default_statements.resize(other.default_statements.size());
+    this->flags = 0x00; // Not really a conditional (or at least we don't treat is as one)
 
     for(size_t i = 0; i != other.cases.size(); i++){
         this_case = &this->cases[i];
@@ -2499,9 +2474,11 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
         default_block = llvm::BasicBlock::Create(context.context, "switchdefault", llvm_function);
         context.builder.SetInsertPoint(default_block);
 
-        for(Statement* statement : this->default_statements){
-            if(statement->isTerminator()) terminated = true;
-            statement->assemble(program, func, context);
+        for(Statement* s : this->default_statements){
+            if(s->flags & STMT_TERMINATOR) terminated = true;
+            if(s->assemble(program, func, context) != 0){
+                return 1;
+            }
         }
 
         if(!terminated){
@@ -2527,7 +2504,7 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
             return 1;
         }
 
-        if(!switch_case.value->is_constant){
+        if(!(switch_case.value->flags & EXP_CONSTANT)){
             errors.panic("Case condition value must be constant");
             return 1;
         }
@@ -2536,9 +2513,11 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
         case_block = llvm::BasicBlock::Create(context.context, "case", llvm_function);
         context.builder.SetInsertPoint(case_block);
 
-        for(Statement* statement : switch_case.statements){
-            if(statement->isTerminator()) terminated = true;
-            statement->assemble(program, func, context);
+        for(Statement* s : switch_case.statements){
+            if(s->flags & STMT_TERMINATOR) terminated = true;
+            if(s->assemble(program, func, context) != 0){
+                return 1;
+            }
         }
 
         if(!terminated){
@@ -2598,15 +2577,10 @@ std::string SwitchStatement::toString(unsigned int indent, bool skip_initial_ind
 Statement* SwitchStatement::clone(){
     return new SwitchStatement(*this);
 }
-bool SwitchStatement::isTerminator(){
-    return false;
-}
-bool SwitchStatement::isConditional(){
-    return false; // Not really a conditional (or at least don't treat is as a conditional)
-}
 
 ForStatement::ForStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = 0x00; // Not really a conditional (or at least we don't treat is as one)
 }
 ForStatement::ForStatement(Statement* initialization_statement, PlainExp* condition, Statement* increament_statement, const StatementList& statements, ErrorHandler& errors){
     this->initialization_statement = initialization_statement;
@@ -2614,12 +2588,14 @@ ForStatement::ForStatement(Statement* initialization_statement, PlainExp* condit
     this->increament_statement = increament_statement;
     this->statements = statements;
     this->errors = errors;
+    this->flags = 0x00; // Not really a conditional (or at least we don't treat is as one)
 }
 ForStatement::ForStatement(const ForStatement& other) : Statement(other) {
     this->initialization_statement = other.initialization_statement == NULL ? NULL : other.initialization_statement->clone();
     this->condition = other.condition == NULL ? NULL : other.condition->clone();
     this->increament_statement = other.increament_statement == NULL ? NULL : other.increament_statement->clone();
     this->statements.resize(other.statements.size());
+    this->flags = 0x00; // Not really a conditional (or at least we don't treat is as one)
 
     for(size_t i = 0; i != other.statements.size(); i++){
         this->statements[i] = other.statements[i]->clone();
@@ -2676,10 +2652,10 @@ int ForStatement::assemble(Program& program, Function& func, AssemblyData& conte
     context.builder.SetInsertPoint(true_block);
 
     bool terminated = false;
-    for(size_t s = 0; s != this->statements.size(); s++){
-        if(this->statements[s]->isTerminator()) terminated = true;
+    for(Statement* s : this->statements){
+        if(s->flags & STMT_TERMINATOR) terminated = true;
 
-        if(this->statements[s]->assemble(program, func, context) != 0){
+        if(s->assemble(program, func, context) != 0){
             return 1;
         }
 
@@ -2731,17 +2707,14 @@ std::string ForStatement::toString(unsigned int indent, bool skip_initial_indent
 Statement* ForStatement::clone(){
     return new ForStatement(*this);
 }
-bool ForStatement::isTerminator(){
-    return false;
-}
-bool ForStatement::isConditional(){
-    return false;
-}
 
 BreakStatement::BreakStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_TERMINATOR;
 }
-BreakStatement::BreakStatement(const BreakStatement& other) : Statement(other) {}
+BreakStatement::BreakStatement(const BreakStatement& other) : Statement(other) {
+    this->flags = STMT_TERMINATOR;
+}
 BreakStatement::~BreakStatement(){}
 int BreakStatement::assemble(Program& program, Function& func, AssemblyData& context){
     if(context.break_point == NULL){
@@ -2764,17 +2737,14 @@ std::string BreakStatement::toString(unsigned int indent, bool skip_initial_inde
 BreakStatement* BreakStatement::clone(){
     return new BreakStatement(this->errors);
 }
-bool BreakStatement::isTerminator(){
-    return true;
-}
-bool BreakStatement::isConditional(){
-    return false;
-}
 
 ContinueStatement::ContinueStatement(ErrorHandler& errors){
     this->errors = errors;
+    this->flags = STMT_TERMINATOR;
 }
-ContinueStatement::ContinueStatement(const ContinueStatement& other) : Statement(other) {}
+ContinueStatement::ContinueStatement(const ContinueStatement& other) : Statement(other) {
+    this->flags = STMT_TERMINATOR;
+}
 ContinueStatement::~ContinueStatement(){}
 int ContinueStatement::assemble(Program& program, Function& func, AssemblyData& context){
     if(context.continue_point == NULL){
@@ -2796,10 +2766,4 @@ std::string ContinueStatement::toString(unsigned int indent, bool skip_initial_i
 }
 ContinueStatement* ContinueStatement::clone(){
     return new ContinueStatement(this->errors);
-}
-bool ContinueStatement::isTerminator(){
-    return true;
-}
-bool ContinueStatement::isConditional(){
-    return false;
 }

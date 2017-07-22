@@ -34,11 +34,15 @@
 #define STATEMENTID_DEALLOC         21
 #define STATEMENTID_SWITCH          22
 
+#define STMT_TERMINATOR  0x01
+#define STMT_CONDITIONAL 0x02
+
 class Statement;
 typedef std::vector<Statement*> StatementList;
 
 class Statement {
     public:
+    char flags;
     ErrorHandler errors;
 
     Statement();
@@ -48,8 +52,6 @@ class Statement {
     virtual int assemble(Program&, Function&, AssemblyData&) = 0;
     virtual std::string toString(unsigned int indent, bool skip_initial_indent) = 0;
     virtual Statement* clone() = 0;
-    virtual bool isTerminator() = 0;
-    virtual bool isConditional();
 };
 
 class DeclareStatement : public Statement {
@@ -64,7 +66,6 @@ class DeclareStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class DeclareAssignStatement : public Statement {
@@ -80,7 +81,6 @@ class DeclareAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class MultiDeclareStatement : public Statement {
@@ -95,7 +95,6 @@ class MultiDeclareStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class MultiDeclareAssignStatement : public Statement {
@@ -111,7 +110,6 @@ class MultiDeclareAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class ReturnStatement : public Statement {
@@ -125,7 +123,6 @@ class ReturnStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class AssignStatement : public Statement {
@@ -140,7 +137,6 @@ class AssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class AdditionAssignStatement : public Statement {
@@ -155,7 +151,6 @@ class AdditionAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class SubtractionAssignStatement : public Statement {
@@ -170,7 +165,6 @@ class SubtractionAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class MultiplicationAssignStatement : public Statement {
@@ -185,7 +179,6 @@ class MultiplicationAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class DivisionAssignStatement : public Statement {
@@ -200,7 +193,6 @@ class DivisionAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class ModulusAssignStatement : public Statement {
@@ -215,7 +207,6 @@ class ModulusAssignStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class CallStatement : public Statement {
@@ -230,7 +221,6 @@ class CallStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class MemberCallStatement : public Statement {
@@ -246,7 +236,6 @@ class MemberCallStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
 };
 
 class IfStatement : public Statement {
@@ -261,8 +250,6 @@ class IfStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class UnlessStatement : public Statement {
@@ -277,8 +264,6 @@ class UnlessStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class WhileStatement : public Statement {
@@ -293,8 +278,6 @@ class WhileStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class UntilStatement : public Statement {
@@ -309,8 +292,6 @@ class UntilStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class IfElseStatement : public Statement {
@@ -326,8 +307,6 @@ class IfElseStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class UnlessElseStatement : public Statement {
@@ -343,8 +322,6 @@ class UnlessElseStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class IfWhileElseStatement : public Statement {
@@ -360,8 +337,6 @@ class IfWhileElseStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class UnlessUntilElseStatement : public Statement {
@@ -377,8 +352,6 @@ class UnlessUntilElseStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class DeleteStatement : public Statement {
@@ -394,8 +367,6 @@ class DeleteStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class SwitchStatement : public Statement {
@@ -420,8 +391,6 @@ class SwitchStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class ForStatement : public Statement {
@@ -438,8 +407,6 @@ class ForStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     Statement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class BreakStatement : public Statement {
@@ -450,8 +417,6 @@ class BreakStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     BreakStatement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 class ContinueStatement : public Statement {
@@ -462,8 +427,6 @@ class ContinueStatement : public Statement {
     int assemble(Program&, Function&, AssemblyData&);
     std::string toString(unsigned int indent, bool skip_initial_indent);
     ContinueStatement* clone();
-    bool isTerminator();
-    bool isConditional();
 };
 
 void initialize_string(AssemblyData&, Program&, llvm::Value*);
