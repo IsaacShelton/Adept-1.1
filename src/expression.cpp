@@ -978,6 +978,8 @@ llvm::Value* IndexLoadExp::assemble(Program& program, Function& func, AssemblyDa
         return NULL;
     }
 
+    program.resolve_if_alias(pointer_typename);
+
     if(Program::is_array_typename(pointer_typename)){
         // Handle as higher level array
         return this->assemble_highlevel_array(program, func, context, expr_type, pointer_value, pointer_typename);
@@ -1865,7 +1867,13 @@ llvm::Value* CastExp::assemble(Program& program, Function& func, AssemblyData& c
     // If target typename is empty, then something very bad has gone wrong
     if(target_typename == "") return NULL;
 
-    if(target_typename == "bool"){
+    if(target_typename[0] == '*'){
+        return this->cast_to_valueptr(program, func, context);
+    }
+    else if(target_typename == "ptr"){
+        return this->cast_to_ptr(program, func, context);
+    }
+    else if(target_typename == "bool"){
         return this->cast_to_bool(program, func, context);
     }
     else if(target_typename == "byte" or target_typename == "ubyte"){
@@ -1886,11 +1894,9 @@ llvm::Value* CastExp::assemble(Program& program, Function& func, AssemblyData& c
     else if(target_typename == "double"){
         return this->cast_to_double(program, func, context);
     }
-    else if(target_typename == "ptr"){
-        return this->cast_to_ptr(program, func, context);
-    }
-    else if(target_typename[0] == '*'){
-        return this->cast_to_valueptr(program, func, context);
+    else if(target_typename == "half"){
+        errors.panic("Casting values to the type 'half' is currently not supported");
+        return NULL;
     }
 
     errors.panic("Can't cast value to type '" + target_typename + "'");
@@ -1929,6 +1935,10 @@ llvm::Value* CastExp::cast_to_bool(Program& program, Function& func, AssemblyDat
         llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
         return context.builder.CreateTrunc(llvm_value, context.builder.getInt1Ty());
     }
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
+    }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
         return NULL;
@@ -1964,6 +1974,10 @@ llvm::Value* CastExp::cast_to_byte(Program& program, Function& func, AssemblyDat
         llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
         return context.builder.CreateTrunc(llvm_value, context.builder.getInt8Ty());
     }
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
+    }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
         return NULL;
@@ -1998,6 +2012,10 @@ llvm::Value* CastExp::cast_to_short(Program& program, Function& func, AssemblyDa
     else if(type_name == "float" or type_name == "double"){
         llvm_value = context.builder.CreateFPToUI(llvm_value, context.builder.getInt32Ty());
         return context.builder.CreateTrunc(llvm_value, context.builder.getInt16Ty());
+    }
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -2040,6 +2058,10 @@ llvm::Value* CastExp::cast_to_int(Program& program, Function& func, AssemblyData
         llvm_value = context.builder.CreateBitCast(llvm_value, context.builder.getInt8PtrTy());
         return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt32Ty());
     }
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
+    }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
         return NULL;
@@ -2077,6 +2099,10 @@ llvm::Value* CastExp::cast_to_long(Program& program, Function& func, AssemblyDat
     else if(type_name == "ptr"){
         return context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
     }
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
+    }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
         return NULL;
@@ -2093,23 +2119,18 @@ llvm::Value* CastExp::cast_to_float(Program& program, Function& func, AssemblyDa
     // Resolve typename if it's an alias
     program.resolve_if_alias(type_name);
 
-    if(type_name == "bool"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
+    if(type_name[0] == 'u' && (type_name == "uint" or type_name == "ushort" or type_name == "ulong" or type_name == "ubyte")){
+        return context.builder.CreateUIToFP(llvm_value, context.builder.getFloatTy());
     }
-    else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
-    }
-    else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
-    }
-    else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
-    }
-    else if(type_name == "ulong" or type_name == "long"){
+    else if(type_name == "int" or type_name == "short" or type_name == "long" or type_name == "byte" or type_name == "bool"){
         return context.builder.CreateSIToFP(llvm_value, context.builder.getFloatTy());
     }
     else if(type_name == "double"){
         return context.builder.CreateFPTrunc(llvm_value, context.builder.getFloatTy());
+    }
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
@@ -2127,20 +2148,18 @@ llvm::Value* CastExp::cast_to_double(Program& program, Function& func, AssemblyD
     // Resolve typename if it's an alias
     program.resolve_if_alias(type_name);
 
-    if(type_name == "bool"){
+    if(type_name[0] == 'u' && (type_name == "uint" or type_name == "ushort" or type_name == "ulong" or type_name == "ubyte")){
+        return context.builder.CreateUIToFP(llvm_value, context.builder.getDoubleTy());
+    }
+    else if(type_name == "int" or type_name == "short" or type_name == "long" or type_name == "byte" or type_name == "bool"){
         return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
     }
-    else if(type_name == "ubyte" or type_name == "byte"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
+    else if(type_name == "float"){
+        return context.builder.CreateFPExt(llvm_value, context.builder.getDoubleTy());
     }
-    else if(type_name == "ushort" or type_name == "short"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
-    }
-    else if(type_name == "uint" or type_name == "int"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
-    }
-    else if(type_name == "ulong" or type_name == "long"){
-        return context.builder.CreateSIToFP(llvm_value, context.builder.getDoubleTy());
+    else if(type_name == "half"){
+        errors.panic("Casting values of the type 'half' is currently not supported");
+        return NULL;
     }
     else {
         errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");

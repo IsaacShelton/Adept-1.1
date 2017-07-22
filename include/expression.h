@@ -382,6 +382,7 @@ class CastExp : public PlainExp {
     llvm::Value* cast_to_short(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_int(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_long(Program&, Function&, AssemblyData&);
+    llvm::Value* cast_to_half(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_float(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_double(Program&, Function&, AssemblyData&);
     llvm::Value* cast_to_ptr(Program&, Function&, AssemblyData&);

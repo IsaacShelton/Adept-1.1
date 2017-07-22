@@ -487,13 +487,11 @@ int AdditionAssignStatement::assemble(Program& program, Function& func, Assembly
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
 
-    // Perform the addition
-    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
-       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
-       or location_typename == "ubyte" or location_typename == "bool"){
+    if( (location_typename[0] == 'u' && (location_typename == "uint" or location_typename == "ushort" or location_typename == "ulong" or location_typename == "ubyte"))
+     or (location_typename == "int" or location_typename == "short" or location_typename == "long" or location_typename == "byte") ){
         llvm_value = context.builder.CreateAdd(store_value, llvm_value);
     }
-    else if(location_typename == "float" or location_typename == "double"){
+    else if(location_typename == "float" or location_typename == "double" or location_typename == "half"){
         llvm_value = context.builder.CreateFAdd(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
@@ -581,13 +579,11 @@ int SubtractionAssignStatement::assemble(Program& program, Function& func, Assem
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
 
-    // Perform the subtraction
-    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
-       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
-       or location_typename == "ubyte" or location_typename == "bool"){
+    if( (location_typename[0] == 'u' && (location_typename == "uint" or location_typename == "ushort" or location_typename == "ulong" or location_typename == "ubyte"))
+     or (location_typename == "int" or location_typename == "short" or location_typename == "long" or location_typename == "byte") ){
         llvm_value = context.builder.CreateSub(store_value, llvm_value);
     }
-    else if(location_typename == "float" or location_typename == "double"){
+    else if(location_typename == "float" or location_typename == "double" or location_typename == "half"){
         llvm_value = context.builder.CreateFSub(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
@@ -675,13 +671,11 @@ int MultiplicationAssignStatement::assemble(Program& program, Function& func, As
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
 
-    // Perform the multiplication
-    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
-       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
-       or location_typename == "ubyte" or location_typename == "bool"){
+    if( (location_typename[0] == 'u' && (location_typename == "uint" or location_typename == "ushort" or location_typename == "ulong" or location_typename == "ubyte"))
+     or (location_typename == "int" or location_typename == "short" or location_typename == "long" or location_typename == "byte") ){
         llvm_value = context.builder.CreateMul(store_value, llvm_value);
     }
-    else if(location_typename == "float" or location_typename == "double"){
+    else if(location_typename == "float" or location_typename == "double" or location_typename == "half"){
         llvm_value = context.builder.CreateFMul(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
@@ -769,19 +763,19 @@ int DivisionAssignStatement::assemble(Program& program, Function& func, Assembly
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
 
-    // Perform the division
-    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
-       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
-       or location_typename == "ubyte" or location_typename == "bool"){
+    if(location_typename[0] == 'u' && (location_typename == "uint" or location_typename == "ushort" or location_typename == "ulong" or location_typename == "ubyte")){
+        llvm_value = context.builder.CreateUDiv(store_value, llvm_value);
+    }
+    else if(location_typename == "int" or location_typename == "short" or location_typename == "long" or location_typename == "byte"){
         llvm_value = context.builder.CreateSDiv(store_value, llvm_value);
     }
-    else if(location_typename == "float" or location_typename == "double"){
+    else if(location_typename == "float" or location_typename == "double" or location_typename == "half"){
         llvm_value = context.builder.CreateFDiv(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
         llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
         llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
-        llvm::Value* added_value = context.builder.CreateSDiv(left_int, right_int);
+        llvm::Value* added_value = context.builder.CreateUDiv(left_int, right_int);
         llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
@@ -863,19 +857,19 @@ int ModulusAssignStatement::assemble(Program& program, Function& func, AssemblyD
     store_value = context.builder.CreateLoad(store_location);
     assert(location_typename.length() != 0);
 
-    // Perform the modulus operation
-    if(location_typename == "int" or location_typename == "uint" or location_typename == "short" or location_typename == "ushort"
-       or location_typename == "long" or location_typename == "ulong" or location_typename == "byte"
-       or location_typename == "ubyte" or location_typename == "bool"){
+    if(location_typename[0] == 'u' && (location_typename == "uint" or location_typename == "ushort" or location_typename == "ulong" or location_typename == "ubyte")){
+        llvm_value = context.builder.CreateURem(store_value, llvm_value);
+    }
+    else if(location_typename == "int" or location_typename == "short" or location_typename == "long" or location_typename == "byte"){
         llvm_value = context.builder.CreateSRem(store_value, llvm_value);
     }
-    else if(location_typename == "float" or location_typename == "double"){
+    else if(location_typename == "float" or location_typename == "double" or location_typename == "half"){
         llvm_value = context.builder.CreateFRem(store_value, llvm_value);
     }
     else if(location_typename == "ptr" or location_typename[0] == '*'){
         llvm::Value* left_int = context.builder.CreatePtrToInt(store_value, context.builder.getInt64Ty());
         llvm::Value* right_int = context.builder.CreatePtrToInt(llvm_value, context.builder.getInt64Ty());
-        llvm::Value* added_value = context.builder.CreateSRem(left_int, right_int);
+        llvm::Value* added_value = context.builder.CreateURem(left_int, right_int);
         llvm_value = context.builder.CreateIntToPtr(added_value, context.builder.getInt8PtrTy());
     }
     else {
