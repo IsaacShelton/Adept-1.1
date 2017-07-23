@@ -8,7 +8,6 @@ AssemblyData::AssemblyData() : builder(context) {
     constant_expression_depth = 0;
     break_point = NULL;
     continue_point = NULL;
-    lots_of_functions = false;
 }
 
 AssembleFunction* AssemblyData::getFunction(const std::string& mangled_function_name){

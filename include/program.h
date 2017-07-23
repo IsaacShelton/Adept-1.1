@@ -60,6 +60,7 @@ class Structure {
 #define FUNC_STDCALL  0x04
 #define FUNC_EXTERNAL 0x08
 #define FUNC_VARARGS  0x10
+#define FUNC_MULRET   0x20
 
 class Function {
     // NOTE: This class is also used for methods
@@ -71,12 +72,14 @@ class Function {
     StatementList statements;
     char flags;
     size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
+    std::vector<std::string> additional_return_types;
 
     OriginInfo* origin;
 
     Function();
     Function(const std::string&, const std::vector<Field>&, const std::string&, bool, OriginInfo*);
     Function(const std::string&, const std::vector<Field>&, const std::string&, const StatementList&, bool, bool, bool, bool, bool, OriginInfo*);
+    Function(const std::string&, const std::vector<Field>&, const std::vector<std::string>&, const StatementList&, bool, bool, bool, bool, bool, OriginInfo*);
     Function(const Function&);
     ~Function();
     void print_statements();
@@ -86,6 +89,7 @@ class Function {
 #define EXTERN_MANGLED 0x02
 #define EXTERN_STDCALL 0x04
 #define EXTERN_VARARGS 0x08
+#define EXTERN_MULRET  0x10
 
 class External {
     public:
@@ -93,6 +97,7 @@ class External {
     std::vector<std::string> arguments;
     std::string return_type;
     char flags;
+    std::vector<std::string> additional_return_types;
 
     OriginInfo* origin;
 
@@ -243,7 +248,7 @@ class Program {
     bool resolve_once_if_alias(std::string&) const;
 
     int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**) const;
-    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**, std::vector<std::string>&, std::string&) const;
+    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**, std::vector<std::string>&, std::string&, char&) const;
     int function_typename_to_type(const std::string&, AssemblyData&, llvm::Type**) const;
     void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&) const;
 

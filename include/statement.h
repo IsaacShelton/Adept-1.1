@@ -33,6 +33,8 @@
 #define STATEMENTID_UNLESSUNTILELSE 20
 #define STATEMENTID_DEALLOC         21
 #define STATEMENTID_SWITCH          22
+#define STATEMENTID_MULTIRESULTCALL 23
+#define STATEMENTID_MULTIRETURN     24
 
 #define STMT_TERMINATOR  0x01
 #define STMT_CONDITIONAL 0x02
@@ -210,6 +212,9 @@ class ModulusAssignStatement : public Statement {
 };
 
 class CallStatement : public Statement {
+    private:
+    int handle_varargs(Program&, Function&, AssemblyData&, const std::string&, uint64_t, uint64_t, const std::vector<llvm::Value*>&, llvm::Value*, bool);
+
     public:
     std::string name;
     std::vector<PlainExp*> args;
@@ -429,7 +434,32 @@ class ContinueStatement : public Statement {
     ContinueStatement* clone();
 };
 
-void initialize_string(AssemblyData&, Program&, llvm::Value*);
-int assign_string(AssemblyData&, Program&, Function&, llvm::Value*, PlainExp*, ErrorHandler&);
+class MultiResultCallStatement : public Statement {
+    public:
+    std::string name;
+    std::vector<PlainExp*> args;
+    std::vector<std::string> result_variables;
+
+    MultiResultCallStatement(ErrorHandler&);
+    MultiResultCallStatement(const std::string&, const std::vector<PlainExp*>&, const std::vector<std::string>&, ErrorHandler&);
+    MultiResultCallStatement(const MultiResultCallStatement&);
+    ~MultiResultCallStatement();
+    int assemble(Program&, Function&, AssemblyData&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+};
+
+class MultiReturnStatement : public Statement {
+    public:
+    std::vector<PlainExp*> return_values;
+
+    MultiReturnStatement(ErrorHandler&);
+    MultiReturnStatement(const std::vector<PlainExp*>&, ErrorHandler&);
+    MultiReturnStatement(const MultiReturnStatement&);
+    ~MultiReturnStatement();
+    int assemble(Program&, Function&, AssemblyData&);
+    std::string toString(unsigned int indent, bool skip_initial_indent);
+    Statement* clone();
+};
 
 #endif // STATEMENT_H_INCLUDED

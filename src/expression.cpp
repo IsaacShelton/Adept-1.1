@@ -1065,6 +1065,11 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
     if(program.find_func(name, argument_types, &func_data) == 0){
         // Standard function exists
 
+        if(func_data.flags & EXTERN_MULRET){
+            errors.panic("No result variables specified for function '" + name + "' that returns multiple arguments");
+            return 1;
+        }
+
         std::string final_name = (func_data.flags & EXTERN_MANGLED) ? mangle(name, func_data.arguments) : name;
         llvm::Function* target = context.module->getFunction(final_name);
         if (!target){
@@ -1200,9 +1205,10 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             llvm::Type* varfunc_return_llvm_type;
             std::vector<std::string> varfunc_args;
             std::vector<llvm::Type*> varfunc_llvm_args;
+            char flags = 0x00;
 
             if(program.extract_function_pointer_info(func_variable->type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
-                varfunc_return_typename) != 0) return NULL;
+                varfunc_return_typename, flags) != 0) return NULL;
 
             if (varfunc_args.size() != args.size()){
                 errors.panic("Incorrect function argument count when calling '" + name + "'");
@@ -1238,9 +1244,10 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             llvm::Type* varfunc_return_llvm_type;
             std::vector<std::string> varfunc_args;
             std::vector<llvm::Type*> varfunc_llvm_args;
+            char flags = 0x00;
 
             if(program.extract_function_pointer_info(func_global.type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
-                varfunc_return_typename) != 0) return NULL;
+                varfunc_return_typename, flags) != 0) return NULL;
 
             if (varfunc_args.size() != args.size()){
                 errors.panic("Incorrect function argument count when calling '" + name + "'");
@@ -2175,6 +2182,21 @@ llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssemblyData
     External function_data;
     std::string final_name;
 
+    std::string args_str;
+    for(size_t a = 0; a != function_arguments.size(); a++){
+        args_str += function_arguments[a];
+        if(a + 1 != function_arguments.size()) args_str += ", ";
+    }
+
+    if(function_arguments.size() > 0){
+        // HACK: Very dirty and overall bad, but it does the job
+        std::string& final_argument = function_arguments[function_arguments.size()-1];
+
+        if(final_argument.size() > 3 && final_argument.substr(0, 3) == "..."){
+            final_argument = "[]" + final_argument.substr(3, final_argument.size()-3);
+        }
+    }
+
     if(program.find_func(function_name, function_arguments, &function_data) != 0){
         errors.panic_undeclared_func(function_name, function_arguments);
         return NULL;
@@ -2182,12 +2204,6 @@ llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssemblyData
 
     final_name = (function_data.flags & EXTERN_MANGLED ? mangle(function_name, function_arguments) : function_name);
     llvm::Function* target_function = context.module->getFunction(final_name);
-
-    std::string args_str;
-    for(size_t a = 0; a != function_arguments.size(); a++){
-        args_str += function_arguments[a];
-        if(a + 1 != function_arguments.size()) args_str += ", ";
-    }
 
     if(expr_type != NULL) *expr_type = "def(" + args_str + ") " + function_data.return_type;
     return target_function;

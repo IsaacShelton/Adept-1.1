@@ -58,6 +58,25 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->parent_class_offset = 0;
     this->origin = origin;
 }
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::vector<std::string>& additional_return_types, const StatementList& statements,
+                   bool is_public, bool is_static, bool is_stdcall, bool is_external, bool is_variable_args, OriginInfo* origin){
+    this->name = name;
+    this->arguments = arguments;
+    this->return_type = "void";
+    this->statements = statements;
+
+    char new_flags = FUNC_MULRET;
+    if(is_public)        new_flags |= FUNC_PUBLIC;
+    if(is_static)        new_flags |= FUNC_STATIC;
+    if(is_stdcall)       new_flags |= FUNC_STDCALL;
+    if(is_external)      new_flags |= FUNC_EXTERNAL;
+    if(is_variable_args) new_flags |= FUNC_VARARGS;
+
+    this->flags = new_flags;
+    this->parent_class_offset = 0;
+    this->additional_return_types = additional_return_types;
+    this->origin = origin;
+}
 Function::Function(const Function& other){
     name = other.name;
     arguments = other.arguments;
@@ -69,6 +88,10 @@ Function::Function(const Function& other){
 
     for(size_t i = 0; i != other.statements.size(); i++){
         statements[i] = other.statements[i]->clone();
+    }
+
+    if(flags & FUNC_MULRET){
+        additional_return_types = other.additional_return_types;
     }
 }
 Function::~Function(){
@@ -611,6 +634,9 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
             next_index(c, type_name.length());
             next_index(c, type_name.length());
         }
+        if(arg_type_string.size() > 3 && arg_type_string.substr(0, 3) == "..."){
+            arg_type_string = "[]" + arg_type_string.substr(3, arg_type_string.size()-3);
+        }
         if(this->find_type(arg_type_string, context, &arg_llvm_type) != 0){
             fail(UNDECLARED_TYPE(arg_type_string));
             return 1;
@@ -632,7 +658,8 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
 
     return 0;
 }
-int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, AssemblyData& context, llvm::Type** return_llvm_type, std::vector<std::string>& typenames, std::string& return_typename) const {
+int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, AssemblyData& context, llvm::Type** return_llvm_type,
+                                           std::vector<std::string>& typenames, std::string& return_typename, char& flags) const {
     // "def(int, int) int"
     // -----^
 
@@ -662,6 +689,10 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
             next_index(c, type_name.length());
             next_index(c, type_name.length());
         }
+        if(arg_type_string.size() > 3 && arg_type_string.substr(0, 3) == "..."){
+            arg_type_string = "[]" + arg_type_string.substr(3, arg_type_string.size()-3);
+            flags |= FUNC_VARARGS;
+        }
         if(this->find_type(arg_type_string, context, &arg_llvm_type) != 0){
             fail(UNDECLARED_TYPE(arg_type_string));
             return 1;
@@ -687,8 +718,6 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
 int Program::function_typename_to_type(const std::string& type_name, AssemblyData& context, llvm::Type** type) const {
     // "def(int, int) int"
     // -----^
-
-    // NOTE: The first four characters of type_name are assumed to be "def("
 
     std::vector<llvm::Type*> llvm_args;
     llvm::Type* return_llvm_type;
@@ -931,7 +960,6 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
             External external;
             Function* function_found = &functions[i];
 
-            if(function_found->flags & FUNC_VARARGS) continue; // Prefer non-var-args functions if possible
             if(args.size() != function_found->arguments.size()) continue; // Continue if different amount of arguments
 
             args_match = true;
@@ -945,12 +973,14 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
+            external.additional_return_types = function_found->additional_return_types;
 
             char new_flags = 0x00;
             if(function_found->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
             if(!(function_found->flags & FUNC_EXTERNAL)) new_flags |= EXTERN_MANGLED;
             if(function_found->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
             if(function_found->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
+            if(function_found->flags & FUNC_MULRET)      new_flags |= EXTERN_MULRET;
 
             external.flags = new_flags;
             for(Field& field : function_found->arguments) external.arguments.push_back(field.type);
@@ -1017,12 +1047,14 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
+            external.additional_return_types = function_found->additional_return_types;
 
             char new_flags = 0x00;
             if(function_found->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
             if(!(function_found->flags & FUNC_EXTERNAL)) new_flags |= EXTERN_MANGLED;
             if(function_found->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
             if(function_found->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
+            if(function_found->flags & FUNC_MULRET)      new_flags |= EXTERN_MULRET;
 
             external.flags = new_flags;
             for(Field& field : function_found->arguments) external.arguments.push_back(field.type);

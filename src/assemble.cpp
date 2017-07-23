@@ -496,11 +496,13 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
         if(!llvm_function){
             llvm::Type* llvm_type;
             std::vector<llvm::Type*> args;
+            size_t end_of_reg_args;
 
-            if(func.flags & FUNC_VARARGS){
-                args.resize(func.arguments.size());
-            } else {
-                args.resize(func.arguments.size());
+            args.resize(func.arguments.size());
+            end_of_reg_args = func.arguments.size();
+
+            if(func.flags & FUNC_MULRET){
+                args.resize(args.size() + func.additional_return_types.size());
             }
 
             // Throw an error if main is private
@@ -518,6 +520,17 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
                     return 1;
                 }
                 args[i] = llvm_type;
+            }
+
+            size_t mulret_index = 0;
+            size_t args_index = func.arguments.size();
+            while(args_index != args.size()){
+                if(program.find_type(func.additional_return_types[mulret_index], context, &llvm_type) != 0){
+                    fail_filename(config, UNDECLARED_TYPE(func.additional_return_types[mulret_index]));
+                    return 1;
+                }
+                args[args_index] = llvm_type->getPointerTo();
+                args_index++; mulret_index++;
             }
 
             // Convert return type typename to an llvm type
@@ -556,10 +569,17 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 
             size_t i = 0;
             for(auto& arg : llvm_function->args()){
-                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
-                context.builder.CreateStore(&arg, alloca);
-                func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
-                i++;
+                if(i >= end_of_reg_args){
+                    ensure(func.flags & FUNC_MULRET);
+                    func_assembly_data->multi_return_pointers.push_back(&arg);
+                    i++;
+                }
+                else {
+                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
+                    context.builder.CreateStore(&arg, alloca);
+                    func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
+                    i++;
+                }
             }
 
             context.builder.SetInsertPoint(quit);

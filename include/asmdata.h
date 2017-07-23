@@ -22,7 +22,6 @@ struct AssemblyData {
     int constant_expression_depth;
     llvm::BasicBlock* break_point;
     llvm::BasicBlock* continue_point;
-    bool lots_of_functions; // really great name imo
 
     // Assembly Context
     AssembleFunction* current_function;

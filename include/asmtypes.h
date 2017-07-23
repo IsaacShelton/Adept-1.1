@@ -26,6 +26,7 @@ struct AssembleGlobal {
 struct AssembleFunction {
     std::string mangled_name;
     std::vector<AssembleVariable> variables;
+    std::vector<llvm::Value*> multi_return_pointers;
 
     llvm::Type* return_type;
     llvm::BasicBlock* entry;
