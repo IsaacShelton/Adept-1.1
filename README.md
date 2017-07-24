@@ -415,7 +415,7 @@ private def printIntegers(integers ... int) void {
 
 ### String Manipulation
 The Adept library ```adept/string.adept``` contains lots of useful functions for manipulating strings.<br/><br/>
-NOTE: This example uses null-terminated '```*ubyte```' strings, but all the functions in ```adept/string.adept``` also have a variant that takes a '```string```' instead where it's applicable.
+NOTE: This example uses null-terminated '```*ubyte```' strings, but all the functions in ```adept/string.adept``` also have a variant that takes a '```string```' instead of a '```*ubyte```' where it's applicable.
 ```
 private import "adept/string.adept"
 private improt "adept/terminal.adept"
