@@ -418,7 +418,7 @@ The Adept library ```adept/string.adept``` contains lots of useful functions for
 NOTE: This example uses null-terminated '```*ubyte```' strings, but all the functions in ```adept/string.adept``` also have a variant that takes a '```string```' instead of a '```*ubyte```' where it's applicable.
 ```
 private import "adept/string.adept"
-private improt "adept/terminal.adept"
+private import "adept/terminal.adept"
 
 public def main() int {
     // Request a string from the terminal
