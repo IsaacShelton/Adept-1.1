@@ -213,7 +213,7 @@ class ModulusAssignStatement : public Statement {
 
 class CallStatement : public Statement {
     private:
-    int handle_varargs(Program&, Function&, AssemblyData&, const std::string&, uint64_t, uint64_t, const std::vector<llvm::Value*>&, llvm::Value*, bool);
+    int handle_var_args(Program&, Function&, AssemblyData&, const std::string&, uint64_t, uint64_t, std::vector<llvm::Value*>&, llvm::Value*, bool);
 
     public:
     std::string name;
@@ -435,6 +435,10 @@ class ContinueStatement : public Statement {
 };
 
 class MultiResultCallStatement : public Statement {
+    private:
+    int append_return_addresses(Program& program, AssemblyData& context, const std::vector<std::string>& extra_return_types, std::vector<llvm::Value*>& argument_values);
+    int handle_var_args(Program&, Function&, AssemblyData&, const std::string&, uint64_t, uint64_t, std::vector<llvm::Value*>&, const std::vector<std::string>&, llvm::Value*, bool);
+
     public:
     std::string name;
     std::vector<PlainExp*> args;

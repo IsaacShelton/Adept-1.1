@@ -1039,7 +1039,7 @@ CallExp::~CallExp(){
 llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     External func_data;
     AssembleVariable* func_variable;
-    Global func_global;
+    Global global;
 
     llvm::Value* expr_value;
     std::string expr_typename;
@@ -1067,7 +1067,7 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
 
         if(func_data.flags & EXTERN_MULRET){
             errors.panic("No result variables specified for function '" + name + "' that returns multiple arguments");
-            return 1;
+            return NULL;
         }
 
         std::string final_name = (func_data.flags & EXTERN_MANGLED) ? mangle(name, func_data.arguments) : name;
@@ -1077,100 +1077,15 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             return NULL;
         }
         ensure(func_data.arguments.size() == target->arg_size());
+        if(expr_type != NULL) *expr_type = func_data.return_type;
 
         if(func_data.flags & EXTERN_VARARGS){
-            AssembleFunction* asm_func = context.getFunction( !(func.flags & FUNC_EXTERNAL) ? mangle(program, func) : func.name );
             std::string va_arg_typename = func_data.arguments[func_data.arguments.size()-1];
             va_arg_typename = va_arg_typename.substr(2, va_arg_typename.length() - 2);
+            uint64_t va_arg_count = args.size() - func_data.arguments.size() + 1;
 
-            llvm::Type* va_arg_type;
-            if(program.find_type(va_arg_typename, context, &va_arg_type) != 0){
-                errors.panic( UNDECLARED_TYPE(va_arg_typename) );
-                return 1;
-            }
-
-            if(asm_func->va_args == NULL){
-                llvm::BasicBlock* prev_block = context.builder.GetInsertBlock();
-                context.builder.SetInsertPoint(asm_func->entry);
-                asm_func->va_args = context.builder.CreateAlloca(program.llvm_array_type);
-                context.builder.SetInsertPoint(prev_block);
-            }
-
-            llvm::Function* malloc_function = context.module->getFunction("malloc");
-            llvm::Function* free_function = context.module->getFunction("free");
-
-            if(!malloc_function){
-                // Declare the malloc function if it doesn't already exist
-                llvm::Type* return_llvm_type;
-
-                std::vector<llvm::Type*> args(1);
-                args[0] = llvm::Type::getInt32Ty(context.context);
-                return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
-
-                llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
-                malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
-            }
-
-            if(!free_function){
-                // Declare the malloc function if it doesn't already exist
-                llvm::Type* return_llvm_type;
-
-                std::vector<llvm::Type*> args(1);
-                args[0] = llvm::Type::getInt8PtrTy(context.context);
-                return_llvm_type = llvm::Type::getVoidTy(context.context);
-
-                llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
-                free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
-            }
-
-            uint64_t va_arguments_count = args.size() - func_data.arguments.size() + 1;
-            uint64_t va_arg_type_size = context.module->getDataLayout().getTypeAllocSize(va_arg_type);
-
-            std::vector<llvm::Value*> call_values(1);
-            call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_type_size * va_arguments_count, false));
-            llvm::Value* arguments_memory = context.builder.CreateCall(malloc_function, call_values);
-            llvm::Value* va_data = context.builder.CreateBitCast(asm_func->va_args, llvm::Type::getInt8PtrTy(context.context)->getPointerTo());
-
-            // Store allocated memory inside va_data
-            context.builder.CreateStore(arguments_memory, va_data);
-
-            // Store length of allocated memory inside va_length
-            std::vector<llvm::Value*> indices(2);
-            indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
-            indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 1, false));
-
-            llvm::Value* va_length = context.builder.CreateGEP(program.llvm_array_type, asm_func->va_args, indices);
-            context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arguments_count, false)), va_length);
-
-            // Call the function with the new argument values
-            std::vector<llvm::Value*> new_argument_values(func_data.arguments.size());
-
-            // Add variable arguments into array
-            size_t va_index = 0;
-            std::vector<llvm::Value*> array_gep_indices(1);
-            llvm::Value* raw_values_array = context.builder.CreateBitCast(arguments_memory, va_arg_type->getPointerTo());
-            for(size_t i = func_data.arguments.size()-1; i != argument_values.size(); i++){
-                array_gep_indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_index, false));
-                context.builder.CreateStore(argument_values[i], context.builder.CreateGEP(raw_values_array, array_gep_indices));
-                va_index++;
-            }
-
-            // Add argument values and va argument values together
-            size_t j;
-            for(j = 0; j != new_argument_values.size()-1; j++){
-                new_argument_values[j] = argument_values[j];
-            }
-            new_argument_values[new_argument_values.size()-1] = context.builder.CreateLoad(asm_func->va_args);
-
-            // Pass arguments
-            if(expr_type != NULL) *expr_type = func_data.return_type;
-            llvm::CallInst* call = context.builder.CreateCall(target, new_argument_values);
-            call->setCallingConv(func_data.flags & EXTERN_STDCALL ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
-
-            // Free variable argument array
-            call_values[0] = arguments_memory;
-            context.builder.CreateCall(free_function, call_values);
-            return call;
+            return this->handle_var_args(program, func, context, va_arg_typename, va_arg_count, func_data.arguments.size(),
+                                        argument_values, target, func_data.flags & EXTERN_STDCALL);
         }
         else {
             for(size_t i = 0; i != argument_values.size(); i++){
@@ -1187,7 +1102,6 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
                 }
             }
 
-            if(expr_type != NULL) *expr_type = func_data.return_type;
             llvm::CallInst* call = context.builder.CreateCall(target, argument_values);
             call->setCallingConv(func_data.flags & EXTERN_STDCALL ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
             return call;
@@ -1208,36 +1122,53 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             char flags = 0x00;
 
             if(program.extract_function_pointer_info(func_variable->type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
-                varfunc_return_typename, flags) != 0) return NULL;
+                varfunc_return_typename, NULL, flags) != 0) return NULL;
 
-            if (varfunc_args.size() != args.size()){
-                errors.panic("Incorrect function argument count when calling '" + name + "'");
-                return NULL;
-            }
-
-            for(size_t i = 0; i != argument_values.size(); i++){
-                if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
-                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable->type +
-                         "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
-                    return NULL;
-                }
+            if(varfunc_return_llvm_type == NULL){
+                errors.panic("No result variables specified for function pointer '" + name + "' that returns multiple arguments");
+                return 1;
             }
 
             if(expr_type != NULL) *expr_type = varfunc_return_typename;
-            llvm::Value* function_address = context.builder.CreateLoad(func_variable->variable);
-            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
 
-            if(Program::function_typename_is_stdcall(func_variable->type)){
-                call->setCallingConv(llvm::CallingConv::X86_StdCall);
-            } else {
-                call->setCallingConv(llvm::CallingConv::C);
+            if(flags & FUNC_VARARGS){
+                AssembleFunction* asm_func = context.getFunction( !(func.flags & FUNC_EXTERNAL) ? mangle(program, func) : func.name );
+                std::string va_arg_typename = varfunc_args[varfunc_args.size()-1];
+                va_arg_typename = va_arg_typename.substr(2, va_arg_typename.length() - 2);
+                uint64_t va_arg_count = args.size() - varfunc_args.size() + 1;
+
+                return this->handle_var_args(program, func, context, va_arg_typename, va_arg_count, varfunc_args.size(),
+                                        argument_values, context.builder.CreateLoad(func_variable->variable), Program::function_typename_is_stdcall(func_variable->type));
             }
-            return call;
+            else {
+                if (varfunc_args.size() != args.size()){
+                    errors.panic("Incorrect function argument count when calling '" + name + "' (" + to_str(args.size()) + " received, " + to_str(varfunc_args.size()) + " required)");
+                    return NULL;
+                }
+
+                for(size_t i = 0; i != argument_values.size(); i++){
+                    if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
+                        errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_variable->type +
+                             "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
+                        return NULL;
+                    }
+                }
+
+                llvm::Value* function_address = context.builder.CreateLoad(func_variable->variable);
+                llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
+
+                if(Program::function_typename_is_stdcall(func_variable->type)){
+                    call->setCallingConv(llvm::CallingConv::X86_StdCall);
+                } else {
+                    call->setCallingConv(llvm::CallingConv::C);
+                }
+                return call;
+            }
         }
     }
 
-    if(program.find_global(name, &func_global) == 0){
-        if(Program::is_function_typename(func_global.type)){
+    if(program.find_global(name, &global) == 0){
+        if(Program::is_function_typename(global.type)){
             // The variable is a function pointer
 
             std::string varfunc_return_typename;
@@ -1246,37 +1177,150 @@ llvm::Value* CallExp::assemble(Program& program, Function& func, AssemblyData& c
             std::vector<llvm::Type*> varfunc_llvm_args;
             char flags = 0x00;
 
-            if(program.extract_function_pointer_info(func_global.type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
-                varfunc_return_typename, flags) != 0) return NULL;
+            if(program.extract_function_pointer_info(global.type, varfunc_llvm_args, context, &varfunc_return_llvm_type, varfunc_args,
+                varfunc_return_typename, NULL, flags) != 0) return NULL;
 
-            if (varfunc_args.size() != args.size()){
-                errors.panic("Incorrect function argument count when calling '" + name + "'");
-                return NULL;
-            }
-
-            for(size_t i = 0; i != argument_values.size(); i++){
-                if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
-                    errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + func_global.type +
-                         "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
-                    return NULL;
-                }
+            if(varfunc_return_llvm_type == NULL){
+                errors.panic("Incorrect function argument count when calling '" + name + "' (" + to_str(args.size()) + " received, " + to_str(varfunc_args.size()) + " required)");
+                return 1;
             }
 
             if(expr_type != NULL) *expr_type = varfunc_return_typename;
-            llvm::Value* function_address = context.builder.CreateLoad(context.findGlobal(name)->variable);
-            llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
 
-            if(Program::function_typename_is_stdcall(func_global.type)){
-                call->setCallingConv(llvm::CallingConv::X86_StdCall);
-            } else {
-                call->setCallingConv(llvm::CallingConv::C);
+            if(flags & FUNC_VARARGS){
+                AssembleFunction* asm_func = context.getFunction( !(func.flags & FUNC_EXTERNAL) ? mangle(program, func) : func.name );
+                std::string va_arg_typename = varfunc_args[varfunc_args.size()-1];
+                va_arg_typename = va_arg_typename.substr(2, va_arg_typename.length() - 2);
+                uint64_t va_arg_count = args.size() - varfunc_args.size() + 1;
+                AssembleGlobal* global_asm_data = context.findGlobal(global.name);
+
+                if(global_asm_data == NULL){
+                    errors.panic("Failed to find assembly data for global");
+                    return NULL;
+                }
+
+                return this->handle_var_args(program, func, context, va_arg_typename, va_arg_count, varfunc_args.size(),
+                                        argument_values, context.builder.CreateLoad(global_asm_data->variable), Program::function_typename_is_stdcall(global.type));
             }
-            return call;
+            else {
+                if (varfunc_args.size() != args.size()){
+                    errors.panic("Incorrect function argument count when calling '" + name + "'");
+                    return NULL;
+                }
+
+                for(size_t i = 0; i != argument_values.size(); i++){
+                    if(assemble_merge_types_oneway(context, program, argument_types[i], varfunc_args[i], &argument_values[i], varfunc_llvm_args[i], NULL) != 0){
+                        errors.panic("Incorrect type for argument " + to_str(i+1) + " of function '" + name + "'\n    Definition: " + global.type +
+                             "\n    Expected type '" + varfunc_args[i] + "' but received type '" + argument_types[i] + "'");
+                        return NULL;
+                    }
+                }
+
+                llvm::Value* function_address = context.builder.CreateLoad(context.findGlobal(name)->variable);
+                llvm::CallInst* call = context.builder.CreateCall(function_address, argument_values);
+
+                if(Program::function_typename_is_stdcall(global.type)){
+                    call->setCallingConv(llvm::CallingConv::X86_StdCall);
+                } else {
+                    call->setCallingConv(llvm::CallingConv::C);
+                }
+                return call;
+            }
         }
     }
 
     errors.panic_undeclared_func(name, argument_types);
     return NULL;
+}
+llvm::Value* CallExp::handle_var_args(Program& program, Function& func, AssemblyData& context, const std::string& va_arg_typename, uint64_t va_arg_count, uint64_t impl_arg_count,
+                                  std::vector<llvm::Value*>& argument_values, llvm::Value* target, bool target_is_stdcall){
+    AssembleFunction* asm_func = context.getFunction( !(func.flags & FUNC_EXTERNAL) ? mangle(program, func) : func.name );
+
+    llvm::Type* va_arg_type;
+    if(program.find_type(va_arg_typename, context, &va_arg_type) != 0){
+        errors.panic( UNDECLARED_TYPE(va_arg_typename) );
+        return NULL;
+    }
+
+    if(asm_func->va_args == NULL){
+        llvm::BasicBlock* prev_block = context.builder.GetInsertBlock();
+        context.builder.SetInsertPoint(asm_func->entry);
+        asm_func->va_args = context.builder.CreateAlloca(program.llvm_array_type);
+        context.builder.SetInsertPoint(prev_block);
+    }
+
+    llvm::Function* malloc_function = context.module->getFunction("malloc");
+    llvm::Function* free_function = context.module->getFunction("free");
+
+    if(!malloc_function){
+        // Declare the malloc function if it doesn't already exist
+        llvm::Type* return_llvm_type;
+
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt32Ty(context.context);
+        return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+        malloc_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "malloc", context.module.get());
+    }
+
+    if(!free_function){
+        // Declare the malloc function if it doesn't already exist
+        llvm::Type* return_llvm_type;
+
+        std::vector<llvm::Type*> args(1);
+        args[0] = llvm::Type::getInt8PtrTy(context.context);
+        return_llvm_type = llvm::Type::getVoidTy(context.context);
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
+        free_function = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "free", context.module.get());
+    }
+
+    uint64_t va_arg_type_size = context.module->getDataLayout().getTypeAllocSize(va_arg_type);
+
+    std::vector<llvm::Value*> call_values(1);
+    call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_type_size * va_arg_count, false));
+    llvm::Value* arguments_memory = context.builder.CreateCall(malloc_function, call_values);
+    llvm::Value* va_data = context.builder.CreateBitCast(asm_func->va_args, llvm::Type::getInt8PtrTy(context.context)->getPointerTo());
+
+    // Store allocated memory inside va_data
+    context.builder.CreateStore(arguments_memory, va_data);
+
+    // Store length of allocated memory inside va_length
+    std::vector<llvm::Value*> indices(2);
+    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, false));
+    indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 1, false));
+
+    llvm::Value* va_length = context.builder.CreateGEP(program.llvm_array_type, asm_func->va_args, indices);
+    context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_count, false)), va_length);
+
+    // Call the function with the new argument values
+    std::vector<llvm::Value*> new_argument_values(impl_arg_count);
+
+    // Add variable arguments into array
+    size_t va_index = 0;
+    std::vector<llvm::Value*> array_gep_indices(1);
+    llvm::Value* raw_values_array = context.builder.CreateBitCast(arguments_memory, va_arg_type->getPointerTo());
+    for(size_t i = impl_arg_count-1; i != argument_values.size(); i++){
+        array_gep_indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_index, false));
+        context.builder.CreateStore(argument_values[i], context.builder.CreateGEP(raw_values_array, array_gep_indices));
+        va_index++;
+    }
+
+    // Add argument values and va argument values together
+    for(size_t j = 0; j != new_argument_values.size()-1; j++){
+        new_argument_values[j] = argument_values[j];
+    }
+    new_argument_values[new_argument_values.size()-1] = context.builder.CreateLoad(asm_func->va_args);
+
+    // Pass arguments
+    llvm::CallInst* call = context.builder.CreateCall(target, new_argument_values);
+    call->setCallingConv(target_is_stdcall ? llvm::CallingConv::X86_StdCall : llvm::CallingConv::C);
+
+    // Free variable argument array
+    call_values[0] = arguments_memory;
+    context.builder.CreateCall(free_function, call_values);
+    return call;
 }
 std::string CallExp::toString(){
     std::string args_str;
@@ -2181,23 +2225,32 @@ FuncptrExp::~FuncptrExp(){}
 llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssemblyData& context, std::string* expr_type){
     External function_data;
     std::string final_name;
-
     std::string args_str;
+
+    // Stuff used for dirty hack to find variable argument function
+    std::string* final_argument;
+    bool did_dirty_hack = false;
+
     for(size_t a = 0; a != function_arguments.size(); a++){
         args_str += function_arguments[a];
         if(a + 1 != function_arguments.size()) args_str += ", ";
     }
 
     if(function_arguments.size() > 0){
-        // HACK: Very dirty and overall bad, but it does the job
-        std::string& final_argument = function_arguments[function_arguments.size()-1];
-
-        if(final_argument.size() > 3 && final_argument.substr(0, 3) == "..."){
-            final_argument = "[]" + final_argument.substr(3, final_argument.size()-3);
+        final_argument = &(function_arguments[function_arguments.size()-1]);
+        if(final_argument->size() > 3 && final_argument->substr(0, 3) == "..."){
+            // HACK: Very dirty and overall bad, but it does the job
+            *final_argument = "[]" + final_argument->substr(3, final_argument->size()-3);
+            did_dirty_hack = true;
         }
     }
 
-    if(program.find_func(function_name, function_arguments, &function_data) != 0){
+    if(program.find_func(function_name, function_arguments, &function_data, did_dirty_hack) != 0){
+        if(did_dirty_hack){
+            // HACK: Very dirty, but hey it does the job
+            *final_argument = "..." + final_argument->substr(2, final_argument->size()-2);
+        }
+
         errors.panic_undeclared_func(function_name, function_arguments);
         return NULL;
     }
@@ -2205,8 +2258,25 @@ llvm::Value* FuncptrExp::assemble(Program& program, Function& func, AssemblyData
     final_name = (function_data.flags & EXTERN_MANGLED ? mangle(function_name, function_arguments) : function_name);
     llvm::Function* target_function = context.module->getFunction(final_name);
 
-    if(expr_type != NULL) *expr_type = "def(" + args_str + ") " + function_data.return_type;
-    return target_function;
+    if(function_data.flags & EXTERN_MULRET){
+        if(expr_type != NULL){
+            std::string return_types_str = "(";
+            std::vector<std::string>& additional_returns = function_data.extra_return_types;
+            size_t extra_ret_size = additional_returns.size();
+
+            for(size_t i = 0; i != extra_ret_size; i++){
+                return_types_str += additional_returns[i];
+                if(i + 1 != extra_ret_size) return_types_str += ", ";
+            }
+
+            return_types_str += ")";
+            *expr_type = "def(" + args_str + ")" + return_types_str;
+        }
+        return target_function;
+    } else {
+        if(expr_type != NULL) *expr_type = "def(" + args_str + ") " + function_data.return_type;
+        return target_function;
+    }
 }
 std::string FuncptrExp::toString(){
     std::string args_str;

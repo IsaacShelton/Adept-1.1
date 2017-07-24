@@ -292,6 +292,9 @@ class IndexLoadExp : public PlainExp {
 };
 
 class CallExp : public PlainExp {
+    private:
+    llvm::Value* handle_var_args(Program&, Function&, AssemblyData&, const std::string&, uint64_t, uint64_t, std::vector<llvm::Value*>&, llvm::Value*, bool);
+
     public:
     std::string name;
     std::vector<PlainExp*> args;

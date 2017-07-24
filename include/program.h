@@ -72,7 +72,7 @@ class Function {
     StatementList statements;
     char flags;
     size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
-    std::vector<std::string> additional_return_types;
+    std::vector<std::string> extra_return_types;
 
     OriginInfo* origin;
 
@@ -97,7 +97,7 @@ class External {
     std::vector<std::string> arguments;
     std::string return_type;
     char flags;
-    std::vector<std::string> additional_return_types;
+    std::vector<std::string> extra_return_types;
 
     OriginInfo* origin;
 
@@ -247,8 +247,8 @@ class Program {
     bool resolve_if_alias(std::string&) const;
     bool resolve_once_if_alias(std::string&) const;
 
-    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**) const;
-    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**, std::vector<std::string>&, std::string&, char&) const;
+    int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**,
+                                      std::vector<std::string>&, std::string&, std::vector<std::string>*, char&) const;
     int function_typename_to_type(const std::string&, AssemblyData&, llvm::Type**) const;
     void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&) const;
 
@@ -258,7 +258,7 @@ class Program {
 
     int find_type(const std::string&, AssemblyData&, llvm::Type**) const;
     int find_func(const std::string&, External*);
-    int find_func(const std::string&, const std::vector<std::string>&, External*);
+    int find_func(const std::string&, const std::vector<std::string>&, External*, bool require_va = false);
     int find_method(const std::string&, const std::string&, const std::vector<std::string>&, External*);
     int find_struct(const std::string&, Structure*);
     int find_class(const std::string&, Class*);

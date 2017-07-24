@@ -433,12 +433,17 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
 
     std::vector<Field> arguments;
     std::string return_type;
-    std::vector<std::string> additional_return_types;
+    std::vector<std::string> extra_return_types;
     StatementList statements;
     StatementList defer_statements;
     bool is_variable_args = false;
 
     while(tokens[i].id != TOKENID_CLOSE){
+        if(is_variable_args){
+            errors.panic("Variable arguments can only be at the end of the argument list");
+            return 1;
+        }
+
         if(tokens[i].id != TOKENID_WORD){
             errors.panic("Expected argument name");
             return 1;
@@ -456,38 +461,60 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
-        if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
         if(is_variable_args) type = "[]" + type;
         arguments.push_back( Field{name, type} );
-        if(is_variable_args) break;
+
+        if(tokens[i].id == TOKENID_NEXT){
+            next_index(i, tokens.size());
+        } else if(tokens[i].id != TOKENID_CLOSE){
+            errors.panic("Expected ',' or ')' after typename inside listing of multiple return types");
+            return 1;
+        }
     }
 
     if(tokens[i].id == TOKENID_BEGIN){
         errors.panic("Expected function return type after function name");
         return 1;
     }
+
     next_index(i, tokens.size());
 
-    if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
-    next_index(i, tokens.size());
-
-    if(tokens[i].id == TOKENID_NEXT){
+    if(tokens[i].id == TOKENID_OPEN){
         multiple_return = true;
-        additional_return_types.push_back(return_type);
-
         next_index(i, tokens.size());
-        while(tokens[i].id != TOKENID_BEGIN){
+
+        while(tokens[i].id != TOKENID_CLOSE){
             return_type = "";
             if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
-            additional_return_types.push_back(return_type);
+            extra_return_types.push_back(return_type);
             next_index(i, tokens.size());
 
-            if(tokens[i].id != TOKENID_NEXT) break;
-            next_index(i, tokens.size());
+            if(tokens[i].id == TOKENID_NEXT){
+                next_index(i, tokens.size());
+            } else if(tokens[i].id != TOKENID_CLOSE){
+                errors.panic("Expected ',' or ')' after typename inside listing of multiple return types");
+                return 1;
+            }
         }
+
+        if(extra_return_types.size() == 0){
+            errors.panic("Must return at least one value when using multiple return types");
+            return 1;
+        }
+
+        next_index(i, tokens.size());
+    }
+    else {
+        if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+        next_index(i, tokens.size());
     }
 
+    if(tokens[i].id != TOKENID_BEGIN){
+        errors.panic("Expected block after function declaration");
+        return 1;
+    }
     next_index(i, tokens.size());
+
     if(parse_block(config, tokens, program, statements, defer_statements, i, errors) != 0) return 1;
 
     // If function not terminated, make sure to add defer statements
@@ -507,7 +534,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
 
     if(multiple_return){
         // return_type isn't used, the function will technically return void in the actual implementation
-        program.functions.push_back( Function(name, arguments, additional_return_types, statements, attr_info.is_public, false, attr_info.is_stdcall, attr_info.is_external, is_variable_args, &program.origin_info) );
+        program.functions.push_back( Function(name, arguments, extra_return_types, statements, attr_info.is_public, false, attr_info.is_stdcall, attr_info.is_external, is_variable_args, &program.origin_info) );
     }
     else {
         program.functions.push_back( Function(name, arguments, return_type, statements, attr_info.is_public, false, attr_info.is_stdcall, attr_info.is_external, is_variable_args, &program.origin_info) );
@@ -953,7 +980,7 @@ int parse_type_funcptr(Configuration& config, TokenList& tokens, Program& progra
     next_index(i, tokens.size());
     while(tokens[i].id != TOKENID_CLOSE){
         if(is_var_args){
-            errors.panic("Variable arguments can only be the end of the argument list");
+            errors.panic("Variable arguments can only be at the end of the argument list");
             return 1;
         }
 
@@ -962,6 +989,7 @@ int parse_type_funcptr(Configuration& config, TokenList& tokens, Program& progra
             next_index(i, tokens.size());
         }
 
+        type = "";
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
@@ -981,12 +1009,45 @@ int parse_type_funcptr(Configuration& config, TokenList& tokens, Program& progra
         } else if(is_var_args){
             output_type += "..." + arguments[arg_index];
         }
+        else {
+            output_type += arguments[arg_index];
+        }
     }
 
     next_index(i, tokens.size());
-    if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
-    output_type += ") " + return_type;
-    return 0;
+    if(tokens[i].id == TOKENID_OPEN){
+        next_index(i, tokens.size());
+
+        while(tokens[i].id != TOKENID_CLOSE){
+            std::string tmp_return_type = "";
+            if(parse_type(config, tokens, program, i, tmp_return_type, errors) != 0) return 1;
+            next_index(i, tokens.size());
+
+            if(tokens[i].id == TOKENID_NEXT){
+                return_type += tmp_return_type + ", ";
+                next_index(i, tokens.size());
+            } else if(tokens[i].id != TOKENID_CLOSE){
+                errors.panic("Expected ',' or ')' after typename inside listing of multiple return types");
+                return 1;
+            }
+            else {
+                return_type += tmp_return_type;
+            }
+        }
+
+        if(return_type.length() == 0){
+            errors.panic("Must return at least one value when using multiple return types");
+            return 1;
+        }
+
+        output_type += ")(" + return_type + ")";
+        return 0;
+    }
+    else {
+        if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+        output_type += ") " + return_type;
+        return 0;
+    }
 }
 
 int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
@@ -2000,6 +2061,14 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
                 }
 
                 next_index(i, tokens.size());
+                Token& peeked_token = tokens[i];
+
+                if( peeked_token.id == TOKENID_WORD || peeked_token.id == TOKENID_MULTIPLY || peeked_token.id == TOKENID_BRACKET_OPEN || peeked_token.id == TOKENID_OPEN
+                   || (peeked_token.id == TOKENID_KEYWORD && (peeked_token.getString() == "def" or peeked_token.getString() == "stdcall")) ){
+                    errors.panic("Unexpected return type information after argument list of function '" + function_name + "'\n    The 'funcptr' keyword only takes in function arguments, not return type information");
+                    return 1;
+                }
+
                 *expression = new FuncptrExp(function_name, function_arguments, errors);
             } else if(keyword == "sizeof"){
                 std::string sizeof_typename;

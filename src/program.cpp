@@ -58,7 +58,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     this->parent_class_offset = 0;
     this->origin = origin;
 }
-Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::vector<std::string>& additional_return_types, const StatementList& statements,
+Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::vector<std::string>& extra_return_types, const StatementList& statements,
                    bool is_public, bool is_static, bool is_stdcall, bool is_external, bool is_variable_args, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
@@ -74,7 +74,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
 
     this->flags = new_flags;
     this->parent_class_offset = 0;
-    this->additional_return_types = additional_return_types;
+    this->extra_return_types = extra_return_types;
     this->origin = origin;
 }
 Function::Function(const Function& other){
@@ -91,7 +91,7 @@ Function::Function(const Function& other){
     }
 
     if(flags & FUNC_MULRET){
-        additional_return_types = other.additional_return_types;
+        extra_return_types = other.extra_return_types;
     }
 }
 Function::~Function(){
@@ -605,11 +605,17 @@ bool Program::resolve_once_if_alias(std::string& type) const {
     return false;
 }
 
-int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, AssemblyData& context, llvm::Type** return_llvm_type) const {
+int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, AssemblyData& context, llvm::Type** return_llvm_type,
+                                           std::vector<std::string>& typenames, std::string& return_typename, std::vector<std::string>* extra_return_types, char& flags) const {
     // "def(int, int) int"
     // -----^
 
     // NOTE: type_name is assumed to be a valid function pointer type
+
+    // NOTE: Will set return_llvm_type to NULL if the function pointer type returns multiple values.
+    //           The return types can then be extracted using Program::extract_multireturn_info on return_typename
+
+    ensure(return_llvm_type != NULL);
 
     size_t c = 0;
     if(type_name.length() > 8){
@@ -617,6 +623,7 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
             c = 8;
         }
     }
+
     c += 4;
 
     while(type_name[c] != ')'){
@@ -630,69 +637,21 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
             arg_type_string += type_name[c];
             next_index(c, type_name.length());
         }
+
         if(type_name[c] == ','){
             next_index(c, type_name.length());
             next_index(c, type_name.length());
-        }
-        if(arg_type_string.size() > 3 && arg_type_string.substr(0, 3) == "..."){
-            arg_type_string = "[]" + arg_type_string.substr(3, arg_type_string.size()-3);
-        }
-        if(this->find_type(arg_type_string, context, &arg_llvm_type) != 0){
-            fail(UNDECLARED_TYPE(arg_type_string));
+        } else if(type_name[c] != ')') {
+            std::cerr << SUICIDE << std::endl;
+            std::cerr << "    Reason: Program::extract_function_pointer_info received an invalid type '" << type_name << "'" << std::endl;
             return 1;
         }
 
-        llvm_args.push_back(arg_llvm_type);
-    }
-
-    next_index(c, type_name.length());
-    next_index(c, type_name.length());
-
-    std::string return_type_string = type_name.substr(c, type_name.length()-c);
-    ensure(return_type_string != "");
-
-    if(this->find_type(return_type_string, context, return_llvm_type) != 0){
-        fail(UNDECLARED_TYPE(return_type_string));
-        return 1;
-    }
-
-    return 0;
-}
-int Program::extract_function_pointer_info(const std::string& type_name, std::vector<llvm::Type*>& llvm_args, AssemblyData& context, llvm::Type** return_llvm_type,
-                                           std::vector<std::string>& typenames, std::string& return_typename, char& flags) const {
-    // "def(int, int) int"
-    // -----^
-
-    // NOTE: type_name is assumed to be a valid function pointer type
-
-    size_t c = 0;
-    if(type_name.length() > 8){
-        if(type_name.substr(0, 8) == "stdcall "){
-            c = 8;
-        }
-    }
-
-    c += 4;
-
-    while(type_name[c] != ')'){
-        llvm::Type* arg_llvm_type;
-        std::string arg_type_string;
-        int balance = 0;
-
-        while((type_name[c] != ')' and type_name[c] != ',') or balance != 0){
-            if(type_name[c] == '(') balance += 1;
-            if(type_name[c] == ')') balance -= 1;
-            arg_type_string += type_name[c];
-            next_index(c, type_name.length());
-        }
-        if(type_name[c] == ','){
-            next_index(c, type_name.length());
-            next_index(c, type_name.length());
-        }
         if(arg_type_string.size() > 3 && arg_type_string.substr(0, 3) == "..."){
             arg_type_string = "[]" + arg_type_string.substr(3, arg_type_string.size()-3);
             flags |= FUNC_VARARGS;
         }
+
         if(this->find_type(arg_type_string, context, &arg_llvm_type) != 0){
             fail(UNDECLARED_TYPE(arg_type_string));
             return 1;
@@ -703,31 +662,139 @@ int Program::extract_function_pointer_info(const std::string& type_name, std::ve
     }
 
     next_index(c, type_name.length());
-    next_index(c, type_name.length());
 
-    return_typename = type_name.substr(c, type_name.length()-c);
-    ensure(return_typename != "");
+    if(type_name[c] == '('){
+        size_t parentheses_depth = 0;
+        next_index(c, type_name.length());
 
-    if(this->find_type(return_typename, context, return_llvm_type) != 0){
-        fail(UNDECLARED_TYPE(return_typename));
-        return 1;
+        while(type_name[c] != ')'){
+            ensure(extra_return_types != NULL);
+            *return_llvm_type = NULL;
+
+            std::string return_type = "";
+            while(parentheses_depth != 0 or (type_name[c] != ',' and type_name[c] != ')')){
+                if(type_name[c] == '(') parentheses_depth++;
+                if(type_name[c] == ')') parentheses_depth--;
+                return_type += type_name[c];
+                next_index(c, type_name.length());
+            }
+
+            if(type_name[c] == ','){
+                next_index(c, type_name.length());
+                if(type_name[c] == ' '){
+                    next_index(c, type_name.length());
+                }
+            }
+
+            extra_return_types->push_back(return_type);
+        }
+        return 0;
+    } else {
+        next_index(c, type_name.length());
+        return_typename = type_name.substr(c, type_name.length()-c);
+        ensure(return_typename != "");
+
+        if(this->find_type(return_typename, context, return_llvm_type) != 0){
+            fail(UNDECLARED_TYPE(return_typename));
+            return 1;
+        }
+
+        return 0;
     }
-
-    return 0;
 }
 int Program::function_typename_to_type(const std::string& type_name, AssemblyData& context, llvm::Type** type) const {
     // "def(int, int) int"
     // -----^
 
+    ensure(type != NULL);
+
     std::vector<llvm::Type*> llvm_args;
+    std::vector<llvm::Type*> return_llvm_types;
     llvm::Type* return_llvm_type;
 
-    // Extract information from function pointer type
-    if(this->extract_function_pointer_info(type_name, llvm_args, context, &return_llvm_type) != 0) return 1;
+    size_t c = 0;
+    if(type_name.length() > 8){
+        if(type_name.substr(0, 8) == "stdcall "){
+            c = 8;
+        }
+    }
+    c += 4;
 
-    llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, llvm_args, false);
-    if(type != NULL) *type = function_type->getPointerTo();
-    return 0;
+    while(type_name[c] != ')'){
+        llvm::Type* arg_llvm_type;
+        std::string arg_type_string;
+        int balance = 0;
+
+        while((type_name[c] != ')' and type_name[c] != ',') or balance != 0){
+            if(type_name[c] == '(') balance += 1;
+            if(type_name[c] == ')') balance -= 1;
+            arg_type_string += type_name[c];
+            next_index(c, type_name.length());
+        }
+        if(type_name[c] == ','){
+            next_index(c, type_name.length());
+            next_index(c, type_name.length());
+        }
+        if(arg_type_string.size() > 3 && arg_type_string.substr(0, 3) == "..."){
+            arg_type_string = "[]" + arg_type_string.substr(3, arg_type_string.size()-3);
+        }
+        if(this->find_type(arg_type_string, context, &arg_llvm_type) != 0){
+            fail(UNDECLARED_TYPE(arg_type_string));
+            return 1;
+        }
+
+        llvm_args.push_back(arg_llvm_type);
+    }
+
+    next_index(c, type_name.length());
+
+    if(type_name[c] == '('){
+        size_t parentheses_depth = 0;
+        next_index(c, type_name.length());
+
+        while(type_name[c] != ')'){
+            std::string return_type = "";
+            while(parentheses_depth != 0 or (type_name[c] != ',' and type_name[c] != ')')){
+                if(type_name[c] == '(') parentheses_depth++;
+                if(type_name[c] == ')') parentheses_depth--;
+                return_type += type_name[c];
+                next_index(c, type_name.length());
+            }
+
+            if(type_name[c] == ','){
+                next_index(c, type_name.length());
+                if(type_name[c] == ' '){
+                    next_index(c, type_name.length());
+                }
+            }
+
+            if(this->find_type(return_type, context, &return_llvm_type) != 0){
+                fail(UNDECLARED_TYPE(return_type));
+                return 1;
+            }
+
+            return_llvm_types.push_back(return_llvm_type->getPointerTo());
+        }
+
+        llvm_args.insert(llvm_args.end(), return_llvm_types.begin(), return_llvm_types.end());
+        return_llvm_type = llvm::Type::getVoidTy(context.context);
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, llvm_args, false);
+        *type = function_type->getPointerTo();
+        return 0;
+    } else {
+        next_index(c, type_name.length());
+        std::string return_type_string = type_name.substr(c, type_name.length()-c);
+        ensure(return_type_string != "");
+
+        if(this->find_type(return_type_string, context, &return_llvm_type) != 0){
+            fail(UNDECLARED_TYPE(return_type_string));
+            return 1;
+        }
+
+        llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, llvm_args, false);
+        *type = function_type->getPointerTo();
+        return 0;
+    }
 }
 void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers) const {
     for(const std::vector<Program::TypeModifier>::const_reverse_iterator i = modifiers.rbegin(); i != modifiers.rend(); ++i){
@@ -866,6 +933,8 @@ int Program::generate_types(AssemblyData& context){
 }
 
 int Program::find_type(const std::string& name, AssemblyData& context, llvm::Type** type) const {
+    ensure(type != NULL);
+
     std::vector<Type>& types = context.types;
     std::vector<TypeModifier> type_modifiers;
 
@@ -951,15 +1020,16 @@ int Program::find_func(const std::string& name, External* func){
 
     return 1;
 }
-int Program::find_func(const std::string& name, const std::vector<std::string>& args, External* func){
+int Program::find_func(const std::string& name, const std::vector<std::string>& args, External* func, bool require_va){
     bool args_match;
 
-    // Check for matching non-var-arg functions
+    // Check for any matching function
     for(size_t i = 0; i != functions.size(); i++){
         if(functions[i].name == name){
             External external;
             Function* function_found = &functions[i];
 
+            if(require_va and !(function_found->flags & FUNC_VARARGS)) continue;
             if(args.size() != function_found->arguments.size()) continue; // Continue if different amount of arguments
 
             args_match = true;
@@ -973,7 +1043,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
-            external.additional_return_types = function_found->additional_return_types;
+            external.extra_return_types = function_found->extra_return_types;
 
             char new_flags = 0x00;
             if(function_found->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
@@ -990,12 +1060,12 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
         }
     }
 
-    // Check for matching non-var-args externals
+    // Check for any matching external
     for(size_t i = 0; i != externs.size(); i++){
         if(externs[i].name == name){
             External* external = &externs[i];
 
-            if(external->flags & EXTERN_VARARGS) continue; // Perfer non-var-args externals if possible
+            if(require_va and !(external->flags & EXTERN_VARARGS)) continue;
             if(args.size() != external->arguments.size()) continue; // Continue if different amount of arguments
 
             args_match = true;
@@ -1047,7 +1117,7 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
             external.name = function_found->name;
             external.return_type = function_found->return_type;
-            external.additional_return_types = function_found->additional_return_types;
+            external.extra_return_types = function_found->extra_return_types;
 
             char new_flags = 0x00;
             if(function_found->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;

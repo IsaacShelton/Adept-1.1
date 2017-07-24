@@ -502,7 +502,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             end_of_reg_args = func.arguments.size();
 
             if(func.flags & FUNC_MULRET){
-                args.resize(args.size() + func.additional_return_types.size());
+                args.resize(args.size() + func.extra_return_types.size());
             }
 
             // Throw an error if main is private
@@ -525,8 +525,8 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
             size_t mulret_index = 0;
             size_t args_index = func.arguments.size();
             while(args_index != args.size()){
-                if(program.find_type(func.additional_return_types[mulret_index], context, &llvm_type) != 0){
-                    fail_filename(config, UNDECLARED_TYPE(func.additional_return_types[mulret_index]));
+                if(program.find_type(func.extra_return_types[mulret_index], context, &llvm_type) != 0){
+                    fail_filename(config, UNDECLARED_TYPE(func.extra_return_types[mulret_index]));
                     return 1;
                 }
                 args[args_index] = llvm_type->getPointerTo();
