@@ -451,7 +451,7 @@ The '```string```' type is literally just an alias for the type '```[]ubyte```'<
 All the functions defined in '```adept/string.adept```' used for string manipulation also have a variant that takes a '```string```' instead of a '```*ubyte```'.
 ```
 private import "adept/string.adept"
-private improt "adept/terminal.adept"
+private import "adept/terminal.adept"
 
 public def main() int {
     hello_world string = 'Hello World'
