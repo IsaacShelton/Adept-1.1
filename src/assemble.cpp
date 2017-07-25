@@ -495,11 +495,8 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 
         if(!llvm_function){
             llvm::Type* llvm_type;
-            std::vector<llvm::Type*> args;
-            size_t end_of_reg_args;
-
-            args.resize(func.arguments.size());
-            end_of_reg_args = func.arguments.size();
+            std::vector<llvm::Type*> args(func.arguments.size());
+            size_t end_of_reg_args = args.size();
 
             if(func.flags & FUNC_MULRET){
                 args.resize(args.size() + func.extra_return_types.size());
@@ -572,13 +569,13 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
                 if(i >= end_of_reg_args){
                     ensure(func.flags & FUNC_MULRET);
                     func_assembly_data->multi_return_pointers.push_back(&arg);
-                    i++;
+                    i++; continue;
                 }
                 else {
                     llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
                     context.builder.CreateStore(&arg, alloca);
                     func_assembly_data->addVariable(func.arguments[i].name, func.arguments[i].type, alloca);
-                    i++;
+                    i++; continue;
                 }
             }
 
@@ -645,6 +642,11 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
     if(!llvm_function){
         llvm::Type* llvm_type;
         std::vector<llvm::Type*> args(method.arguments.size()+1);
+        size_t end_of_reg_args  = args.size();
+
+        if(method.flags & FUNC_MULRET){
+            args.resize(args.size() + method.extra_return_types.size());
+        }
 
         // Get llvm type of pointer to structure of 'Class* klass'
         if(program.find_type(klass.name, context, &llvm_type) != 0){
@@ -660,6 +662,17 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
                 return 1;
             }
             args[i+1] = llvm_type;
+        }
+
+        size_t mulret_index = 0;
+        size_t args_index = method.arguments.size() + 1;
+        while(args_index != args.size()){
+            if(program.find_type(method.extra_return_types[mulret_index], context, &llvm_type) != 0){
+                fail_filename(config, UNDECLARED_TYPE(method.extra_return_types[mulret_index]));
+                return 1;
+            }
+            args[args_index] = llvm_type->getPointerTo();
+            args_index++; mulret_index++;
         }
 
         // Convert return type typename to an llvm type
@@ -697,22 +710,26 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
             size_t i = 0;
             func_assembly_data->variables.reserve(args.size() + 1);
 
-            // Add variable for each argument
             for(auto& arg : llvm_function->args()){
                 if(i == 0){
                     // Add variable for 'this'
                     llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
                     context.builder.CreateStore(&arg, alloca);
                     func_assembly_data->addVariable("this", "*" + klass.name, alloca);
-                    i++;
-                    continue;
+                    i++; continue;
                 }
-
-                Field& method_argument = method.arguments[i-1];
-                llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0, method_argument.name);
-                context.builder.CreateStore(&arg, alloca);
-                func_assembly_data->addVariable(method_argument.name, method_argument.type, alloca);
-                i++;
+                else if(i >= end_of_reg_args){
+                    ensure(method.flags & FUNC_MULRET);
+                    func_assembly_data->multi_return_pointers.push_back(&arg);
+                    i++; continue;
+                }
+                else {
+                    Field& method_argument = method.arguments[i-1];
+                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
+                    context.builder.CreateStore(&arg, alloca);
+                    func_assembly_data->addVariable(method_argument.name, method_argument.type, alloca);
+                    i++; continue;
+                }
             }
 
             context.builder.SetInsertPoint(quit);

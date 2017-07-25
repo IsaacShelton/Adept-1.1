@@ -552,6 +552,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     //           if it is used for accessing things like members, not all of them may be present,
     //           or none of them at all
 
+    bool multiple_return = false;
     std::string name = tokens[i].getString();
     next_index(i, tokens.size());
 
@@ -563,6 +564,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
 
     std::vector<Field> arguments;
     std::string return_type;
+    std::vector<std::string> extra_return_types;
     StatementList statements;
     StatementList defer_statements;
     bool is_variable_args = false;
@@ -597,8 +599,41 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     next_index(i, tokens.size());
-    if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
-    next_index(i, tokens.size());
+
+    if(tokens[i].id == TOKENID_OPEN){
+        multiple_return = true;
+        next_index(i, tokens.size());
+
+        while(tokens[i].id != TOKENID_CLOSE){
+            return_type = "";
+            if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+            extra_return_types.push_back(return_type);
+            next_index(i, tokens.size());
+
+            if(tokens[i].id == TOKENID_NEXT){
+                next_index(i, tokens.size());
+            } else if(tokens[i].id != TOKENID_CLOSE){
+                errors.panic("Expected ',' or ')' after typename inside listing of multiple return types");
+                return 1;
+            }
+        }
+
+        if(extra_return_types.size() == 0){
+            errors.panic("Must return at least one value when using multiple return types");
+            return 1;
+        }
+
+        next_index(i, tokens.size());
+    }
+    else {
+        if(parse_type(config, tokens, program, i, return_type, errors) != 0) return 1;
+        next_index(i, tokens.size());
+
+        if(tokens[i].id == TOKENID_NEXT){
+            errors.panic("When defining a method that returns multiple values, the return types must be surrounded by parentheses");
+            return 1;
+        }
+    }
 
     if(return_type == ""){
         errors.panic("No return type specified for method '" + klass->name + "." + name + "'");
@@ -623,10 +658,18 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         delete statement;
     }
 
-    Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, is_variable_args, &program.origin_info);
-    created_method.parent_class_offset = class_offset_plus_one;
-    klass->methods.push_back( std::move(created_method) );
-    return 0;
+    if(multiple_return){
+        Function created_method(name, arguments, extra_return_types, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, is_variable_args, &program.origin_info);
+        created_method.parent_class_offset = class_offset_plus_one;
+        klass->methods.push_back( std::move(created_method) );
+        return 0;
+    }
+    else {
+        Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, is_variable_args, &program.origin_info);
+        created_method.parent_class_offset = class_offset_plus_one;
+        klass->methods.push_back( std::move(created_method) );
+        return 0;
+    }
 }
 int parse_external(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // foreign func_name() ret_type
@@ -1912,6 +1955,7 @@ int parse_block_multireturn_call(Configuration& config, TokenList& tokens, Progr
     }
 
     next_index(i, tokens.size());
+
     if(tokens[i].id != TOKENID_WORD){
         errors.panic("Expected function name after assignment operator and listing of result variables");
         return 1;
@@ -1920,33 +1964,39 @@ int parse_block_multireturn_call(Configuration& config, TokenList& tokens, Progr
     name = tokens[i].getString();
     next_index(i, tokens.size());
 
-    if(tokens[i].id != TOKENID_OPEN){
+    if(tokens[i].id == TOKENID_OPEN){
+        next_index(i, tokens.size());
+
+        if(tokens[i].id != TOKENID_CLOSE) {
+            while(true) {
+                PlainExp* expression;
+
+                if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
+
+                args.push_back(expression);
+
+                if(tokens[i].id == TOKENID_CLOSE) break;
+                if(tokens[i].id != TOKENID_NEXT){
+                    errors.panic("Expected ')' or ',' in argument list");
+                    return 1;
+                }
+
+                next_index(i, tokens.size());
+            }
+        }
+
+        statements.push_back( new MultiResultCallStatement(name, args, result_variables, errors) );
+        next_index(i, tokens.size());
+        return 0;
+    }
+    else if(tokens[i].id == TOKENID_MEMBER){
+        errors.panic("Calling methods that return multiple values isn't suppported yet");
+        return 1;
+    }
+    else {
         errors.panic("Expected '(' after function name");
         return 1;
     }
-
-    next_index(i, tokens.size());
-    if(tokens[i].id != TOKENID_CLOSE) {
-        while(true) {
-            PlainExp* expression;
-
-            if(parse_expression(config, tokens, program, i, &expression, errors) != 0) return 1;
-
-            args.push_back(expression);
-
-            if(tokens[i].id == TOKENID_CLOSE) break;
-            if(tokens[i].id != TOKENID_NEXT){
-                errors.panic("Expected ')' or ',' in argument list");
-                return 1;
-            }
-
-            next_index(i, tokens.size());
-        }
-    }
-
-    statements.push_back( new MultiResultCallStatement(name, args, result_variables, errors) );
-    next_index(i, tokens.size());
-    return 0;
 }
 
 int parse_expression(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
