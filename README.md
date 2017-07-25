@@ -414,10 +414,11 @@ private def printIntegers(integers ... int) void {
 ```
 
 ### String Manipulation
-The Adept library ```adept/string.adept``` contains lots of useful functions for manipulating strings.
+The Adept library ```adept/string.adept``` contains lots of useful functions for manipulating strings.<br/><br/>
+NOTE: This example uses null-terminated '```*ubyte```' strings, but all the functions in ```adept/string.adept``` also have a variant that takes a '```string```' instead of a '```*ubyte```' where it's applicable.
 ```
 private import "adept/string.adept"
-private improt "adept/terminal.adept"
+private import "adept/terminal.adept"
 
 public def main() int {
     // Request a string from the terminal
@@ -447,10 +448,10 @@ public def main() int {
 The '```string```' type is literally just an alias for the type '```[]ubyte```'<br/><br/>
 <b>String literals that are of the type '```string```' use single quotes!</b><br/>
 (Instead of double quotes which are used for '```*ubyte```' string literals)<br/><br/>
-All the functions defined in '```adept/string.adept```' used for string manipulation also have a variant that takes a '```string```' instead of a '```*ubyte```'. Also, ```string.data``` is always guaranteed to be a valid null-terminated string.
+All the functions defined in '```adept/string.adept```' used for string manipulation also have a variant that takes a '```string```' instead of a '```*ubyte```'.
 ```
 private import "adept/string.adept"
-private improt "adept/terminal.adept"
+private import "adept/terminal.adept"
 
 public def main() int {
     hello_world string = 'Hello World'
