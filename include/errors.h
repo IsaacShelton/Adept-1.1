@@ -10,12 +10,10 @@
 #define FAILED_TO_CREATE(a)                ("Failed to create '" + std::string(a) + "'")
 #define UNKNOWN_OPTION(a)                  ("Unknown option '" + std::string(a) + "'")
 #define UNKNOWN_MODULE(a)                  ("Unknown module '" + std::string(a) + "'")
-#define EXPRESSION_IS_VOID                 ("Expression is void")
 #define MAIN_IS_PRIVATE                    ("The 'main' function is private")
 #define FAILED_TO_GET_USERNAME             ("Failed to get current username")
 #define FAILED_TO_OPEN_FILE(a)             ("Failed to open file '" + a + "'")
 #define DELETE_REQUIRES_POINTER            ("Value specified to the keyword 'delete' isn't a pointer")
-#define STRING_ASSIGNMENT_REQUIRES_MUTABLE ("String assignment requires expression to be mutable")
 
 // Reserved
 #define RESERVED_TYPENAME(a)    ("The typename '" + std::string(a) + "' is reserved :\\")
@@ -25,12 +23,11 @@
 #define UNDECLARED_TYPE(a)      ("Undeclared type '" + std::string(a) + "'")
 #define UNDECLARED_FUNC(a)      ("Undeclared function '" + std::string(a) + "'")
 #define UNDECLARED_STRUCT(a)    ("Undeclared struct '" + std::string(a) + "'")
-#define UNDECLARED_CLASS(a)     ("Undeclared class '" + std::string(a) + "'")
-#define UNDECLARED_MEMBER(a, b) ("Undeclared member '" + std::string(a) + "' in structure '" + std::string(b) + "'")
+#define UNDECLARED_MEMBER(a, b) ("Undeclared member '" + std::string(a) + "' in struct '" + std::string(b) + "'")
 #define UNDECLARED_CONST(a)     ("Undeclared constant '$" + std::string(a) + "'")
 
 // Expected
-#define EXPECTED_NAME_OF_TYPE        ("Expected typename")
+#define EXPECTED_NAME_OF_TYPE        ("Expected type name")
 #define EXPECTED_DEFINITION          ("Expected function or data type definition")
 
 // Unexpected
@@ -41,8 +38,7 @@
 // Duplicate
 #define DUPLICATE_FUNC(a)       ("Duplicate definition of function '" + std::string(a) + "'")
 #define DUPLICATE_METHOD(a)     ("Duplicate definition of method '" + std::string(a) + "'")
-#define DUPLICATE_STRUCT(a)     ("Duplicate definition of structure '" + std::string(a) + "'")
-#define DUPLICATE_CLASS(a)      ("Duplicate definition of class '" + std::string(a) + "'")
+#define DUPLICATE_STRUCT(a)     ("Duplicate definition of struct '" + std::string(a) + "'")
 #define DUPLICATE_MEMBER(a)     ("Duplicate definition of member '" + std::string(a) + "'")
 #define DUPLICATE_VARIBLE(a)    ("Duplicate definition of variable '" + std::string(a) + "'")
 #define DUPLICATE_GLOBAL(a)     ("Duplicate definition of global variable '" + std::string(a) + "'")

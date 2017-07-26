@@ -16,28 +16,28 @@ void create_assembly_globals(AssemblyData& assembly_data, const std::vector<Glob
 void create_assembly_functions(AssemblyData& assembly_data, Program& program){
     ensure(assembly_data.functions.size() == 0);
 
-    std::vector<Class>& ast_classes = program.classes;
+    std::vector<Struct>& ast_structs = program.structures;
     std::vector<Function>& ast_functions = program.functions;
     std::vector<AssembleFunction>& export_functions = assembly_data.functions;
-    size_t ast_classes_method_count = 0;
+    size_t ast_structs_method_count = 0;
     size_t index = 0;
 
-    for(const Class& klass : ast_classes){
-        if(klass.flags & CLASS_IMPORTED) continue;
-        ast_classes_method_count += klass.methods.size();
+    for(const Struct& structure : ast_structs){
+        if(structure.flags & STRUCT_IMPORTED) continue;
+        ast_structs_method_count += structure.methods.size();
     }
 
-    export_functions.resize(ast_functions.size() + ast_classes_method_count);
+    export_functions.resize(ast_functions.size() + ast_structs_method_count);
 
     for(const Function& func : ast_functions){
         export_functions[index++].mangled_name = (func.flags & FUNC_EXTERNAL) ? func.name : mangle(program, func);
     }
 
-    for(const Class& klass : ast_classes){
-        if(klass.flags & CLASS_IMPORTED) continue;
+    for(const Struct& structure : ast_structs){
+        if(structure.flags & STRUCT_IMPORTED) continue;
 
-        for(const Function& method : klass.methods){
-            export_functions[index++].mangled_name = mangle(klass, method);
+        for(const Function& method : structure.methods){
+            export_functions[index++].mangled_name = mangle(structure, method);
         }
     }
 }

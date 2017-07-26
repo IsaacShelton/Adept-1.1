@@ -70,33 +70,33 @@ void build_add_symbols(){
 
 // Function to create api in syntax tree
 void build_add_api(Program* program){
-    program->classes.resize(program->classes.size() + 1);
-    Class* klass = &program->classes[program->classes.size()-1];
+    program->structures.resize(program->structures.size() + 1);
+    Struct* structure = &program->structures[program->structures.size()-1];
 
-    klass->name = "AdeptConfig";
-    klass->flags = CLASS_IMPORTED;
-    klass->members.push_back( ClassField{"", "ptr", 0x00} );
+    structure->name = "AdeptConfig";
+    structure->flags = STRUCT_IMPORTED;
+    structure->members.push_back( StructField{"", "ptr", 0x00} );
 
-    klass->methods.resize(16);
-    klass->methods[0] = Function("create", {}, "void", true, &program->origin_info);
-    klass->methods[1] = Function("free", {}, "void", true, &program->origin_info);
-    klass->methods[2] = Function("defaults", {}, "void", true, &program->origin_info);
+    structure->methods.resize(16);
+    structure->methods[0] = Function("create", {}, "void", true, &program->origin_info);
+    structure->methods[1] = Function("free", {}, "void", true, &program->origin_info);
+    structure->methods[2] = Function("defaults", {}, "void", true, &program->origin_info);
 
-    klass->methods[3] = Function("setTiming", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[4] = Function("setTimingVerbose", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[5] = Function("setSilent", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[6] = Function("setJIT", { Field{"", "bool"} }, "void", true, &program->origin_info);
-    klass->methods[7] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true, &program->origin_info);
+    structure->methods[3] = Function("setTiming", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    structure->methods[4] = Function("setTimingVerbose", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    structure->methods[5] = Function("setSilent", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    structure->methods[6] = Function("setJIT", { Field{"", "bool"} }, "void", true, &program->origin_info);
+    structure->methods[7] = Function("setOptimization", { Field{"", "ubyte"} }, "void", true, &program->origin_info);
 
-    klass->methods[8] = Function("isTiming", {}, "bool", true, &program->origin_info);
-    klass->methods[9] = Function("isTimingVerbose", {}, "bool", true, &program->origin_info);
-    klass->methods[10] = Function("isSilent", {}, "bool", true, &program->origin_info);
-    klass->methods[11] = Function("isJIT", {}, "bool", true, &program->origin_info);
-    klass->methods[12] = Function("getOptimization", {}, "ubyte", true, &program->origin_info);
+    structure->methods[8] = Function("isTiming", {}, "bool", true, &program->origin_info);
+    structure->methods[9] = Function("isTimingVerbose", {}, "bool", true, &program->origin_info);
+    structure->methods[10] = Function("isSilent", {}, "bool", true, &program->origin_info);
+    structure->methods[11] = Function("isJIT", {}, "bool", true, &program->origin_info);
+    structure->methods[12] = Function("getOptimization", {}, "ubyte", true, &program->origin_info);
 
-    klass->methods[13] = Function("compile", { Field{"", "*ubyte"} }, "int", true, &program->origin_info);
-    klass->methods[14] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
-    klass->methods[15] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
+    structure->methods[13] = Function("compile", { Field{"", "*ubyte"} }, "int", true, &program->origin_info);
+    structure->methods[14] = Function("loadLibrary", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
+    structure->methods[15] = Function("addLinkerOption", { Field{"", "*ubyte"} }, "void", true, &program->origin_info);
 }
 
 extern "C" {

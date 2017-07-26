@@ -1266,7 +1266,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
     if(object_value == NULL) return 1;
 
     if(Program::is_pointer_typename(object_typename)){
-        // The type is actually a pointer to a structure or class, so we'll dereference it automatically
+        // The type is actually a pointer to a struct, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
         object_value = context.builder.CreateLoad(object_value);
         object_typename = object_typename.substr(1, object_typename.length()-1);
@@ -1303,10 +1303,10 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
         return 1;
     }
 
-    std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
+    std::string parent_struct_name = (func.parent_struct_offset != 0) ? program.structures[func.parent_struct_offset-1].name : "";
 
     // Ensure the function is public
-    if(!(func_data.flags & EXTERN_PUBLIC) and parent_class_name != object_typename){
+    if(!(func_data.flags & EXTERN_PUBLIC) and parent_struct_name != object_typename){
         errors.panic("The method '" + object_typename + "." + name + "' is private");
         return 1;
     }

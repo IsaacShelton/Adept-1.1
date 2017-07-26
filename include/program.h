@@ -10,13 +10,12 @@
 class CacheManager; // "cache.h" included at end of file
 
 struct Field;
-struct ClassField;
-class Structure;
+struct StructField;
 class Function;
 class External;
 class ModuleDependency;
 class Constant;
-class Class;
+class Struct;
 class TypeAlias;
 class Program;
 
@@ -25,10 +24,10 @@ struct Field {
     std::string type;
 };
 
-#define CLASSFIELD_PUBLIC 0x01
-#define CLASSFIELD_STATIC 0x02
+#define STRUCTFIELD_PUBLIC 0x01
+#define STRUCTFIELD_STATIC 0x02
 
-struct ClassField {
+struct StructField {
     std::string name;
     std::string type;
     char flags;
@@ -36,23 +35,6 @@ struct ClassField {
 
 struct OriginInfo {
     std::string filename;
-};
-
-#define STRUCT_PUBLIC 0x01
-#define STRUCT_PACKED 0x02
-
-class Structure {
-    public:
-    std::string name;
-    std::vector<Field> members;
-    bool is_public;
-    bool is_packed;
-
-    OriginInfo* origin;
-
-    Structure();
-    Structure(const std::string&, const std::vector<Field>&, bool, bool, OriginInfo*);
-    int find_index(std::string name, int* index);
 };
 
 #define FUNC_PUBLIC   0x01
@@ -71,7 +53,7 @@ class Function {
     std::string return_type;
     StatementList statements;
     char flags;
-    size_t parent_class_offset; // Offset from program.classes + 1 (beacuse 0 is used for none)
+    size_t parent_struct_offset; // Offset from program.structures + 1 (beacuse 0 is used for none)
     std::vector<std::string> extra_return_types;
 
     OriginInfo* origin;
@@ -154,21 +136,22 @@ class Global {
     Global(const std::string&, const std::string&, bool, bool, ErrorHandler&, OriginInfo*);
 };
 
-#define CLASS_PUBLIC   0x01
-#define CLASS_IMPORTED 0x02
+#define STRUCT_PUBLIC   0x01
+#define STRUCT_IMPORTED 0x02
+#define STRUCT_PACKED   0x04
 
-class Class {
+class Struct {
     public:
     std::string name;
-    std::vector<ClassField> members;
+    std::vector<StructField> members;
     std::vector<Function> methods;
     char flags;
 
     OriginInfo* origin;
 
-    Class();
-    Class(const std::string&, bool, bool, OriginInfo*);
-    Class(const std::string&, const std::vector<ClassField>&, bool, OriginInfo*);
+    Struct();
+    Struct(const std::string&, bool, bool, OriginInfo*);
+    Struct(const std::string&, const std::vector<StructField>&, bool, OriginInfo*);
     int find_index(std::string name, int* index);
 };
 
@@ -218,8 +201,7 @@ class Program {
     OriginInfo origin_info;
 
     std::vector<Function> functions;
-    std::vector<Structure> structures;
-    std::vector<Class> classes;
+    std::vector<Struct> structures;
     std::vector<Constant> constants;
     std::vector<External> externs;
     std::vector<Global> globals;
@@ -260,8 +242,7 @@ class Program {
     int find_func(const std::string&, External*);
     int find_func(const std::string&, const std::vector<std::string>&, External*, bool require_va = false);
     int find_method(const std::string&, const std::string&, const std::vector<std::string>&, External*);
-    int find_struct(const std::string&, Structure*);
-    int find_class(const std::string&, Class*);
+    int find_struct(const std::string&, Struct*);
     int find_const(const std::string&, Constant*);
     int find_global(const std::string&, Global*);
 
@@ -269,8 +250,7 @@ class Program {
     void print_types();
     void print_functions();
     void print_externals();
-    void print_structures();
-    void print_classes();
+    void print_structs();
     void print_globals();
     void print_enums();
 };
@@ -312,6 +292,7 @@ inline bool Program::is_array_typename(const std::string& type_name){
     return false;
 }
 inline bool Program::is_integer_typename(const std::string& type_name){
+    // TODO: SPEED: This part could be optimized
     if(type_name == "int")    return true;
     if(type_name == "uint")   return true;
     if(type_name == "long")   return true;

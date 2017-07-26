@@ -9,35 +9,16 @@
 #include "../include/assemble.h"
 #include "../include/mangling.h"
 
-Structure::Structure(){}
-Structure::Structure(const std::string& name, const std::vector<Field>& members, bool is_public, bool is_packed, OriginInfo* origin){
-    this->name = name;
-    this->members = members;
-    this->is_public = is_public;
-    this->is_packed = is_packed;
-    this->origin = origin;
-}
-int Structure::find_index(std::string member_name, int* index){
-    for(size_t i = 0; i != members.size(); i++){
-        if(members[i].name == member_name){
-            *index = i;
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
 Function::Function(){
     this->flags = 0x00;
-    this->parent_class_offset = 0;
+    this->parent_struct_offset = 0;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, bool is_public, OriginInfo* origin){
     this->name = name;
     this->arguments = arguments;
     this->return_type = return_type;
     this->flags = (is_public) ? FUNC_PUBLIC : 0x00;
-    this->parent_class_offset = 0;
+    this->parent_struct_offset = 0;
     this->origin = origin;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::string& return_type, const StatementList& statements,
@@ -55,7 +36,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     if(is_variable_args) new_flags |= FUNC_VARARGS;
 
     this->flags = new_flags;
-    this->parent_class_offset = 0;
+    this->parent_struct_offset = 0;
     this->origin = origin;
 }
 Function::Function(const std::string& name, const std::vector<Field>& arguments, const std::vector<std::string>& extra_return_types, const StatementList& statements,
@@ -73,7 +54,7 @@ Function::Function(const std::string& name, const std::vector<Field>& arguments,
     if(is_variable_args) new_flags |= FUNC_VARARGS;
 
     this->flags = new_flags;
-    this->parent_class_offset = 0;
+    this->parent_struct_offset = 0;
     this->extra_return_types = extra_return_types;
     this->origin = origin;
 }
@@ -83,7 +64,7 @@ Function::Function(const Function& other){
     return_type = other.return_type;
     statements.resize(other.statements.size());
     flags = other.flags;
-    parent_class_offset = other.parent_class_offset;
+    parent_struct_offset = other.parent_struct_offset;
     origin = other.origin;
 
     for(size_t i = 0; i != other.statements.size(); i++){
@@ -169,27 +150,27 @@ Global::Global(const std::string& name, const std::string& type, bool is_public,
     this->origin = origin;
 }
 
-Class::Class(){
+Struct::Struct(){
     this->flags = 0x00;
     this->origin = NULL;
 }
-Class::Class(const std::string& name, bool is_public, bool is_imported, OriginInfo* origin){
+Struct::Struct(const std::string& name, bool is_public, bool is_imported, OriginInfo* origin){
     this->name = name;
 
     char new_flags = 0x00;
-    if(is_public)   new_flags |= CLASS_PUBLIC;
-    if(is_imported) new_flags |= CLASS_IMPORTED;
+    if(is_public)   new_flags |= STRUCT_PUBLIC;
+    if(is_imported) new_flags |= STRUCT_IMPORTED;
 
     this->flags = new_flags;
     this->origin = origin;
 }
-Class::Class(const std::string& name, const std::vector<ClassField>& members, bool is_public, OriginInfo* origin){
+Struct::Struct(const std::string& name, const std::vector<StructField>& members, bool is_public, OriginInfo* origin){
     this->name = name;
     this->members = members;
-    this->flags = (is_public) ? CLASS_PUBLIC : 0x00;
+    this->flags = (is_public) ? STRUCT_PUBLIC : 0x00;
     this->origin = origin;
 }
-int Class::find_index(std::string member_name, int* index){
+int Struct::find_index(std::string member_name, int* index){
     for(size_t i = 0; i != members.size(); i++){
         if(members[i].name == member_name){
             *index = i;
@@ -297,87 +278,43 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
         externs.push_back(created_external);
     }
 
-    // Merge Structures
-    for(const Structure& new_structure : other.structures){
-        if(!new_structure.is_public) continue;
-        if(this->already_imported(new_structure.origin)) continue;
+    // Merge Structs
+    // TODO: SPEED: This is very slow
+    for(const Struct& new_struct : other.structures){
+        if(!(new_struct.flags & STRUCT_PUBLIC)) continue;
+        if(this->already_imported(new_struct.origin)) continue;
 
-        for(const Structure& structure : structures){
-            if(new_structure.name == structure.name){
-                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local structure");
-                return 1;
-            }
-        }
-
-        for(const Class& klass : classes){
-            if(new_structure.name == klass.name){
-                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local class");
+        for(const Struct& structure : structures){
+            if(new_struct.name == structure.name){
+                errors.panic("Imported struct '" + new_struct.name + "' has the same name as a local struct");
                 return 1;
             }
         }
 
         for(const TypeAlias& type_alias : type_aliases){
-            if(new_structure.name == type_alias.alias){
-                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local type alias");
+            if(new_struct.name == type_alias.alias){
+                errors.panic("Imported struct '" + new_struct.name + "' has the same name as a local type alias");
                 return 1;
             }
         }
 
         for(const Enum& inum : enums){
-            if(new_structure.name == inum.name){
-                errors.panic("Imported structure '" + new_structure.name + "' has the same name as a local enum");
+            if(new_struct.name == inum.name){
+                errors.panic("Imported struct '" + new_struct.name + "' has the same name as a local enum");
                 return 1;
             }
         }
 
-        Structure target = new_structure;
-        target.is_public = public_import;
-        structures.push_back( std::move(target) );
-    }
+        structures.resize(structures.size() + 1);
+        Struct* target = &structures[structures.size()-1];
+        *target = new_struct;
 
-    // Merge Classes
-    for(const Class& new_class : other.classes){
-        if(!(new_class.flags & CLASS_PUBLIC)) continue;
-        if(this->already_imported(new_class.origin)) continue;
-
-        for(const Class& klass : classes){
-            if(new_class.name == klass.name){
-                errors.panic("Imported class '" + new_class.name + "' has the same name as a local class");
-                return 1;
-            }
-        }
-
-        for(const Structure& structure : structures){
-            if(new_class.name == structure.name){
-                errors.panic("Imported class '" + new_class.name + "' has the same name as a local structure");
-                return 1;
-            }
-        }
-
-        for(const TypeAlias& type_alias : type_aliases){
-            if(new_class.name == type_alias.alias){
-                errors.panic("Imported class '" + new_class.name + "' has the same name as a local type alias");
-                return 1;
-            }
-        }
-
-        for(const Enum& inum : enums){
-            if(new_class.name == inum.name){
-                errors.panic("Imported class '" + new_class.name + "' has the same name as a local enum");
-                return 1;
-            }
-        }
-
-        classes.resize(classes.size() + 1);
-        Class* target = &classes[classes.size()-1];
-
-        *target = new_class;
-
-        if((target->flags & CLASS_PUBLIC) != public_import) target->flags ^= CLASS_PUBLIC;
-        target->flags |= CLASS_IMPORTED;
+        // Manipulate the flags to show that this struct was imported
+        if((target->flags & STRUCT_PUBLIC) != public_import) target->flags ^= STRUCT_PUBLIC;
+        target->flags |= STRUCT_IMPORTED;
 
         for(size_t i = 0; i != target->methods.size(); i++){
-            target->methods[i].parent_class_offset = classes.size();
+            target->methods[i].parent_struct_offset = structures.size();
         }
     }
 
@@ -399,6 +336,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
     }
 
     // Merge Extra Libraries
+    // TODO: SPEED: This is very slow
     for(const std::string& new_lib : other.extra_libs){
         bool already_exists = false;
 
@@ -460,16 +398,9 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
             }
         }
 
-        for(const Structure& structure : structures){
+        for(const Struct& structure : structures){
             if(new_type_alias.alias == structure.name){
-                errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local structure");
-                return 1;
-            }
-        }
-
-        for(const Class& klass : classes){
-            if(new_type_alias.alias == klass.name){
-                errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local class");
+                errors.panic("Imported type alias '" + new_type_alias.alias + "' has the same name as a local struct");
                 return 1;
             }
         }
@@ -487,20 +418,14 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
     }
 
     // Merge Enums
+    // TODO: SPEED: This is very slow
     for(const Enum& new_enum : other.enums){
         if(!new_enum.is_public) continue;
         if(this->already_imported(new_enum.origin)) continue;
 
-        for(const Structure& structure : structures){
+        for(const Struct& structure : structures){
             if(new_enum.name == structure.name){
-                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local structure");
-                return 1;
-            }
-        }
-
-        for(const Class& klass : classes){
-            if(new_enum.name == klass.name){
-                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local class");
+                errors.panic("Imported enum '" + new_enum.name + "' has the same name as a local struct");
                 return 1;
             }
         }
@@ -821,26 +746,11 @@ void Program::generate_type_aliases(){
     type_aliases.push_back( TypeAlias("string", "[]ubyte", false, &origin_info) );
 }
 int Program::generate_types(AssemblyData& context){
-    // NOTE: Requires types vector to be empty
-    ensure(context.types.size() == 0);
-
     llvm::LLVMContext& llvm_context = context.context;
     std::vector<Type>& types = context.types;
 
-    // Create from structures
-    for(size_t i = 0; i != structures.size(); i++){
-        llvm::StructType* llvm_struct = llvm::StructType::create(llvm_context, structures[i].name);
-        types.push_back( Type(structures[i].name, llvm_struct) );
-    }
-
-    // Mark starting point for classes
-    size_t classes_start_index = structures.size();
-
-    // Create from classes
-    for(Class& klass : classes){
-        llvm::StructType* llvm_struct = llvm::StructType::create(llvm_context, klass.name);
-        types.push_back( Type(klass.name, llvm_struct) );
-    }
+    // NOTE: Requires types vector to be empty
+    ensure(context.types.size() == 0);
 
     // Standard language types
     types.push_back( Type("void", llvm::Type::getVoidTy(llvm_context)) );
@@ -883,52 +793,35 @@ int Program::generate_types(AssemblyData& context){
     std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
     llvm_array_type = llvm::StructType::create(elements, ".arr");
 
-    // Data for iterating structures
-    std::vector<llvm::Type*> members;
-    llvm::Type* member_type;
-    size_t index = 0;
-    std::vector<Field>::iterator members_end;
-    members.reserve(8);
+    size_t start_of_structs = types.size();
 
-    // Fill in llvm structures from structure data
-    for(Structure& struct_data : structures){
-        members.clear();
-        members_end = struct_data.members.end();
-
-        for(std::vector<Field>::iterator i = struct_data.members.begin(); i != members_end; ++i){
-            if(this->find_type(i->type, context, &member_type) != 0) {
-                fail_filename(origin_info.filename, "The type '" + i->type + "' does not exist");
-                return 1;
-            }
-            members.push_back(member_type);
-        }
-
-        static_cast<llvm::StructType*>(types[index].type)->setBody(members, struct_data.is_packed);
-        index++;
+    // Create listing of all structures
+    // TODO: SPEED: This is definitely not very efficient
+    for(Struct& structure : structures){
+        types.push_back( Type(structure.name, llvm::StructType::create(llvm_context, structure.name)) );
     }
 
-    // Fill in llvm structures from class data
-    for(size_t i = 0; i != classes.size(); i++){
-        Class& class_data = classes[i];
+    // Fill in llvm structures from struct data
+    for(size_t i = 0; i != structures.size(); i++){
+        Struct& structure = structures[i];
+        llvm::Type* member_type;
         std::vector<llvm::Type*> members;
-        members.reserve(100);
 
-        for(size_t j = 0; j != class_data.members.size(); j++){
-            if(this->find_type(class_data.members[j].type, context, &member_type) != 0) {
-                fail_filename(origin_info.filename, "The type '" + class_data.members[j].type + "' does not exist");
+        for(StructField& member : structure.members){
+            if(this->find_type(member.type, context, &member_type) != 0) {
+                fail_filename(origin_info.filename, "The type '" + member.type + "' does not exist");
                 return 1;
             }
             members.push_back(member_type);
         }
 
-        static_cast<llvm::StructType*>(types[classes_start_index+i].type)->setBody(members);
+        static_cast<llvm::StructType*>(types[start_of_structs + i].type)->setBody(members, bool(structure.flags & STRUCT_PACKED));
     }
 
     // Create a constructor for arrays
     std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
     llvm::FunctionType* array_ctor_type = llvm::FunctionType::get(llvm_array_type, array_ctor_args, false);
     llvm_array_ctor = llvm::Function::Create(array_ctor_type, llvm::Function::ExternalLinkage, ".__adept_core_arrctor", context.module.get());
-
     return 0;
 }
 
@@ -1173,19 +1066,21 @@ int Program::find_func(const std::string& name, const std::vector<std::string>& 
 
     return 1;
 }
-int Program::find_method(const std::string& class_name, const std::string& name, const std::vector<std::string>& args, External* func){
-    Class klass;
+int Program::find_method(const std::string& struct_name, const std::string& name, const std::vector<std::string>& args, External* func){
+    Struct structure;
     bool args_match;
 
-    if(this->find_class(class_name, &klass) != 0){
-        fail( UNDECLARED_CLASS(class_name) );
+    if(this->find_struct(struct_name, &structure) != 0){
+        fail( UNDECLARED_STRUCT(struct_name) );
         return 1;
     }
 
-    for(size_t i = 0; i != klass.methods.size(); i++){
-        if(klass.methods[i].name == name){
+    std::vector<Function>& struct_methods = structure.methods;
+
+    for(size_t i = 0; i != struct_methods.size(); i++){
+        if(struct_methods[i].name == name){
             External external;
-            Function* found_method = &klass.methods[i];
+            Function* found_method = &struct_methods[i];
 
             if(found_method->flags & FUNC_VARARGS) continue; // Perfer non-var-args methods
             if(args.size() != found_method->arguments.size()) continue;
@@ -1215,10 +1110,10 @@ int Program::find_method(const std::string& class_name, const std::string& name,
         }
     }
 
-    for(size_t i = 0; i != klass.methods.size(); i++){
-        if(klass.methods[i].name == name){
+    for(size_t i = 0; i != struct_methods.size(); i++){
+        if(struct_methods[i].name == name){
             External external;
-            Function* found_method = &klass.methods[i];
+            Function* found_method = &struct_methods[i];
 
             if(!(found_method->flags & FUNC_VARARGS)) continue; // We already checked for matching non-var-args methods
 
@@ -1264,20 +1159,10 @@ int Program::find_method(const std::string& class_name, const std::string& name,
 
     return 1;
 }
-int Program::find_struct(const std::string& name, Structure* structure){
+int Program::find_struct(const std::string& name, Struct* structure){
     for(size_t i = 0; i != structures.size(); i++){
         if(structures[i].name == name){
             if(structure != NULL) *structure = structures[i];
-            return 0;
-        }
-    }
-
-    return 1;
-}
-int Program::find_class(const std::string& name, Class* klass){
-    for(size_t i = 0; i != classes.size(); i++){
-        if(classes[i].name == name){
-            if(klass != NULL) *klass = classes[i];
             return 0;
         }
     }
@@ -1309,8 +1194,7 @@ void Program::print(){
     std::cout << std::endl;
     print_externals();
     print_enums();
-    print_structures();
-    print_classes();
+    print_structs();
     print_globals();
     print_functions();
     std::cout << std::endl;
@@ -1342,31 +1226,19 @@ void Program::print_externals(){
         std::cout << ") " << e.return_type << std::endl;
     }
 }
-void Program::print_structures(){
-    for(Structure& s : structures){
-        std::cout << (s.is_public ? "public " : "private ");
-        std::cout << "type " << s.name << " {" << std::endl;
+void Program::print_structs(){
+    for(Struct& structure : structures){
+        std::cout << (structure.flags & STRUCT_PUBLIC ? "public " : "private ");
+        std::cout << "struct " << structure.name << " {" << std::endl;
 
-        for(Field f : s.members){
-            std::cout << "    " << f.name << " " << f.type << std::endl;
-        }
-
-        std::cout << "}" << std::endl;
-    }
-}
-void Program::print_classes(){
-    for(Class& klass : classes){
-        std::cout << (klass.flags & CLASS_PUBLIC ? "public " : "private ");
-        std::cout << "class " << klass.name << " {" << std::endl;
-
-        for(ClassField& f : klass.members){
+        for(StructField& f : structure.members){
             std::cout << "    ";
-            std::cout << (f.flags & CLASSFIELD_PUBLIC ? "public " : "private ");
-            if(f.flags & CLASSFIELD_STATIC) std::cout << "static ";
+            std::cout << (f.flags & STRUCTFIELD_PUBLIC ? "public " : "private ");
+            if(f.flags & STRUCTFIELD_STATIC) std::cout << "static ";
             std::cout << f.name << " " << f.type << std::endl;
         }
 
-        for(Function& m : klass.methods){
+        for(Function& m : structure.methods){
             std::cout << "    ";
             std::cout << (m.flags & FUNC_PUBLIC ? "public " : "private ");
             if(m.flags & FUNC_STATIC) std::cout << "static ";

@@ -9,15 +9,15 @@ std::string mangle(const Program& program, const Function& func){
         mangled_name += "@" + arg.type;
     }
 
-    if(func.parent_class_offset != 0){
-        mangled_name = program.classes[func.parent_class_offset-1].name + "." + mangled_name;
+    if(func.parent_struct_offset != 0){
+        mangled_name = program.structures[func.parent_struct_offset-1].name + "." + mangled_name;
     }
 
     return mangled_name;
 }
 
-std::string mangle(const Class& klass, const Function& method){
-    std::string mangled_name = klass.name + "." + method.name;
+std::string mangle(const Struct& structure, const Function& method){
+    std::string mangled_name = structure.name + "." + method.name;
     for(const Field& arg : method.arguments){
         mangled_name += "@" + arg.type;
     }
@@ -35,8 +35,8 @@ std::string mangle(const std::string& name, const std::vector<std::string>& args
     return mangled_name;
 }
 
-std::string mangle(const std::string& class_name, const std::string& name, const std::vector<std::string>& args){
-    std::string mangled_name = class_name + "." + name;
+std::string mangle(const std::string& struct_name, const std::string& name, const std::vector<std::string>& args){
+    std::string mangled_name = struct_name + "." + name;
     for(const std::string& arg : args){
         mangled_name += "@" + arg;
     }

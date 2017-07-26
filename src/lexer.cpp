@@ -244,10 +244,10 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 //         Make sure to update switch statement with correct indices after add or removing a type
                 const size_t keywords_size = 39;
                 const std::string keywords[keywords_size] = {
-                    "and", "break", "case", "cast", "class", "constant", "continue", "dangerous", "def", "default", "defer", "delete",
-                    "dynamic", "else", "enum", "external", "false", "for", "foreign", "funcptr", "if", "import", "link", "new", "null",
-                    "or", "packed", "private", "public", "return", "sizeof", "static", "stdcall", "switch", "true",
-                    "type", "unless", "until", "while"
+                    "alias", "and", "break", "case", "cast", "constant", "continue", "dangerous", "def", "default", "defer",
+                    "delete", "dynamic", "else", "enum", "external", "false", "for", "foreign", "funcptr", "if",
+                    "import", "link", "new", "null", "or", "packed", "private", "public", "return", "sizeof",
+                    "static", "stdcall", "struct", "switch", "true", "unless", "until", "while"
                 };
 
                 int keyword_index = string_search(keywords, keywords_size, word);
@@ -257,7 +257,7 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                     // Not a keyword, just an identifier
                     tokens.push_back( TOKEN_WORD( new std::string(word) ) );
                     break;
-                case 0:
+                case 1:
                     // 'and' keyword
                     tokens.push_back( TOKEN_AND );
                     break;

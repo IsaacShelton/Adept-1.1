@@ -294,17 +294,17 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
         if(assemble_externals_batch(&context, &config, &program, &program.externs[0], program.externs.size()) != 0) return 1;
     }
 
-    // Assemble the skeleton of each class
+    // Assemble the skeleton of each struct
     // ASYNC: Maybe parallelize this?
-    if(assemble_class_skeletons(context, config, program) != 0) return 1;
+    if(assemble_struct_skeletons(context, config, program) != 0) return 1;
 
     // Assemble the skeleton of each function
     // ASYNC: Maybe parallelize this?
     if(assemble_function_skeletons(context, config, program) != 0) return 1;
 
-    // Assemble the bodies of each class
+    // Assemble the bodies of each struct
     // ASYNC: Maybe parallelize this?
-    if(assemble_class_bodies(context, config, program) != 0) return 1;
+    if(assemble_struct_bodies(context, config, program) != 0) return 1;
 
     // Assemble the bodies of each function
     // ASYNC: Maybe parallelize this?
@@ -453,34 +453,21 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
     return 0;
 }
 
-int assemble_class_skeletons(AssemblyData& context, Configuration& config, Program& program){
-    for(Class& klass : program.classes){
-        for(Function& method : klass.methods){
-            if(assemble_method(context, config, program, klass, method, klass.flags & CLASS_IMPORTED) != 0) return 1;
+int assemble_struct_skeletons(AssemblyData& context, Configuration& config, Program& program){
+    for(Struct& structure : program.structures){
+        for(Function& method : structure.methods){
+            if(assemble_method(context, config, program, structure, method, structure.flags & STRUCT_IMPORTED) != 0) return 1;
         }
     }
 
     return 0;
 }
-int assemble_class_bodies(AssemblyData& context, Configuration& config, Program& program){
-    // No not the class body you're thinking of
-    // ==========        x        ==========
-    // =====================================
-    //
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+int assemble_struct_bodies(AssemblyData& context, Configuration& config, Program& program){
+    for(Struct& structure : program.structures){
+        if(structure.flags & STRUCT_IMPORTED) continue; // Don't assemble the struct if it was imported
 
-    // Get it? Since the name of this function is 'assemble_class_bodies'
-    // Anyways....
-
-    for(Class& klass : program.classes){
-        if(klass.flags & CLASS_IMPORTED) continue; // Don't assemble the class if it was imported
-
-        for(Function& method : klass.methods){
-            if(assemble_method_body(context, config, program, klass, method) != 0) return 1;
+        for(Function& method : structure.methods){
+            if(assemble_method_body(context, config, program, structure, method) != 0) return 1;
         }
     }
 
@@ -633,10 +620,10 @@ int assemble_function_bodies(AssemblyData& context, Configuration& config, Progr
 
     return 0;
 }
-int assemble_method(AssemblyData& context, Configuration& config, Program& program, Class& klass, Function& method, bool is_imported){
+int assemble_method(AssemblyData& context, Configuration& config, Program& program, Struct& structure, Function& method, bool is_imported){
     // TODO: SPEED: Make this function operate on a group of methods instead of a single method at a time
 
-    std::string mangled_method_name = mangle(klass, method);
+    std::string mangled_method_name = mangle(structure, method);
     llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
 
     if(!llvm_function){
@@ -648,12 +635,12 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
             args.resize(args.size() + method.extra_return_types.size());
         }
 
-        // Get llvm type of pointer to structure of 'Class* klass'
-        if(program.find_type(klass.name, context, &llvm_type) != 0){
-            fail_filename(config, UNDECLARED_TYPE(klass.name));
+        // Get llvm type of pointer to structure of 'Struct* structure'
+        if(program.find_type(structure.name, context, &llvm_type) != 0){
+            fail_filename(config, UNDECLARED_TYPE(structure.name));
             return 1;
         }
-        args[0] = llvm_type->getPointerTo(); // First argument is always a pointer to the class data
+        args[0] = llvm_type->getPointerTo(); // First argument is always a pointer to the struct data
 
         // Convert argument typenames to llvm types
         for(size_t i = 0; i != method.arguments.size(); i++){
@@ -715,7 +702,7 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
                     // Add variable for 'this'
                     llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
                     context.builder.CreateStore(&arg, alloca);
-                    func_assembly_data->addVariable("this", "*" + klass.name, alloca);
+                    func_assembly_data->addVariable("this", "*" + structure.name, alloca);
                     i++; continue;
                 }
                 else if(i >= end_of_reg_args){
@@ -744,16 +731,16 @@ int assemble_method(AssemblyData& context, Configuration& config, Program& progr
         }
     }
     else {
-        fail_filename(config, DUPLICATE_METHOD(klass.name + "." + method.name));
+        fail_filename(config, DUPLICATE_METHOD(structure.name + "." + method.name));
         return 1;
     }
 
     return 0;
 }
-int assemble_method_body(AssemblyData& context, Configuration& config, Program& program, Class& klass, Function& method){
+int assemble_method_body(AssemblyData& context, Configuration& config, Program& program, Struct& structure, Function& method){
     // TODO: SPEED: Make this function operate on a group of methods instead of a single method at a time
 
-    std::string mangled_method_name = mangle(klass, method);
+    std::string mangled_method_name = mangle(structure, method);
     llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
     AssembleFunction* asm_func = context.getFunction(mangled_method_name);
     context.current_function = asm_func;

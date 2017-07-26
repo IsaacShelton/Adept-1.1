@@ -1367,22 +1367,16 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssemblyData&
     }
 
     if(Program::is_pointer_typename(type_name)){
-        // The type is actually a pointer to a structure or class, so we'll dereference it automatically
+        // The type is actually a pointer to a struct, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
         data = context.builder.CreateLoad(data);
         type_name = type_name.substr(1, type_name.length()-1);
     }
 
-    Structure target_struct;
+    Struct target_struct;
     if(program.find_struct(type_name, &target_struct) == 0){
-        // A structure named that was found
-        return this->assemble_struct(program, func, context, expr_type, target_struct, data);
-    }
-
-    Class target_class;
-    if(program.find_class(type_name, &target_class) == 0){
-        // A class named that was found
-        return this->assemble_class(program, func, context, expr_type, target_class, data, type_name);
+        // A struct named that was found
+        return this->assemble_struct(program, func, context, expr_type, target_struct, data, type_name);
     }
 
     if(Program::is_array_typename(type_name)){
@@ -1390,7 +1384,7 @@ llvm::Value* MemberExp::assemble(Program& program, Function& func, AssemblyData&
         return this->assemble_array(program, func, context, expr_type, data, type_name);
     }
 
-    // No structure or class named that was found
+    // No struct named that was found
     errors.panic( UNDECLARED_STRUCT(type_name) );
     return NULL;
 }
@@ -1400,14 +1394,27 @@ std::string MemberExp::toString(){
 PlainExp* MemberExp::clone(){
     return new MemberExp(*this);
 }
-llvm::Value* MemberExp::assemble_struct(Program& program, Function& func, AssemblyData& context, std::string* expr_type, Structure& target, llvm::Value* data){
+llvm::Value* MemberExp::assemble_struct(Program& program, Function& func, AssemblyData& context, std::string* expr_type, Struct& target, llvm::Value* data, std::string& data_typename){
     int index;
     llvm::Value* member_index;
 
-    // Find the index of the member inside of the structure
+    // Find the index of the member inside of the struct
     if(target.find_index(member, &index) != 0){
         // That member doesn't exist
         errors.panic( UNDECLARED_MEMBER(member, target.name) );
+        return NULL;
+    }
+
+    // Make sure that the member is not static and public
+    StructField* field = &target.members[index];
+    std::string parent_struct_name = (func.parent_struct_offset != 0) ? program.structures[func.parent_struct_offset-1].name : "";
+
+    if(!(field->flags & STRUCTFIELD_PUBLIC) and parent_struct_name != data_typename){
+        errors.panic("The member '" + member + "' of struct '" + target.name + "' is private");
+        return NULL;
+    }
+    if(field->flags & STRUCTFIELD_STATIC){
+        errors.panic("The member '" + member + "' of struct '" + target.name + "' is static");
         return NULL;
     }
 
@@ -1427,50 +1434,6 @@ llvm::Value* MemberExp::assemble_struct(Program& program, Function& func, Assemb
 
     // Create GEP and set expr_type if it isn't null
     llvm::Value* member_ptr = context.builder.CreateGEP(struct_llvm_type, data, indices);
-    if(expr_type != NULL) *expr_type = target.members[index].type;
-
-    return member_ptr;
-}
-llvm::Value* MemberExp::assemble_class(Program& program, Function& func, AssemblyData& context, std::string* expr_type, Class& target, llvm::Value* data, std::string& data_typename){
-    int index;
-    llvm::Value* member_index;
-
-    // Find the index of the member inside of the class
-    if(target.find_index(member, &index) != 0){
-        // That member doesn't exist
-        errors.panic( UNDECLARED_MEMBER(member, target.name) );
-        return NULL;
-    }
-
-    // Make sure that the member is not static and public
-    ClassField* field = &target.members[index];
-    std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
-
-    if(!(field->flags & CLASSFIELD_PUBLIC) and parent_class_name != data_typename){
-        errors.panic("The member '" + member + "' of class '" + target.name + "' is private");
-        return NULL;
-    }
-    if(field->flags & CLASSFIELD_STATIC){
-        errors.panic("The member '" + member + "' of class '" + target.name + "' is static");
-        return NULL;
-    }
-
-    // Get the llvm type for the class
-    llvm::Type* class_llvm_type;
-    if(program.find_type(target.name, context, &class_llvm_type) != 0){
-        // That type doesn't exist so something bad probally went wrong
-        errors.panic( UNDECLARED_TYPE(target.name) );
-        return NULL;
-    }
-
-    // Prepare GEP Indices
-    std::vector<llvm::Value*> indices(2);
-    member_index = llvm::ConstantInt::get(context.context, llvm::APInt(32, index, true));
-    indices[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 0, true));
-    indices[1] = member_index;
-
-    // Create GEP and set expr_type if it isn't null
-    llvm::Value* member_ptr = context.builder.CreateGEP(class_llvm_type, data, indices);
     if(expr_type != NULL) *expr_type = field->type;
 
     return member_ptr;
@@ -1534,7 +1497,7 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
     llvm::Type* object_llvm_type;
 
     if(Program::is_pointer_typename(object_typename)){
-        // The type is actually a pointer to a structure or class, so we'll dereference it automatically
+        // The type is actually a pointer to a struct, so we'll dereference it automatically
         // ( Unlike the nightmare that is '->' in C++ )
         object_value = context.builder.CreateLoad(object_value);
         object_typename = object_typename.substr(1, object_typename.length()-1);
@@ -1571,10 +1534,10 @@ llvm::Value* MemberCallExp::assemble(Program& program, Function& func, AssemblyD
         return NULL;
     }
 
-    std::string parent_class_name = (func.parent_class_offset != 0) ? program.classes[func.parent_class_offset-1].name : "";
+    std::string parent_struct_name = (func.parent_struct_offset != 0) ? program.structures[func.parent_struct_offset-1].name : "";
 
     // Ensure the function is public
-    if(!(func_data.flags & EXTERN_PUBLIC) and parent_class_name != object_typename){
+    if(!(func_data.flags & EXTERN_PUBLIC) and parent_struct_name != object_typename){
         errors.panic("The method '" + object_typename + "." + name + "' is private");
         return NULL;
     }

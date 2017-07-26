@@ -22,10 +22,10 @@ int parse_word(Configuration& config, TokenList& tokens, Program& program, size_
 int parse_keyword(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_structure(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_enum(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
-int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
-int parse_type_alias(Configuration& config, TokenList& tokens, Program& program, size_t& i, const std::string& alias, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_struct(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_type_alias(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
-int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class*, size_t, const AttributeInfo& attr_info, ErrorHandler& errors);
+int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Struct*, size_t, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_external(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);
 int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors);
 int parse_import(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors);

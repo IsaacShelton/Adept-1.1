@@ -22,12 +22,12 @@ int assemble(AssemblyData&, Configuration&, Program&, ErrorHandler& errors);
 int assemble_globals_batch(AssemblyData* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count);
 int assemble_externals_batch(AssemblyData* context, const Configuration* config, const Program* program, External* globals, size_t globals_count);
 
-int assemble_class_skeletons(AssemblyData&, Configuration&, Program&);
-int assemble_class_bodies(AssemblyData&, Configuration&, Program&);
+int assemble_struct_skeletons(AssemblyData&, Configuration&, Program&);
+int assemble_struct_bodies(AssemblyData&, Configuration&, Program&);
 int assemble_function_skeletons(AssemblyData&, Configuration&, Program&);
 int assemble_function_bodies(AssemblyData&, Configuration&, Program&);
-int assemble_method(AssemblyData&, Configuration&, Program&, Class&, Function&, bool);
-int assemble_method_body(AssemblyData&, Configuration&, Program&, Class&, Function&);
+int assemble_method(AssemblyData&, Configuration&, Program&, Struct&, Function&, bool);
+int assemble_method_body(AssemblyData&, Configuration&, Program&, Struct&, Function&);
 
 void assemble_merge_conditional_types(AssemblyData&, Program&, std::string&, llvm::Value**);
 int assemble_merge_types(AssemblyData&, Program&, std::string, std::string, llvm::Value**, llvm::Value**, std::string*);

@@ -81,14 +81,14 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
 
     const size_t accepted_keywords_size = 12;
     const std::string accepted_keywords[] = {
-        "class", "constant", "def", "dynamic", "enum", "external", "foreign", "import", "link", "private", "public", "type"
+        "alias", "constant", "def", "dynamic", "enum", "external", "foreign", "import", "link", "private", "public", "struct"
     };
 
     size_t string_index = string_search(accepted_keywords, accepted_keywords_size, keyword);
 
     switch(string_index){
-    case 0: // class
-        if(parse_class(config, tokens, program, i, attr_info, errors) != 0) return 1;
+    case 0: // alias
+        if(parse_type_alias(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
     case 1: // constant
         if(parse_constant(config, tokens, program, i, attr_info, errors) != 0) return 1;
@@ -147,82 +147,14 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
     case 10: // public
         if(parse_attribute(config, tokens, program, --i, errors) != 0) return 1;
         break;
-    case 11: // type
-        if(parse_structure(config, tokens, program, i, attr_info, errors) != 0) return 1;
+    case 11: // struct
+        if(parse_struct(config, tokens, program, i, attr_info, errors) != 0) return 1;
         break;
     default:
         errors.panic( UNEXPECTED_KEYWORD(keyword) );
         return 1;
     }
 
-    return 0;
-}
-int parse_structure(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
-    // type struct_name { ... }
-    //          ^
-
-    std::string name = tokens[i].getString();
-    std::vector<Field> members;
-
-    if(name == "llvm"){
-        errors.panic("The name 'llvm' is reserved");
-        return 1;
-    }
-
-    // Make sure that is hasn't been already declared
-    for(size_t i = 0; i != program.structures.size(); i++){
-        if(name == program.structures[i].name){
-            errors.panic(DUPLICATE_STRUCT(name));
-            return 1;
-        }
-    }
-    for(size_t i = 0; i != program.classes.size(); i++){
-        if(name == program.classes[i].name){
-            errors.panic(DUPLICATE_DEFINITION(name));
-            return 1;
-        }
-    }
-
-    next_index(i, tokens.size());
-    uint16_t token = tokens[i].id;
-
-    if(token == TOKENID_ASSIGN){
-        // Instead of treating this like a structure, parse it as a type alias
-        if(parse_type_alias(config, tokens, program, i, name, attr_info, errors) != 0) return 1;
-        return 0;
-    } else if(token != TOKENID_BEGIN){
-        errors.panic("Expected '{' or '=' after name of the type");
-        return 1;
-    }
-
-    next_index(i, tokens.size());
-    while(tokens[i].id == TOKENID_NEWLINE){
-        errors.line++;
-        next_index(i, tokens.size());
-    }
-
-    while(tokens[i].id != TOKENID_END){
-        if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected member of structure");
-            return 1;
-        }
-
-        std::string name = tokens[i].getString();
-        std::string type;
-
-        next_index(i, tokens.size());
-        if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
-
-        next_index(i, tokens.size());
-        members.push_back( Field{name, type} );
-
-        while(tokens[i].id == TOKENID_NEWLINE){
-            errors.line++;
-            next_index(i, tokens.size());
-        }
-    }
-
-    program.structures.push_back( Structure(name, members, attr_info.is_public, attr_info.is_packed, &program.origin_info) );
     return 0;
 }
 int parse_enum(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -278,9 +210,9 @@ int parse_enum(Configuration& config, TokenList& tokens, Program& program, size_
     program.enums.push_back( Enum(name, fields, attr_info.is_public, &program.origin_info) );
     return 0;
 }
-int parse_class(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
-    // class class_name { ... }
-    //           ^
+int parse_struct(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // struct struct_name { ... }
+    //             ^
 
     std::string name = tokens[i].getString();
 
@@ -290,36 +222,40 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
     }
 
     // Make sure that is hasn't been already declared
-    for(size_t i = 0; i != program.classes.size(); i++){
-        if(name == program.classes[i].name){
-            errors.panic(DUPLICATE_CLASS(name));
+    for(size_t i = 0; i != program.structures.size(); i++){
+        if(name == program.structures[i].name){
+            errors.panic(DUPLICATE_STRUCT(name));
             return 1;
         }
     }
-    for(size_t i = 0; i != program.structures.size(); i++){
-        if(name == program.structures[i].name){
+
+    for(size_t i = 0; i != program.type_aliases.size(); i++){
+        if(name == program.type_aliases[i].alias){
             errors.panic(DUPLICATE_DEFINITION(name));
             return 1;
         }
     }
 
-    // Allocate a new class in 'program.classes'
-    std::vector<Class>* classes = &program.classes;
-    classes->resize(classes->size()+1);
+    // Allocate a new struct in 'program.structures'
+    std::vector<Struct>* structures = &program.structures;
+    structures->resize(structures->size()+1);
 
-    // Store a reference to the created class
-    Class* klass = &( (*classes)[classes->size()-1] );
-    size_t class_offset_plus_one = classes->size();
+    // Store a reference to the created struct
+    Struct* structure = &( (*structures)[structures->size()-1] );
+    size_t struct_offset_plus_one = structures->size();
 
-    // Fill in the class data
-    klass->name = name;;
-    klass->flags = (attr_info.is_public) ? CLASS_PUBLIC : 0x00;
-    klass->origin = &program.origin_info;
+    // Fill in the struct data
+    structure->name = name;
+    structure->flags = (attr_info.is_public) ? STRUCT_PUBLIC : 0x00;
+    structure->origin = &program.origin_info;
 
-    // Skip over class name and '{'
+    // Mark struct packed if 'packed' attribue is specified
+    if(attr_info.is_packed) structure->flags |= STRUCT_PACKED;
+
+    // Skip over struct name and '{'
     next_index(i, tokens.size());
     if(tokens[i].id != TOKENID_BEGIN){
-        errors.panic("Expected '{' after class name");
+        errors.panic("Expected '{' after struct name");
         return 1;
     }
     next_index(i, tokens.size());
@@ -330,11 +266,11 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
         next_index(i, tokens.size());
     }
 
-    // Parse contents of the class
+    // Parse contents of the struct
     while(tokens[i].id != TOKENID_END){
         AttributeInfo member_attr(false);
 
-        // Encountered a keyword inside class definition
+        // Encountered a keyword inside struct definition
         if(tokens[i].id == TOKENID_KEYWORD){
             std::string keyword = tokens[i].getString();
             bool continue_loop = false;
@@ -345,7 +281,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
                 if(keyword == "def"){
                     // Parse the method
                     next_index(i, tokens.size());
-                    if(parse_method(config, tokens, program, i, klass, class_offset_plus_one, member_attr, errors) != 0) return 1;
+                    if(parse_method(config, tokens, program, i, structure, struct_offset_plus_one, member_attr, errors) != 0) return 1;
                     next_index(i, tokens.size());
 
                     // Skip normal member stuff
@@ -381,7 +317,7 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
 
         // Expect name of member after attributes
         if(tokens[i].id != TOKENID_WORD){
-            errors.panic("Expected member of structure");
+            errors.panic("Expected member name of struct");
             return 1;
         }
 
@@ -394,9 +330,9 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
         next_index(i, tokens.size());
 
         char member_flags = 0x00;
-        if(member_attr.is_public) member_flags |= CLASSFIELD_PUBLIC;
-        if(member_attr.is_static) member_flags |= CLASSFIELD_STATIC;
-        klass->members.push_back( ClassField{name, type, member_flags} );
+        if(member_attr.is_public) member_flags |= STRUCTFIELD_PUBLIC;
+        if(member_attr.is_static) member_flags |= STRUCTFIELD_STATIC;
+        structure->members.push_back( StructField{name, type, member_flags} );
 
         while(tokens[i].id == TOKENID_NEWLINE){
             errors.line++;
@@ -406,15 +342,45 @@ int parse_class(Configuration& config, TokenList& tokens, Program& program, size
 
     return 0;
 }
-int parse_type_alias(Configuration& config, TokenList& tokens, Program& program, size_t& i, const std::string& alias, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_type_alias(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // type type_alias = some_type
-    //                 ^
+    //          ^
+
+    std::string name = tokens[i].getString();
+    std::vector<Field> members;
+
+    if(name == "llvm"){
+        errors.panic("The name 'llvm' is reserved");
+        return 1;
+    }
+
+    // Make sure that is hasn't been already declared
+    for(size_t i = 0; i != program.type_aliases.size(); i++){
+        if(name == program.type_aliases[i].alias){
+            errors.panic(DUPLICATE_DEFINITION(name));
+            return 1;
+        }
+    }
+    for(size_t i = 0; i != program.structures.size(); i++){
+        if(name == program.structures[i].name){
+            errors.panic(DUPLICATE_DEFINITION(name));
+            return 1;
+        }
+    }
+
+    next_index(i, tokens.size());
+    uint16_t token = tokens[i].id;
+
+    if(token != TOKENID_ASSIGN){
+        errors.panic("Expected '=' after name of type alias");
+        return 1;
+    }
 
     next_index(i, tokens.size());
     std::string binding;
 
     if(parse_type(config, tokens, program, i, binding, errors) != 0) return 1;
-    program.type_aliases.push_back( TypeAlias(alias, binding, attr_info.is_public, &program.origin_info) );
+    program.type_aliases.push_back( TypeAlias(name, binding, attr_info.is_public, &program.origin_info) );
     return 0;
 }
 int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
@@ -542,13 +508,13 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
 
     return 0;
 }
-int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Class* klass, size_t class_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Struct* structure, size_t struct_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
     // def method_name() ret_type { <some code> }
     //           ^
 
-    // NOTE: 'Class* klass' should be a valid pointer when calling this function (if not a crash will occur)
+    // NOTE: 'Struct* structure' should be a valid pointer when calling this function (if not a crash will occur)
 
-    // NOTE: 'Class* klass' should only used for adding the created method to the class,
+    // NOTE: 'Struct* structure' should only used for adding the created method to the struct,
     //           if it is used for accessing things like members, not all of them may be present,
     //           or none of them at all
 
@@ -636,7 +602,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
     }
 
     if(return_type == ""){
-        errors.panic("No return type specified for method '" + klass->name + "." + name + "'");
+        errors.panic("No return type specified for method '" + structure->name + "." + name + "'");
         return 1;
     }
 
@@ -660,14 +626,14 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
 
     if(multiple_return){
         Function created_method(name, arguments, extra_return_types, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, is_variable_args, &program.origin_info);
-        created_method.parent_class_offset = class_offset_plus_one;
-        klass->methods.push_back( std::move(created_method) );
+        created_method.parent_struct_offset = struct_offset_plus_one;
+        structure->methods.push_back( std::move(created_method) );
         return 0;
     }
     else {
         Function created_method(name, arguments, return_type, statements, attr_info.is_public, attr_info.is_static, attr_info.is_stdcall, false, is_variable_args, &program.origin_info);
-        created_method.parent_class_offset = class_offset_plus_one;
-        klass->methods.push_back( std::move(created_method) );
+        created_method.parent_struct_offset = struct_offset_plus_one;
+        structure->methods.push_back( std::move(created_method) );
         return 0;
     }
 }
@@ -848,7 +814,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
         }
     }
 
-    bool is_nothing = (import_program->functions.size() == 0 and import_program->classes.size() == 0 and import_program->globals.size() == 0);
+    bool is_nothing = (import_program->functions.size() == 0 and import_program->structures.size() == 0 and import_program->globals.size() == 0);
     program.dependencies.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config, is_nothing) );
     return 0;
 }

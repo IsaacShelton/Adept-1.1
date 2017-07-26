@@ -15,7 +15,7 @@
 struct Program;
 struct Function;
 struct Structure;
-struct Class;
+struct Struct;
 
 class PlainExp {
     public:
@@ -322,8 +322,7 @@ class MemberExp : public PlainExp {
     PlainExp* clone();
 
     private:
-    llvm::Value* assemble_struct(Program&, Function&, AssemblyData&, std::string*, Structure&, llvm::Value*);
-    llvm::Value* assemble_class(Program&, Function&, AssemblyData&, std::string*, Class&, llvm::Value*, std::string&);
+    llvm::Value* assemble_struct(Program&, Function&, AssemblyData&, std::string*, Struct&, llvm::Value*, std::string&);
     llvm::Value* assemble_array(Program&, Function&, AssemblyData&, std::string*, llvm::Value*, std::string&);
 };
 
