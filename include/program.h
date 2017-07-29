@@ -239,7 +239,6 @@ class Program {
     int generate_types(AssemblyData&);
 
     int find_type(const std::string&, AssemblyData&, llvm::Type**) const;
-    int find_func(const std::string&, External*);
     int find_func(const std::string&, const std::vector<std::string>&, External*, bool require_va = false);
     int find_method(const std::string&, const std::string&, const std::vector<std::string>&, External*);
     int find_struct(const std::string&, Struct*);
@@ -292,15 +291,15 @@ inline bool Program::is_array_typename(const std::string& type_name){
     return false;
 }
 inline bool Program::is_integer_typename(const std::string& type_name){
-    // TODO: SPEED: This part could be optimized
-    if(type_name == "int")    return true;
-    if(type_name == "uint")   return true;
-    if(type_name == "long")   return true;
-    if(type_name == "ulong")  return true;
-    if(type_name == "short")  return true;
-    if(type_name == "ushort") return true;
-    if(type_name == "byte")   return true;
-    if(type_name == "ubyte")  return true;
+    if(type_name.length() == 0) return false;
+
+    if(type_name[0] == 'u' and (type_name == "uint" or type_name == "ulong" or type_name == "ushort" or type_name == "ubyte")){
+        return true;
+    }
+
+    if(type_name == "int" or type_name == "long" or type_name == "short" or type_name == "byte"){
+        return true;
+    }
 
     return false;
 }

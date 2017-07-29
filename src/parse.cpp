@@ -24,9 +24,9 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
         build_add_api(&program);
     }
 
-    for(size_t i = 0; i != tokens->size(); i++){
-        AttributeInfo attr_info(false);
+    AttributeInfo attr_info;
 
+    for(size_t i = 0; i != tokens->size(); i++){
         switch((*tokens)[i].id){
         case TOKENID_KEYWORD:
             if(parse_keyword(config, *tokens, program, i, attr_info, errors) != 0) return 1;
@@ -35,6 +35,7 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
             if(parse_word(config, *tokens, program, i, attr_info, errors) != 0) return 1;
             break;
         case TOKENID_NEWLINE:
+            attr_info.reset();
             errors.line++;
             break;
         default:
@@ -1789,6 +1790,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
     StatementContext statement_context = StatementContext::None;
     std::vector<SwitchStatement::Case> cases;
     ErrorHandler switch_errors = errors;
+    ErrorHandler case_errors = errors;
 
     StatementList possible_statements;
     StatementList default_statements;
@@ -1814,11 +1816,12 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
 
                 if(keyword == "case"){
                     if(statement_context == StatementContext::Case){
-                        cases.push_back( SwitchStatement::Case(case_condition, possible_statements) );
+                        cases.push_back( SwitchStatement::Case(case_condition, possible_statements, case_errors) );
                     } else if(statement_context == StatementContext::Default){
                         default_statements = possible_statements;
                     }
 
+                    case_errors = errors;
                     next_index(i, tokens.size());
                     if(parse_expression(config, tokens, program, i, &case_condition, errors) != 0) return 1;
 
@@ -1826,7 +1829,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
                     possible_statements.clear();
                 } else if(keyword == "default"){
                     if(statement_context == StatementContext::Case){
-                        cases.push_back( SwitchStatement::Case(case_condition, possible_statements) );
+                        cases.push_back( SwitchStatement::Case(case_condition, possible_statements, case_errors) );
                     } else if(statement_context == StatementContext::Default){
                         default_statements = possible_statements;
                     }
@@ -1836,6 +1839,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
                         return 1;
                     }
 
+                    case_errors = errors;
                     statement_context = StatementContext::Default;
                     possible_statements.clear();
                     next_index(i, tokens.size());
@@ -1873,7 +1877,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
 
     // Push back final case
     if(statement_context == StatementContext::Case){
-        cases.push_back( SwitchStatement::Case(case_condition, possible_statements) );
+        cases.push_back( SwitchStatement::Case(case_condition, possible_statements, case_errors) );
     } else if(statement_context == StatementContext::Default){
         default_statements = possible_statements;
     }
@@ -2256,6 +2260,14 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         *expression = new LengthStringExp( tokens[i].getString(), errors );
         next_index(i, tokens.size());
         return 0;
+    case TOKENID_USIZE:
+        *expression = new UnsignedSizeExp( tokens[i].getULong(), errors );
+        next_index(i, tokens.size());
+        return 0;
+    case TOKENID_NUMERIC_INT:
+        *expression = new NumericIntegerExp( tokens[i].getULong(), errors );
+        next_index(i, tokens.size());
+       return 0;
     case TOKENID_OPEN:
         {
             next_index(i, tokens.size()); // eat (

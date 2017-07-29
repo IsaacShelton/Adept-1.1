@@ -228,6 +228,9 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
 int assemble(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
 
+    Clock debug_clock;
+    debug_clock.start();
+
     context.module = llvm::make_unique<llvm::Module>( filename_name(config.filename).c_str(), context.context);
     if(program.generate_types(context) != 0) return 1;
     build_add_symbols();
@@ -296,19 +299,16 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
 
     // Assemble the skeleton of each struct
     // ASYNC: Maybe parallelize this?
-    if(assemble_struct_skeletons(context, config, program) != 0) return 1;
+    if(assemble_struct_method_skeletons(context, config, program) != 0) return 1;
 
     // Assemble the skeleton of each function
     // ASYNC: Maybe parallelize this?
     if(assemble_function_skeletons(context, config, program) != 0) return 1;
 
-    // Assemble the bodies of each struct
-    // ASYNC: Maybe parallelize this?
-    if(assemble_struct_bodies(context, config, program) != 0) return 1;
-
-    // Assemble the bodies of each function
-    // ASYNC: Maybe parallelize this?
-    if(assemble_function_bodies(context, config, program) != 0) return 1;
+    futures.clear();
+    futures.push_back( std::async(assemble_struct_method_bodies, &context, &config, &program) );
+    futures.push_back( std::async(assemble_function_bodies, &context, &config, &program) );
+    if(threads_int_result(futures) != 0) return 1;
 
     // Print Assembler Time
     if(config.time_verbose and !config.silent){
@@ -319,7 +319,6 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
     if(!config.jit and config.link){
         if(build(context, config, program, errors) != 0) return 1;
     }
-
     return 0;
 }
 
@@ -453,26 +452,6 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
     return 0;
 }
 
-int assemble_struct_skeletons(AssemblyData& context, Configuration& config, Program& program){
-    for(Struct& structure : program.structures){
-        for(Function& method : structure.methods){
-            if(assemble_method(context, config, program, structure, method, structure.flags & STRUCT_IMPORTED) != 0) return 1;
-        }
-    }
-
-    return 0;
-}
-int assemble_struct_bodies(AssemblyData& context, Configuration& config, Program& program){
-    for(Struct& structure : program.structures){
-        if(structure.flags & STRUCT_IMPORTED) continue; // Don't assemble the struct if it was imported
-
-        for(Function& method : structure.methods){
-            if(assemble_method_body(context, config, program, structure, method) != 0) return 1;
-        }
-    }
-
-    return 0;
-}
 int assemble_function_skeletons(AssemblyData& context, Configuration& config, Program& program){
     // Assemble all the functions in a program
 
@@ -584,13 +563,14 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 
     return 0;
 }
-int assemble_function_bodies(AssemblyData& context, Configuration& config, Program& program){
+int assemble_function_bodies(AssemblyData* context, Configuration* config, Program* program){
+    // NOTE: All pointers are assumed to be valid
 
-    for(Function& func : program.functions){
-        std::string final_function_name = (func.flags & FUNC_EXTERNAL) ? func.name : mangle(program, func);
-        llvm::Function* llvm_function = context.module->getFunction(final_function_name);
-        AssembleFunction* asm_func = context.getFunction(final_function_name);
-        context.current_function = asm_func;
+    for(Function& func : program->functions){
+        std::string final_function_name = (func.flags & FUNC_EXTERNAL) ? func.name : mangle(*program, func);
+        llvm::Function* llvm_function = context->module->getFunction(final_function_name);
+        AssembleFunction* asm_func = context->getFunction(final_function_name);
+        context->current_function = asm_func;
 
         if(asm_func == NULL){
             fail("Failed to get assembly data for function in assemble_function_body");
@@ -599,172 +579,184 @@ int assemble_function_bodies(AssemblyData& context, Configuration& config, Progr
         }
 
         assert(llvm_function != NULL);
-        context.builder.SetInsertPoint(asm_func->body);
+        context->builder.SetInsertPoint(asm_func->body);
         bool terminated = false;
 
         for(Statement* statement : func.statements){
             if(statement->flags & STMT_TERMINATOR) terminated = true;
-            if(statement->assemble(program, func, context) != 0){
+            if(statement->assemble(*program, func, *context) != 0){
                 return 1;
             }
             if(terminated) break;
         }
 
-        if(!terminated) context.builder.CreateBr(asm_func->quit);
+        if(!terminated) context->builder.CreateBr(asm_func->quit);
 
-        context.builder.SetInsertPoint(asm_func->entry);
-        context.builder.CreateBr(asm_func->body);
+        context->builder.SetInsertPoint(asm_func->entry);
+        context->builder.CreateBr(asm_func->body);
 
         llvm::verifyFunction(*llvm_function);
     }
 
     return 0;
 }
-int assemble_method(AssemblyData& context, Configuration& config, Program& program, Struct& structure, Function& method, bool is_imported){
-    // TODO: SPEED: Make this function operate on a group of methods instead of a single method at a time
+int assemble_struct_method_skeletons(AssemblyData& context, Configuration& config, Program& program){
+    for(Struct& structure : program.structures){
+        bool is_imported = structure.flags & STRUCT_IMPORTED;
 
-    std::string mangled_method_name = mangle(structure, method);
-    llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
+        for(Function& method : structure.methods){
+            std::string mangled_method_name = mangle(structure, method);
+            llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
 
-    if(!llvm_function){
-        llvm::Type* llvm_type;
-        std::vector<llvm::Type*> args(method.arguments.size()+1);
-        size_t end_of_reg_args  = args.size();
+            if(!llvm_function){
+                llvm::Type* llvm_type;
+                std::vector<llvm::Type*> args(method.arguments.size()+1);
+                size_t end_of_reg_args  = args.size();
 
-        if(method.flags & FUNC_MULRET){
-            args.resize(args.size() + method.extra_return_types.size());
-        }
-
-        // Get llvm type of pointer to structure of 'Struct* structure'
-        if(program.find_type(structure.name, context, &llvm_type) != 0){
-            fail_filename(config, UNDECLARED_TYPE(structure.name));
-            return 1;
-        }
-        args[0] = llvm_type->getPointerTo(); // First argument is always a pointer to the struct data
-
-        // Convert argument typenames to llvm types
-        for(size_t i = 0; i != method.arguments.size(); i++){
-            if(program.find_type(method.arguments[i].type, context, &llvm_type) != 0){
-                fail_filename(config, UNDECLARED_TYPE(method.arguments[i].type));
-                return 1;
-            }
-            args[i+1] = llvm_type;
-        }
-
-        size_t mulret_index = 0;
-        size_t args_index = method.arguments.size() + 1;
-        while(args_index != args.size()){
-            if(program.find_type(method.extra_return_types[mulret_index], context, &llvm_type) != 0){
-                fail_filename(config, UNDECLARED_TYPE(method.extra_return_types[mulret_index]));
-                return 1;
-            }
-            args[args_index] = llvm_type->getPointerTo();
-            args_index++; mulret_index++;
-        }
-
-        // Convert return type typename to an llvm type
-        if(program.find_type(method.return_type, context, &llvm_type) != 0){
-            fail_filename(config, UNDECLARED_TYPE(method.return_type));
-            return 1;
-        }
-
-        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
-        llvm_function = llvm::Function::Create(function_type, (is_imported or method.flags & FUNC_PUBLIC) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangled_method_name, context.module.get());
-        assert(llvm_function != NULL);
-
-        if(!is_imported){
-            // Create a new basic block to start insertion into.
-            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
-            llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
-            llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
-
-            context.builder.SetInsertPoint(entry);
-
-            llvm::AllocaInst* exitval;
-            if(!llvm_type->isVoidTy()){
-                exitval = context.builder.CreateAlloca(llvm_type, 0);
-            }
-
-            // Create function assembly data
-            AssembleFunction* func_assembly_data = context.getFunction(mangled_method_name);
-            func_assembly_data->entry = entry;
-            func_assembly_data->body = body;
-            func_assembly_data->quit = quit;
-            func_assembly_data->return_type = llvm_type;
-            func_assembly_data->exitval = exitval;
-            func_assembly_data->va_args = NULL;
-
-            size_t i = 0;
-            func_assembly_data->variables.reserve(args.size() + 1);
-
-            for(auto& arg : llvm_function->args()){
-                if(i == 0){
-                    // Add variable for 'this'
-                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
-                    context.builder.CreateStore(&arg, alloca);
-                    func_assembly_data->addVariable("this", "*" + structure.name, alloca);
-                    i++; continue;
+                if(method.flags & FUNC_MULRET){
+                    args.resize(args.size() + method.extra_return_types.size());
                 }
-                else if(i >= end_of_reg_args){
-                    ensure(method.flags & FUNC_MULRET);
-                    func_assembly_data->multi_return_pointers.push_back(&arg);
-                    i++; continue;
-                }
-                else {
-                    Field& method_argument = method.arguments[i-1];
-                    llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
-                    context.builder.CreateStore(&arg, alloca);
-                    func_assembly_data->addVariable(method_argument.name, method_argument.type, alloca);
-                    i++; continue;
-                }
-            }
 
-            context.builder.SetInsertPoint(quit);
+                // Get llvm type of pointer to structure of 'Struct* structure'
+                if(program.find_type(structure.name, context, &llvm_type) != 0){
+                    fail_filename(config, UNDECLARED_TYPE(structure.name));
+                    return 1;
+                }
 
-            if(!llvm_type->isVoidTy()){
-                llvm::Value* retval = context.builder.CreateLoad(exitval);
-                context.builder.CreateRet(retval);
+                args[0] = llvm_type->getPointerTo(); // First argument is always a pointer to the struct data
+
+                // Convert argument typenames to llvm types
+                for(size_t i = 0; i != method.arguments.size(); i++){
+                    if(program.find_type(method.arguments[i].type, context, &llvm_type) != 0){
+                        fail_filename(config, UNDECLARED_TYPE(method.arguments[i].type));
+                        return 1;
+                    }
+                    args[i+1] = llvm_type;
+                }
+
+                size_t mulret_index = 0;
+                size_t args_index = method.arguments.size() + 1;
+                while(args_index != args.size()){
+                    if(program.find_type(method.extra_return_types[mulret_index], context, &llvm_type) != 0){
+                        fail_filename(config, UNDECLARED_TYPE(method.extra_return_types[mulret_index]));
+                        return 1;
+                    }
+                    args[args_index] = llvm_type->getPointerTo();
+                    args_index++; mulret_index++;
+                }
+
+                // Convert return type typename to an llvm type
+                if(program.find_type(method.return_type, context, &llvm_type) != 0){
+                    fail_filename(config, UNDECLARED_TYPE(method.return_type));
+                    return 1;
+                }
+
+                llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_type, args, false);;
+                llvm_function = llvm::Function::Create(function_type, (is_imported or method.flags & FUNC_PUBLIC) ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, mangled_method_name, context.module.get());
+                assert(llvm_function != NULL);
+
+                if(!is_imported){
+                    // Create a new basic block to start insertion into.
+                    llvm::BasicBlock* entry = llvm::BasicBlock::Create(context.context, "entry", llvm_function);
+                    llvm::BasicBlock* body = llvm::BasicBlock::Create(context.context, "body", llvm_function);
+                    llvm::BasicBlock* quit = llvm::BasicBlock::Create(context.context, "quit", llvm_function);
+
+                    context.builder.SetInsertPoint(entry);
+
+                    llvm::AllocaInst* exitval;
+                    if(!llvm_type->isVoidTy()){
+                        exitval = context.builder.CreateAlloca(llvm_type, 0);
+                    }
+
+                    // Create function assembly data
+                    AssembleFunction* func_assembly_data = context.getFunction(mangled_method_name);
+                    func_assembly_data->entry = entry;
+                    func_assembly_data->body = body;
+                    func_assembly_data->quit = quit;
+                    func_assembly_data->return_type = llvm_type;
+                    func_assembly_data->exitval = exitval;
+                    func_assembly_data->va_args = NULL;
+
+                    size_t i = 0;
+                    func_assembly_data->variables.reserve(args.size() + 1);
+
+                    for(auto& arg : llvm_function->args()){
+                        if(i == 0){
+                            // Add variable for 'this'
+                            llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
+                            context.builder.CreateStore(&arg, alloca);
+                            func_assembly_data->addVariable("this", "*" + structure.name, alloca);
+                            i++; continue;
+                        }
+                        else if(i >= end_of_reg_args){
+                            ensure(method.flags & FUNC_MULRET);
+                            func_assembly_data->multi_return_pointers.push_back(&arg);
+                            i++; continue;
+                        }
+                        else {
+                            Field& method_argument = method.arguments[i-1];
+                            llvm::AllocaInst* alloca = context.builder.CreateAlloca(args[i], 0);
+                            context.builder.CreateStore(&arg, alloca);
+                            func_assembly_data->addVariable(method_argument.name, method_argument.type, alloca);
+                            i++; continue;
+                        }
+                    }
+
+                    context.builder.SetInsertPoint(quit);
+
+                    if(!llvm_type->isVoidTy()){
+                        llvm::Value* retval = context.builder.CreateLoad(exitval);
+                        context.builder.CreateRet(retval);
+                    }
+                    else {
+                        context.builder.CreateRet(NULL);
+                    }
+                }
             }
             else {
-                context.builder.CreateRet(NULL);
-            }
+            fail_filename(config, DUPLICATE_METHOD(structure.name + "." + method.name));
+            return 1;
         }
-    }
-    else {
-        fail_filename(config, DUPLICATE_METHOD(structure.name + "." + method.name));
-        return 1;
+        }
     }
 
     return 0;
 }
-int assemble_method_body(AssemblyData& context, Configuration& config, Program& program, Struct& structure, Function& method){
-    // TODO: SPEED: Make this function operate on a group of methods instead of a single method at a time
+int assemble_struct_method_bodies(AssemblyData* context, Configuration* config, Program* program){
+    // NOTE: All pointers are assumed to be valid
 
-    std::string mangled_method_name = mangle(structure, method);
-    llvm::Function* llvm_function = context.module->getFunction(mangled_method_name);
-    AssembleFunction* asm_func = context.getFunction(mangled_method_name);
-    context.current_function = asm_func;
+    for(Struct& structure : program->structures){
+        if(structure.flags & STRUCT_IMPORTED) continue; // Don't assemble the struct if it was imported
 
-    assert(llvm_function != NULL);
-    context.builder.SetInsertPoint(asm_func->body);
-    bool terminated = false;
+        for(Function& method : structure.methods){
+            std::string mangled_method_name = mangle(structure, method);
+            llvm::Function* llvm_function = context->module->getFunction(mangled_method_name);
+            AssembleFunction* asm_func = context->getFunction(mangled_method_name);
+            context->current_function = asm_func;
 
-    for(size_t i = 0; i != method.statements.size(); i++){
-        if(method.statements[i]->flags & STMT_TERMINATOR) terminated = true;
+            assert(llvm_function != NULL);
+            context->builder.SetInsertPoint(asm_func->body);
+            bool terminated = false;
 
-        if(method.statements[i]->assemble(program, method, context) != 0){
-            return 1;
+            for(size_t i = 0; i != method.statements.size(); i++){
+                if(method.statements[i]->flags & STMT_TERMINATOR) terminated = true;
+
+                if(method.statements[i]->assemble(*program, method, *context) != 0){
+                    return 1;
+                }
+
+                if(terminated) break;
+            }
+
+            if(!terminated) context->builder.CreateBr(asm_func->quit);
+
+            context->builder.SetInsertPoint(asm_func->entry);
+            context->builder.CreateBr(asm_func->body);
+
+            llvm::verifyFunction(*llvm_function);
         }
-
-        if(terminated) break;
     }
 
-    if(!terminated) context.builder.CreateBr(asm_func->quit);
-
-    context.builder.SetInsertPoint(asm_func->entry);
-    context.builder.CreateBr(asm_func->body);
-
-    llvm::verifyFunction(*llvm_function);
     return 0;
 }
 
@@ -862,7 +854,6 @@ int assemble_merge_types(AssemblyData& context, Program& program, std::string ty
     return 1;
 }
 int assemble_merge_types_oneway(AssemblyData& context, Program& program, std::string type_a, std::string type_b, llvm::Value** expr_a, llvm::Type* exprtype_b, std::string* out){
-    // TODO: SPEED: SIZE: This should probably not be inlined
     // Merge a into b if possible
 
     // Resolve any aliases
@@ -923,3 +914,4 @@ bool assemble_types_mergeable(Program& program, std::string a, std::string b){
 
     return false;
 }
+

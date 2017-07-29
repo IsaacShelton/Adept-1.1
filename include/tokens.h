@@ -7,21 +7,23 @@
 
 // 0-19 : Literals (16 / 20 Used)
 #define TOKEN_NONE            Token(0)
-#define TOKEN_STRING(a)       Token(1, a)
-#define TOKEN_BYTE(a)         Token(2, new int8_t(a))
-#define TOKEN_SHORT(a)        Token(3, new int16_t(a))
-#define TOKEN_INT(a)          Token(4, new int32_t(a))
-#define TOKEN_LONG(a)         Token(5, new int64_t(a))
-#define TOKEN_UBYTE(a)        Token(6, new uint8_t(a))
-#define TOKEN_USHORT(a)       Token(7, new uint16_t(a))
-#define TOKEN_UINT(a)         Token(8, new uint32_t(a))
-#define TOKEN_ULONG(a)        Token(9, new uint64_t(a))
+#define TOKEN_STRING(a)       Token(1,  a)
+#define TOKEN_BYTE(a)         Token(2,  new int8_t(a))
+#define TOKEN_SHORT(a)        Token(3,  new int16_t(a))
+#define TOKEN_INT(a)          Token(4,  new int32_t(a))
+#define TOKEN_LONG(a)         Token(5,  new int64_t(a))
+#define TOKEN_UBYTE(a)        Token(6,  new uint8_t(a))
+#define TOKEN_USHORT(a)       Token(7,  new uint16_t(a))
+#define TOKEN_UINT(a)         Token(8,  new uint32_t(a))
+#define TOKEN_ULONG(a)        Token(9,  new uint64_t(a))
 #define TOKEN_HALF(a)         Token(10, new float(a))
 #define TOKEN_FLOAT(a)        Token(11, new float(a))
 #define TOKEN_DOUBLE(a)       Token(12, new double(a))
 #define TOKEN_CONSTANT(a)     Token(13, a)
 #define TOKEN_POLYMORPHIC(a)  Token(14, a)
 #define TOKEN_LENGTHSTRING(a) Token(15, a)
+#define TOKEN_USIZE(a)        Token(16, new uint64_t(a))
+#define TOKEN_NUMERIC_INT(a)  Token(17, new uint64_t(a))
 // 20-39 : Control Flow (10 / 20 Used)
 #define TOKEN_WORD(a)         Token(20, a)
 #define TOKEN_KEYWORD(a)      Token(21, a)
@@ -76,6 +78,8 @@
 #define TOKENID_CONSTANT      13
 #define TOKENID_POLYMORPHIC   14
 #define TOKENID_LENGTHSTRING  15
+#define TOKENID_USIZE         16
+#define TOKENID_NUMERIC_INT   17
 // Indices : Control Flow 20-39
 #define TOKENID_WORD          20
 #define TOKENID_KEYWORD       21

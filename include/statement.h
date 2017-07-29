@@ -380,9 +380,10 @@ class SwitchStatement : public Statement {
     struct Case {
         PlainExp* value;
         StatementList statements;
+        ErrorHandler errors;
 
         Case();
-        Case(PlainExp*, const StatementList&);
+        Case(PlainExp*, const StatementList&, ErrorHandler&);
     };
 
     PlainExp* condition;

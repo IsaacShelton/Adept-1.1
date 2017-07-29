@@ -1141,7 +1141,7 @@ int CallStatement::handle_var_args(Program& program, Function& func, AssemblyDat
         llvm::Type* return_llvm_type;
 
         std::vector<llvm::Type*> args(1);
-        args[0] = llvm::Type::getInt32Ty(context.context);
+        args[0] = llvm::Type::getInt64Ty(context.context);
         return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
@@ -1176,7 +1176,7 @@ int CallStatement::handle_var_args(Program& program, Function& func, AssemblyDat
     indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 1, false));
 
     llvm::Value* va_length = context.builder.CreateGEP(program.llvm_array_type, asm_func->va_args, indices);
-    context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_count, false)), va_length);
+    context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(64, va_arg_count, false)), va_length);
 
     // Call the function with the new argument values
     std::vector<llvm::Value*> new_argument_values(impl_arg_count);
@@ -1351,7 +1351,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
             llvm::Type* return_llvm_type;
 
             std::vector<llvm::Type*> args(1);
-            args[0] = llvm::Type::getInt32Ty(context.context);
+            args[0] = llvm::Type::getInt64Ty(context.context);
             return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
 
             llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
@@ -1387,7 +1387,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
         indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 1, false));
 
         llvm::Value* va_length = context.builder.CreateGEP(program.llvm_array_type, asm_func->va_args, indices);
-        context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arguments_count, false)), va_length);
+        context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(64, va_arguments_count, false)), va_length);
 
         // Call the function with the new argument values
         std::vector<llvm::Value*> new_argument_values(func_data.arguments.size() + 1);
@@ -2439,9 +2439,10 @@ Statement* DeleteStatement::clone(){
 }
 
 SwitchStatement::Case::Case(){}
-SwitchStatement::Case::Case(PlainExp* value, const StatementList& statements){
+SwitchStatement::Case::Case(PlainExp* value, const StatementList& statements, ErrorHandler& errors){
     this->value = value;
     this->statements = statements;
+    this->errors = errors;
 }
 
 SwitchStatement::SwitchStatement(ErrorHandler& errors){
@@ -2471,6 +2472,7 @@ SwitchStatement::SwitchStatement(const SwitchStatement& other) : Statement(other
 
         this_case->value = other_case->value->clone();
         this_case->statements.resize(other_case->statements.size());
+        this_case->errors = other_case->errors;
 
         for(size_t j = 0; j != other_case->statements.size(); j++){
             this_case->statements[j] = other_case->statements[j]->clone();
@@ -2556,7 +2558,15 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
         case_condition = switch_case.value->assemble_immutable(program, func, context, &value_typename);
         if(case_condition == NULL) return 1;
 
-        if(!Program::is_integer_typename(value_typename) and value_typename != condition_typename){
+        // Merge expression type into required type if possible
+        if(assemble_merge_types_oneway(context, program, value_typename, condition_typename, &case_condition, switch_value->getType(), NULL) != 0){
+            switch_case.errors.panic( INCOMPATIBLE_TYPES(value_typename, condition_typename) );
+            return 1;
+        }
+
+        program.resolve_if_alias(value_typename);
+
+        if(!Program::is_integer_typename(value_typename)){
             errors.panic("Case condition value must be an integer");
             return 1;
         }
@@ -3135,7 +3145,7 @@ int MultiResultCallStatement::handle_var_args(Program& program, Function& func, 
         llvm::Type* return_llvm_type;
 
         std::vector<llvm::Type*> args(1);
-        args[0] = llvm::Type::getInt32Ty(context.context);
+        args[0] = llvm::Type::getInt64Ty(context.context);
         return_llvm_type = llvm::Type::getInt8PtrTy(context.context);
 
         llvm::FunctionType* function_type = llvm::FunctionType::get(return_llvm_type, args, false);
@@ -3170,7 +3180,7 @@ int MultiResultCallStatement::handle_var_args(Program& program, Function& func, 
     indices[1] = llvm::ConstantInt::get(context.context, llvm::APInt(32, 1, false));
 
     llvm::Value* va_length = context.builder.CreateGEP(program.llvm_array_type, asm_func->va_args, indices);
-    context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_count, false)), va_length);
+    context.builder.CreateStore(llvm::ConstantInt::get(context.context, llvm::APInt(64, va_arg_count, false)), va_length);
 
     // Call the function with the new argument values
     std::vector<llvm::Value*> new_argument_values(impl_arg_count);

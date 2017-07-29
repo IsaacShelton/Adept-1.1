@@ -11,6 +11,7 @@ struct AttributeInfo {
 
     AttributeInfo();
     AttributeInfo(bool);
+    void reset();
 };
 
 #endif // ATTRIBUTE_H_INCLUDED

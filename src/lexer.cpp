@@ -12,10 +12,9 @@
 
 int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
-    std::ifstream adept;
+    std::ifstream input_file(filename.c_str());
 
-    adept.open(filename.c_str());
-    if(!adept.is_open()){
+    if(!input_file.is_open()){
         errors.panic( FAILED_TO_OPEN_FILE(filename_name(filename)) );
         return 1;
     }
@@ -23,13 +22,13 @@ int tokenize(Configuration& config, std::string filename, std::vector<Token>* to
     tokens->reserve(1024);
 
     std::stringstream string_buffer;
-    string_buffer << adept.rdbuf();
+    string_buffer << input_file.rdbuf();
     std::string file_contents = string_buffer.str() + "\n";
 
     if(tokenize_code(file_contents, *tokens, errors) != 0) return 1;
 
     errors.line = 1;
-    adept.close();
+    input_file.close();
 
     // Print Lexer Time
     if(config.time_verbose and !config.silent){
@@ -44,12 +43,20 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
     size_t code_size = code.size();
 
     char prefix_char;
+    char peek_char;
     std::string until_space;
 
     for( size_t i = 0; i != code_size; ){
         prefix_char = code[i];
+
         while(prefix_char == ' ' or prefix_char == '\t'){
             prefix_char = code[++i];
+        }
+
+        if(i + 1 != code_size){
+            peek_char = code[i + 1];
+        } else {
+            peek_char = '\0';
         }
 
         switch(prefix_char){
@@ -79,106 +86,94 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
             tokens.push_back(TOKEN_NEXT); i++;
             break;
         case '=':
-            next_index(i, code_size);
-            if(code[i] == '=') {
+            if(peek_char == '=') {
                 tokens.push_back(TOKEN_EQUALITY);
-                i++; break;
+                i += 2; break;
             }
             tokens.push_back(TOKEN_ASSIGN);
-            break;
+            i++; break;
         case '!':
-            next_index(i, code_size);
-            if(code[i] == '=') {
+            if(peek_char == '=') {
                 tokens.push_back(TOKEN_INEQUALITY);
+                i += 2; break;
+            }
+            else {
+                tokens.push_back(TOKEN_NOT);
                 i++; break;
             }
-            else { tokens.push_back(TOKEN_NOT); }
-            break;
         case '+':
-            next_index(i, code_size);
-            if(code[i] == '='){
+            if(peek_char == '='){
                 tokens.push_back(TOKEN_ASSIGNADD);
-                i++; break;
+                i += 2; break;
             }
             tokens.push_back(TOKENID_ADD);
-            break;
+            i++; break;
         case '-':
-            next_index(i, code_size);
-            prefix_char = code[i];
-
-            if(prefix_char == '=') {
+            if(peek_char == '=') {
                 tokens.push_back(TOKEN_ASSIGNSUB);
-                i++; break;
+                i += 2; break;
             }
 
-            if(prefix_char >= 48 and prefix_char <= 57) {
-                if(tokenize_number(true, prefix_char, i, code_size, code, tokens, errors) != 0) return 1;
+            if(peek_char >= 48 and peek_char <= 57) {
+                if(tokenize_number(true, peek_char, ++i, code_size, code, tokens, errors) != 0) return 1;
                 i++; break;
             }
 
             tokens.push_back(TOKEN_SUBTRACT);
-            break;
+            i++; break;
         case '*':
-            next_index(i, code_size);
-
-            if(code[i] == '='){
+            if(peek_char == '='){
                 tokens.push_back(TOKEN_ASSIGNMUL);
-                i++; break;
+                i += 2; break;
             }
 
             tokens.push_back(TOKENID_MULTIPLY);
-            break;
+            i++; break;
         case '/':
-            next_index(i, code_size);
-
-            if(code[i] == '=') {
+            if(peek_char == '=') {
                 tokens.push_back(TOKEN_ASSIGNDIV);
-                i++; break;
+                i += 2; break;
             }
 
-            if(code[i] == '/'){
-                while(code[++i] != '\n');
+            if(peek_char == '/'){
+                i++; while(code[++i] != '\n');
                 tokens.push_back(TOKEN_NEWLINE);
                 errors.line++; i++; break;
             }
 
-            if(code[i] == '*'){
-                i++;
-
-                while(i != code_size){
+            if(peek_char == '*'){
+                while(++i != code_size){
                     if(code[i] == '\n'){
                         tokens.push_back(TOKEN_NEWLINE);
                         errors.line++;
                     }
-                    else if(code[i] == '*') if(i + 1 != code_size) if(code[i+1] == '/') { i += 2; break; }
-
-                    i++;
+                    else if(code[i] == '*') if(i + 1 != code_size) if(code[i+1] == '/') {
+                        i += 2; break;
+                    }
                 }
 
                 break;
             }
 
             tokens.push_back(TOKEN_DIVIDE);
-            break;
+            i++; break;
         case ':':
-            next_index(i, code_size);
-
-            if(code[i] == ':'){
-                tokens.push_back(TOKEN_NAMESPACE); i++;
+            if(peek_char == ':'){
+                tokens.push_back(TOKEN_NAMESPACE);
+                i += 2; break;
             } else {
                 errors.panic("ERROR: Lexer found unknown token ':'");
                 return 1;
             }
             break;
         case '%':
-            next_index(i, code_size);
-            if(code[i] == '=') {
+            if(peek_char == '=') {
                 tokens.push_back(TOKEN_ASSIGNMOD);
-                i++; break;
+                i += 2; break;
             }
 
             tokens.push_back(TOKENID_MODULUS);
-            break;
+            i++; break;
         case '.':
             if(i + 2 < code_size && code.substr(i, 2) == ".."){
                 tokens.push_back(TOKEN_ELLIPSIS);
@@ -191,18 +186,16 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
             tokens.push_back(TOKEN_ADDRESS); i++;
             break;
         case '<':
-            next_index(i, code_size);
-            if(code[i] == '=') {
+            if(peek_char == '=') {
                 tokens.push_back(TOKEN_LESSEQ);
-                i++; break;
+                i += 2; break;
             }
 
             tokens.push_back(TOKEN_LESS);
-            break;
+            i++; break;
         case '>':
-            next_index(i, code_size);
-            if(code[i] == '=') { tokens.push_back(TOKEN_GREATEREQ); i++; }
-            else { tokens.push_back(TOKEN_GREATER); }
+            if(peek_char == '=') { tokens.push_back(TOKEN_GREATEREQ); i += 2; }
+            else { tokens.push_back(TOKEN_GREATER); i++; }
             break;
         case 65: case 66: case 67:
         case 68: case 69: case 70:
@@ -225,12 +218,17 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
         case 95:
             {
                 std::string word;
-                prefix_char = code[i];
 
                 while(true){
                     word += prefix_char;
-                    next_index(i, code_size);
-                    prefix_char = code[i];
+                    prefix_char = peek_char;
+                    i += 1;
+
+                    if(i + 1 != code_size){
+                        peek_char = code[i + 1];
+                    } else {
+                        peek_char = '\0';
+                    }
 
                     if(prefix_char == 95) continue;
                     if(prefix_char >= 65 and prefix_char <= 90) continue;
@@ -277,8 +275,7 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 std::string content;
                 std::string escaped_content;
 
-                // CRASH: Fix forever on going string crash
-                while(code[++i] != '"' or code[i-1] == '\\'){
+                while(i + 1 != code_size and (code[++i] != '"' or code[i-1] == '\\')){
                     content += code[i];
                 }
                 for(size_t j = 0; j != content.size(); j++){
@@ -308,8 +305,7 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                             errors.panic("Unknown escape sequence '\\" + content.substr(j, content.size()-j) + "'");
                             return 1;
                         }
-                    }
-                    else {
+                    } else {
                         escaped_content += content[j];
                     }
                 }
@@ -323,8 +319,7 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
                 std::string content;
                 std::string escaped_content;
 
-                // CRASH: Fix forever on going string crash
-                while(code[++i] != '\'' or code[i-1] == '\\'){
+                while(i + 1 != code_size and (code[++i] != '\'' or code[i-1] == '\\')){
                     content += code[i];
                 }
                 for(size_t j = 0; j != content.size(); j++){
@@ -478,6 +473,9 @@ int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code
             case 'l':
                 tokens.push_back( TOKEN_ULONG(hex_result) );
                 break;
+            case 'z':
+                tokens.push_back( TOKEN_USIZE(hex_result) );
+                break;
             default:
                 tokens.push_back( TOKEN_UINT(static_cast<uint32_t>(hex_result)) );
                 i--;
@@ -565,6 +563,9 @@ int tokenize_number(bool is_negative, char& prefix_char, size_t& i, size_t& code
                 break;
             case 'l':
                 tokens.push_back( TOKEN_ULONG( to_ulong(content) ) );
+                break;
+            case 'z':
+                tokens.push_back( TOKEN_USIZE( to_ulong(content) ) );
                 break;
             default:
                 tokens.push_back( TOKEN_UINT( to_uint(content) ) );

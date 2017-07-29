@@ -54,6 +54,9 @@ void Token::free(){
         delete static_cast<uint32_t*>(data);
         break;
     case TOKENID_ULONG:
+    case TOKENID_USIZE:
+    case TOKENID_NUMERIC_INT: // TOKEN_NUMERIC_INT still stores literal integer as a 64-bit int
+                              //     just in case it turns out to be a 'long' literal
         delete static_cast<uint64_t*>(data);
         break;
     case TOKENID_FLOAT:
@@ -152,6 +155,12 @@ std::string Token::toString(){
         break;
     case TOKENID_LENGTHSTRING:
         str = "length string : " + getString();
+        break;
+    case TOKENID_USIZE:
+        str = "unsigned size : " + to_str(getULong());
+        break;
+    case TOKENID_NUMERIC_INT:
+        str = "numeric int : " + to_str(getULong());
         break;
     // Control Flow
     case TOKENID_WORD:
@@ -319,6 +328,10 @@ std::string Token::syntax(){
         return "@" + getString();
     case TOKENID_LENGTHSTRING:
         return"'" + this->getString() + "'";
+    case TOKENID_USIZE:
+        return to_str(this->getULong()) + "uz";
+    case TOKENID_NUMERIC_INT:
+        return to_str(this->getULong());
     // Control Flow
     case TOKENID_WORD:
         return getString();
@@ -423,6 +436,10 @@ std::string get_tokenid_syntax(uint16_t id){
         return "@";
     case TOKENID_LENGTHSTRING:
         return "''";
+    case TOKENID_USIZE:
+        return "<usize>";
+    case TOKENID_NUMERIC_INT:
+        return "<numeric int>";
     // Control Flow
     case TOKENID_WORD:
         return "<word>";

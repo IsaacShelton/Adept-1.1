@@ -232,6 +232,32 @@ class LengthStringExp : public PlainExp {
     PlainExp* clone();
 };
 
+class UnsignedSizeExp : public PlainExp {
+    public:
+    uint64_t value;
+
+    UnsignedSizeExp(ErrorHandler&);
+    UnsignedSizeExp(uint64_t, ErrorHandler&);
+    UnsignedSizeExp(const UnsignedSizeExp&);
+    ~UnsignedSizeExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
+class NumericIntegerExp : public PlainExp {
+    public:
+    uint64_t value;
+
+    NumericIntegerExp(ErrorHandler&);
+    NumericIntegerExp(uint64_t, ErrorHandler&);
+    NumericIntegerExp(const NumericIntegerExp&);
+    ~NumericIntegerExp();
+    llvm::Value* assemble(Program&, Function&, AssemblyData&, std::string*);
+    std::string toString();
+    PlainExp* clone();
+};
+
 class WordExp : public PlainExp {
     public:
     std::string value;

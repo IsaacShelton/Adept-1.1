@@ -230,6 +230,8 @@ Program::~Program(){
     }
 }
 int Program::import_merge(Configuration* config, Program& other, bool public_import, ErrorHandler& errors){
+    // TODO: SPEED: This method is probably the slowest in the entire compiler
+
     // Merge Dependencies
     for(const ModuleDependency& new_dependency : other.dependencies){
         bool already_exists = false;
@@ -483,20 +485,21 @@ bool Program::resolve_if_alias(std::string& type) const {
         if(type == type_alias.alias){
             type = type_alias.binding;
 
-            bool alias_has_alias = this->resolve_once_if_alias(type);
             std::vector<std::string> visited_aliases;
+            size_t recursion_depth = 0;
 
-            while(alias_has_alias){
+            while( this->resolve_once_if_alias(type) ){
                 // Resolve until there is nothing left to resolve
-                bool already_visited = (std::find(visited_aliases.begin(), visited_aliases.end(), type) != visited_aliases.end());
 
-                if(type == type_alias.binding or already_visited) {
-                    fail("Encountered recursive type alias '" + type + "'");
-                    for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
-                    return false;
+                if(++recursion_depth > 128){
+                    if(std::find(visited_aliases.begin(), visited_aliases.end(), type) != visited_aliases.end()){
+                        fail("Encountered recursive type alias '" + type + "'");
+                        for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
+                        return false;
+                    }
+
+                    visited_aliases.push_back(type);
                 }
-                alias_has_alias = this->resolve_once_if_alias(type);
-                visited_aliases.push_back(type);
             }
 
             for(size_t p = 0; p != pointer_count; p++) type = "*" + type;
@@ -742,7 +745,7 @@ bool Program::already_imported(OriginInfo* origin){
 }
 void Program::generate_type_aliases(){
     // Standard type aliases
-    type_aliases.push_back( TypeAlias("usize", "uint", false, &origin_info) );
+    type_aliases.push_back( TypeAlias("usize", "ulong", false, &origin_info) );
     type_aliases.push_back( TypeAlias("string", "[]ubyte", false, &origin_info) );
 }
 int Program::generate_types(AssemblyData& context){
@@ -751,6 +754,10 @@ int Program::generate_types(AssemblyData& context){
 
     // NOTE: Requires types vector to be empty
     ensure(context.types.size() == 0);
+
+    // Create a struct type for arrays
+    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt64Ty(llvm_context) };
+    llvm_array_type = llvm::StructType::create(elements, ".arr");
 
     // Standard language types
     types.push_back( Type("void", llvm::Type::getVoidTy(llvm_context)) );
@@ -789,10 +796,6 @@ int Program::generate_types(AssemblyData& context){
         types.push_back( Type(inum.name, llvm::Type::getInt64Ty(llvm_context)) );
     }
 
-    // Create a struct type for arrays
-    std::vector<llvm::Type*> elements = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
-    llvm_array_type = llvm::StructType::create(elements, ".arr");
-
     size_t start_of_structs = types.size();
 
     // Create listing of all structures
@@ -819,7 +822,7 @@ int Program::generate_types(AssemblyData& context){
     }
 
     // Create a constructor for arrays
-    std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt32Ty(llvm_context) };
+    std::vector<llvm::Type*> array_ctor_args = { llvm::Type::getInt8PtrTy(llvm_context), llvm::Type::getInt64Ty(llvm_context) };
     llvm::FunctionType* array_ctor_type = llvm::FunctionType::get(llvm_array_type, array_ctor_args, false);
     llvm_array_ctor = llvm::Function::Create(array_ctor_type, llvm::Function::ExternalLinkage, ".__adept_core_arrctor", context.module.get());
     return 0;
@@ -870,43 +873,12 @@ int Program::find_type(const std::string& name, AssemblyData& context, llvm::Typ
         return 0;
     }
 
-    for(size_t i = 0; i != types.size(); i++){
-        if(types[i].name == type_name){
+    for(Type& t : types){
+        if(t.name == type_name){
             if(type != NULL){
-                *type = types[i].type;
+                *type = t.type;
                 this->apply_type_modifiers(type, type_modifiers);
-
             }
-            return 0;
-        }
-    }
-
-    return 1;
-}
-int Program::find_func(const std::string& name, External* func){
-    for(size_t i = 0; i != functions.size(); i++){
-        if(functions[i].name == name){
-            Function* found_function = &functions[i];
-            External external;
-            external.name = found_function->name;
-            external.return_type = found_function->return_type;
-
-            char new_flags = 0x00;
-            if(found_function->flags & FUNC_PUBLIC)      new_flags |= EXTERN_PUBLIC;
-            if(!(found_function->flags & FUNC_EXTERNAL)) new_flags |= EXTERN_MANGLED;
-            if(found_function->flags & FUNC_STDCALL)     new_flags |= EXTERN_STDCALL;
-            if(found_function->flags & FUNC_VARARGS)     new_flags |= EXTERN_VARARGS;
-
-            external.flags = new_flags;
-            for(Field& field : found_function->arguments) external.arguments.push_back(field.type);
-            *func = external;
-            return 0;
-        }
-    }
-
-    for(size_t i = 0; i != externs.size(); i++){
-        if(externs[i].name == name){
-            *func = externs[i];
             return 0;
         }
     }

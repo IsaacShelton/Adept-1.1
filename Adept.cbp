@@ -43,7 +43,7 @@
 			</Target>
 			<Target title="Debug 64-bit">
 				<Option output="bin/Debug/adept" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="C:/Users/isaac/Desktop/adept/city_of_thieves" />
+				<Option working_dir="C:/Users/isaac/Desktop/adept/projects/city_of_thieves" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />
@@ -61,7 +61,7 @@
 			</Target>
 			<Target title="Release 64-bit">
 				<Option output="bin/Release/adept" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="C:/Users/isaac/Desktop/adept/city_of_thieves" />
+				<Option working_dir="C:/Users/isaac/Desktop/adept/projects/city_of_thieves" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gnu_gcc_compiler_x86-64" />

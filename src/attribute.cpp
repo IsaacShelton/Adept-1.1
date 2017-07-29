@@ -15,3 +15,10 @@ AttributeInfo::AttributeInfo(bool attr_public){
     is_packed = false;
     is_stdcall = false;
 }
+void AttributeInfo::reset(){
+    is_public = false;
+    is_external = false;
+    is_static = false;
+    is_packed = false;
+    is_stdcall = false;
+}
