@@ -10,7 +10,7 @@
 #include "../include/errors.h"
 #include "../include/strings.h"
 
-int tokenize(Configuration& config, std::string filename, std::vector<Token>* tokens, ErrorHandler& errors){
+int tokenize(Config& config, std::string filename, std::vector<Token>* tokens, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
     std::ifstream input_file(filename.c_str());
 

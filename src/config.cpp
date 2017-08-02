@@ -7,7 +7,7 @@
 #include "../include/errors.h"
 #include "../include/strings.h"
 
-int configure(Configuration& config, std::string filename, ErrorHandler& errors){
+int configure(Config& config, std::string filename, ErrorHandler& errors){
     // Default Config
     config.jit = false;
     config.obj = false;
@@ -34,7 +34,7 @@ int configure(Configuration& config, std::string filename, ErrorHandler& errors)
     return 0;
 }
 
-int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors){
+int configure(Config& config, int argc, char** argv, ErrorHandler& errors){
     // Default Config
     config.jit = false;
     config.obj = false;

@@ -61,7 +61,7 @@ void AdeptCompiler::execute(int argc, char** argv){
     std::string source_filename = absolute(path(argv[1]), current_path()).string();
     source_filename = string_replace_all(source_filename, "\\", "/");
 
-    Configuration config;
+    Config config;
     AssemblyData context;
     CacheManager cache_manager;
     ErrorHandler errors( filename_name(source_filename) );

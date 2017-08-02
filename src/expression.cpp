@@ -2209,10 +2209,8 @@ llvm::Value* CastExp::cast_to_valueptr(Program& program, Function& func, Assembl
     // If the expression doesn't have a type, something very bad has gone wrong
     if(type_name == "") return NULL;
 
-    if(!Program::is_pointer_typename(type_name)){
-        errors.panic("Can't cast non-pointer type '" + type_name + "' to pointer type '" + target_typename);
-        return NULL;
-    }
+    // Resolve typename if it's an alias
+    program.resolve_if_alias(type_name);
 
     llvm::Type* target_llvm_type;
     if(program.find_type(target_typename, context, &target_llvm_type) != 0){
@@ -2220,7 +2218,34 @@ llvm::Value* CastExp::cast_to_valueptr(Program& program, Function& func, Assembl
         return NULL;
     }
 
-    return context.builder.CreateBitCast(llvm_value, target_llvm_type);
+    if(type_name == "bool"){
+        return context.builder.CreateIntToPtr(llvm_value, target_llvm_type);
+    }
+    else if(type_name == "ubyte" or type_name == "byte"){
+        return context.builder.CreateIntToPtr(llvm_value, target_llvm_type);
+    }
+    else if(type_name == "ushort" or type_name == "short"){
+        return context.builder.CreateIntToPtr(llvm_value, target_llvm_type);
+    }
+    else if(type_name == "uint" or type_name == "int"){
+        return llvm_value = context.builder.CreateIntToPtr(llvm_value, target_llvm_type);
+    }
+    else if(type_name == "ulong" or type_name == "long"){
+        return context.builder.CreateIntToPtr(llvm_value, target_llvm_type);
+    }
+    else if(Program::is_pointer_typename(type_name)){
+        return context.builder.CreateBitCast(llvm_value, target_llvm_type);
+    }
+    else if(Program::is_function_typename(type_name)){
+        return context.builder.CreateBitCast(llvm_value, target_llvm_type);
+    }
+    else {
+        errors.panic("Can't cast type '" + type_name + "' to a '" + target_typename + "'");
+        return NULL;
+    }
+
+    errors.panic(SUICIDE);
+    return NULL;
 }
 
 FuncptrExp::FuncptrExp(ErrorHandler& err){

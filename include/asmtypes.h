@@ -42,4 +42,12 @@ struct AssembleFunction {
     AssembleVariable* findVariable(const std::string&);
 };
 
+struct AssembleType {
+    std::string name;
+    llvm::Type* type;
+
+    AssembleType(const AssembleType&);
+    AssembleType(std::string, llvm::Type*);
+};
+
 #endif // ASMTYPES_H_INCLUDED

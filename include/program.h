@@ -2,7 +2,6 @@
 #ifndef PROGRAM_H_INCLUDED
 #define PROGRAM_H_INCLUDED
 
-#include "type.h"
 #include "config.h"
 #include "statement.h"
 #include "asmdata.h"
@@ -93,10 +92,10 @@ class ModuleDependency {
     std::string filename;
     std::string target_bc;
     std::string target_obj;
-    Configuration* config;
+    Config* config;
     bool is_nothing;
 
-    ModuleDependency(const std::string&, const std::string&, const std::string&, Configuration*, bool);
+    ModuleDependency(const std::string&, const std::string&, const std::string&, Config*, bool);
 };
 
 class ImportDependency {
@@ -214,6 +213,7 @@ class Program {
     enum TypeModifier : unsigned char {
         Pointer = 0,
         Array = 1,
+        FixedArray = 2,
     };
 
     inline static bool is_function_typename(const std::string&);
@@ -224,7 +224,7 @@ class Program {
 
     Program(CacheManager*, const std::string&);
     ~Program();
-    int import_merge(Configuration*, Program&, bool, ErrorHandler& errors);
+    int import_merge(Config*, Program&, bool, ErrorHandler& errors);
 
     bool resolve_if_alias(std::string&) const;
     bool resolve_once_if_alias(std::string&) const;
@@ -232,7 +232,7 @@ class Program {
     int extract_function_pointer_info(const std::string&, std::vector<llvm::Type*>&, AssemblyData&, llvm::Type**,
                                       std::vector<std::string>&, std::string&, std::vector<std::string>*, char&) const;
     int function_typename_to_type(const std::string&, AssemblyData&, llvm::Type**) const;
-    void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&) const;
+    void apply_type_modifiers(llvm::Type**, const std::vector<Program::TypeModifier>&, const std::vector<int>& fixed_array_sizes) const;
 
     bool already_imported(OriginInfo*);
     void generate_type_aliases();

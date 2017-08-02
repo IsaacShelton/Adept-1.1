@@ -1163,7 +1163,7 @@ int CallStatement::handle_var_args(Program& program, Function& func, AssemblyDat
     uint64_t va_arg_type_size = context.module->getDataLayout().getTypeAllocSize(va_arg_type);
 
     std::vector<llvm::Value*> call_values(1);
-    call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_type_size * va_arg_count, false));
+    call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(64, va_arg_type_size * va_arg_count, false));
     llvm::Value* arguments_memory = context.builder.CreateCall(malloc_function, call_values);
     llvm::Value* va_data = context.builder.CreateBitCast(asm_func->va_args, llvm::Type::getInt8PtrTy(context.context)->getPointerTo());
 
@@ -1374,7 +1374,7 @@ int MemberCallStatement::assemble(Program& program, Function& func, AssemblyData
         uint64_t va_arg_type_size = context.module->getDataLayout().getTypeAllocSize(va_arg_type);
 
         std::vector<llvm::Value*> call_values(1);
-        call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_type_size * va_arguments_count, false));
+        call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(64, va_arg_type_size * va_arguments_count, false));
         llvm::Value* arguments_memory = context.builder.CreateCall(malloc_function, call_values);
         llvm::Value* va_data = context.builder.CreateBitCast(asm_func->va_args, llvm::Type::getInt8PtrTy(context.context)->getPointerTo());
 
@@ -2358,6 +2358,7 @@ int DeleteStatement::assemble(Program& program, Function& func, AssemblyData& co
     std::string type_name;
     llvm::Value* pointer = value->assemble(program, func, context, &type_name);
     std::vector<llvm::Value*> free_args(1);
+    if(pointer == NULL) return 1;
 
     // Declare the 'free' function if it isn't already declared
     llvm::Function* free_function = context.module->getFunction("free");
@@ -2567,8 +2568,17 @@ int SwitchStatement::assemble(Program& program, Function& func, AssemblyData& co
         program.resolve_if_alias(value_typename);
 
         if(!Program::is_integer_typename(value_typename)){
-            errors.panic("Case condition value must be an integer");
-            return 1;
+            bool is_an_enum = false;
+            for(Enum& inum : program.enums){
+                if(inum.name == condition_typename){
+                    is_an_enum = true; break;
+                }
+            }
+
+            if(!is_an_enum){
+                errors.panic("Case condition value must be an integer");
+                return 1;
+            }
         }
 
         if(!(switch_case.value->flags & EXP_CONSTANT)){
@@ -3167,7 +3177,7 @@ int MultiResultCallStatement::handle_var_args(Program& program, Function& func, 
     uint64_t va_arg_type_size = context.module->getDataLayout().getTypeAllocSize(va_arg_type);
 
     std::vector<llvm::Value*> call_values(1);
-    call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(32, va_arg_type_size * va_arg_count, false));
+    call_values[0] = llvm::ConstantInt::get(context.context, llvm::APInt(64, va_arg_type_size * va_arg_count, false));
     llvm::Value* arguments_memory = context.builder.CreateCall(malloc_function, call_values);
     llvm::Value* va_data = context.builder.CreateBitCast(asm_func->va_args, llvm::Type::getInt8PtrTy(context.context)->getPointerTo());
 

@@ -99,7 +99,7 @@
 		<Unit filename="include/asmutil.h" />
 		<Unit filename="include/assemble.h" />
 		<Unit filename="include/attribute.h" />
-		<Unit filename="include/build.h" />
+		<Unit filename="include/buildapi.h" />
 		<Unit filename="include/cache.h" />
 		<Unit filename="include/clock.h" />
 		<Unit filename="include/config.h" />
@@ -120,14 +120,13 @@
 		<Unit filename="include/strings.h" />
 		<Unit filename="include/threads.h" />
 		<Unit filename="include/tokens.h" />
-		<Unit filename="include/type.h" />
 		<Unit filename="src/adept.cpp" />
 		<Unit filename="src/asmdata.cpp" />
 		<Unit filename="src/asmtypes.cpp" />
 		<Unit filename="src/asmutil.cpp" />
 		<Unit filename="src/assemble.cpp" />
 		<Unit filename="src/attribute.cpp" />
-		<Unit filename="src/build.cpp" />
+		<Unit filename="src/buildapi.cpp" />
 		<Unit filename="src/cache.cpp" />
 		<Unit filename="src/clock.cpp" />
 		<Unit filename="src/config.cpp" />
@@ -148,7 +147,6 @@
 		<Unit filename="src/strings.cpp" />
 		<Unit filename="src/threads.cpp" />
 		<Unit filename="src/tokens.cpp" />
-		<Unit filename="src/type.cpp" />
 		<Extensions>
 			<code_completion />
 			<debugger />

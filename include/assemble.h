@@ -12,21 +12,21 @@
 #include "search.h"
 #include "asmdata.h"
 
-int build(AssemblyData&, Configuration&, Program&);
-int build_program(AssemblyData&, Configuration&, Program&, ErrorHandler&);
-int build_buildscript(AssemblyData&, Configuration&, Program&, ErrorHandler&);
+int build(AssemblyData&, Config&, Program&);
+int build_program(AssemblyData&, Config&, Program&, ErrorHandler&);
+int build_buildscript(AssemblyData&, Config&, Program&, ErrorHandler&);
 int build_dependencies(AssemblyData*, Program*, ModuleBuildOptions*, ErrorHandler*, ModuleDependency**, size_t);
 
-int assemble(AssemblyData&, Configuration&, Program&, ErrorHandler& errors);
+int assemble(AssemblyData&, Config&, Program&, ErrorHandler& errors);
 
-int assemble_globals_batch(AssemblyData* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count);
-int assemble_externals_batch(AssemblyData* context, const Configuration* config, const Program* program, External* globals, size_t globals_count);
+int assemble_globals_batch(AssemblyData* context, const Config* config, const Program* program, Global* globals, size_t globals_count);
+int assemble_externals_batch(AssemblyData* context, const Config* config, const Program* program, External* globals, size_t globals_count);
 
-int assemble_struct_skeletons(AssemblyData&, Configuration&, Program&);
-int assemble_function_skeletons(AssemblyData&, Configuration&, Program&);
-int assemble_function_bodies(AssemblyData*, Configuration*, Program*);
-int assemble_struct_method_skeletons(AssemblyData&, Configuration&, Program&);
-int assemble_struct_method_bodies(AssemblyData*, Configuration*, Program*);
+int assemble_struct_skeletons(AssemblyData&, Config&, Program&);
+int assemble_function_skeletons(AssemblyData&, Config&, Program&);
+int assemble_function_bodies(AssemblyData*, Config*, Program*);
+int assemble_struct_method_skeletons(AssemblyData&, Config&, Program&);
+int assemble_struct_method_bodies(AssemblyData*, Config*, Program*);
 
 void assemble_merge_conditional_types(AssemblyData&, Program&, std::string&, llvm::Value**);
 int assemble_merge_types(AssemblyData&, Program&, std::string, std::string, llvm::Value**, llvm::Value**, std::string*);

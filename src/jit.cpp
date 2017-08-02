@@ -42,7 +42,7 @@ void jit_init(){
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
 }
-int jit_run(Configuration* config, AssemblyData& context, const std::string& func_name, std::vector<ModuleDependency>& dependencies, std::string& result, std::vector<llvm::GenericValue> args){
+int jit_run(Config* config, AssemblyData& context, const std::string& func_name, std::vector<ModuleDependency>& dependencies, std::string& result, std::vector<llvm::GenericValue> args){
     std::string error_str;
     llvm::Function* entry_point = context.module->getFunction(func_name.c_str());
     jit_init();
@@ -123,7 +123,7 @@ int jit_run(Configuration* config, AssemblyData& context, const std::string& fun
     result = return_value.IntVal.toString(10, true);
     return 0;
 }
-int jit_run_main(Configuration* config, AssemblyData& context, std::vector<ModuleDependency>& dependencies, int& result){
+int jit_run_main(Config* config, AssemblyData& context, std::vector<ModuleDependency>& dependencies, int& result){
     std::string error_str;
     llvm::Function* entry_point = context.module->getFunction("main");
     jit_init();

@@ -5,7 +5,7 @@
 #include "clock.h"
 #include "errors.h"
 
-struct Configuration {
+struct Config {
     public:
 
     bool jit;
@@ -26,7 +26,7 @@ struct Configuration {
     std::string extra_options;
 };
 
-int configure(Configuration& config, std::string filename, ErrorHandler& errors);
-int configure(Configuration& config, int argc, char** argv, ErrorHandler& errors);
+int configure(Config& config, std::string filename, ErrorHandler& errors);
+int configure(Config& config, int argc, char** argv, ErrorHandler& errors);
 
 #endif // CONFIG_H_INCLUDED

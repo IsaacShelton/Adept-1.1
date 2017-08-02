@@ -4,7 +4,6 @@
 
 #include <string>
 #include <vector>
-#include "type.h"
 #include "asmtypes.h"
 
 #include "llvm/IR/IRBuilder.h"
@@ -15,7 +14,7 @@ struct AssemblyData {
     llvm::LLVMContext context;
     llvm::IRBuilder<> builder;
     std::unique_ptr<llvm::Module> module;
-    std::vector<::Type> types;
+    std::vector<AssembleType> types;
     std::vector<AssembleFunction> functions;
     std::vector<AssembleGlobal> globals;
     bool assembling_constant_expression;

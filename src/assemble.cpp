@@ -31,24 +31,24 @@
 
 #include "../include/jit.h"
 #include "../include/die.h"
-#include "../include/build.h"
 #include "../include/errors.h"
 #include "../include/native.h"
 #include "../include/asmutil.h"
 #include "../include/threads.h"
 #include "../include/strings.h"
 #include "../include/assemble.h"
+#include "../include/buildapi.h"
 #include "../include/mangling.h"
 
-int build(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+int build(AssemblyData& context, Config& config, Program& program, ErrorHandler& errors){
     if(!boost::filesystem::exists(boost::filesystem::path("C:/Users/isaac/.adept/obj/tmp"))){
         try {
             boost::filesystem::create_directory(boost::filesystem::path("C:/Users/isaac/.adept/obj/tmp"));
         } catch(boost::filesystem::filesystem_error e) {
-            std::cout << "ACCESS DENIED - Failed to create tmp folder" << std::endl;
+            std::cerr << "ACCESS DENIED - Failed to create tmp folder" << std::endl;
             return 1;
         } catch(...) {
-            std::cout << "Failed to create tmp folder" << std::endl;
+            std::cerr << "Failed to create tmp folder" << std::endl;
             return 1;
         }
     }
@@ -62,7 +62,7 @@ int build(AssemblyData& context, Configuration& config, Program& program, ErrorH
         return build_program(context, config, program, errors);
     }
 }
-int build_program(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+int build_program(AssemblyData& context, Config& config, Program& program, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
     std::string target_name = filename_change_ext(config.filename, "exe");
     std::string target_obj  = (config.obj)      ? filename_change_ext(filename_name(config.filename), "o") : "C:/Users/" + config.username + "/.adept/obj/tmp/object.o";
@@ -173,7 +173,7 @@ int build_program(AssemblyData& context, Configuration& config, Program& program
     return 0;
 
 }
-int build_buildscript(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+int build_buildscript(AssemblyData& context, Config& config, Program& program, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
     std::string build_result;
     AssemblyData build_context;
@@ -225,7 +225,7 @@ int build_buildscript(AssemblyData& context, Configuration& config, Program& pro
 
     return 0;
 }
-int assemble(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+int assemble(AssemblyData& context, Config& config, Program& program, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
 
     Clock debug_clock;
@@ -322,7 +322,7 @@ int assemble(AssemblyData& context, Configuration& config, Program& program, Err
     return 0;
 }
 
-int assemble_globals_batch(AssemblyData* context, const Configuration* config, const Program* program, Global* globals, size_t globals_count){
+int assemble_globals_batch(AssemblyData* context, const Config* config, const Program* program, Global* globals, size_t globals_count){
     // ASYNC: Assembles a chunk of globals, intended for threading purposes
 
     for(size_t g = 0; g != globals_count; g++){
@@ -415,7 +415,7 @@ int assemble_globals_batch(AssemblyData* context, const Configuration* config, c
 
     return 0;
 }
-int assemble_externals_batch(AssemblyData* context, const Configuration* config, const Program* program, External* externs, size_t externs_count){
+int assemble_externals_batch(AssemblyData* context, const Config* config, const Program* program, External* externs, size_t externs_count){
     // ASYNC: Assembles a chunk of globals, intended for threading purposes
 
     for(size_t e = 0; e != externs_count; e++){
@@ -452,7 +452,7 @@ int assemble_externals_batch(AssemblyData* context, const Configuration* config,
     return 0;
 }
 
-int assemble_function_skeletons(AssemblyData& context, Configuration& config, Program& program){
+int assemble_function_skeletons(AssemblyData& context, Config& config, Program& program){
     // Assemble all the functions in a program
 
     for(Function& func : program.functions){
@@ -563,7 +563,7 @@ int assemble_function_skeletons(AssemblyData& context, Configuration& config, Pr
 
     return 0;
 }
-int assemble_function_bodies(AssemblyData* context, Configuration* config, Program* program){
+int assemble_function_bodies(AssemblyData* context, Config* config, Program* program){
     // NOTE: All pointers are assumed to be valid
 
     for(Function& func : program->functions){
@@ -600,7 +600,7 @@ int assemble_function_bodies(AssemblyData* context, Configuration* config, Progr
 
     return 0;
 }
-int assemble_struct_method_skeletons(AssemblyData& context, Configuration& config, Program& program){
+int assemble_struct_method_skeletons(AssemblyData& context, Config& config, Program& program){
     for(Struct& structure : program.structures){
         bool is_imported = structure.flags & STRUCT_IMPORTED;
 
@@ -722,7 +722,7 @@ int assemble_struct_method_skeletons(AssemblyData& context, Configuration& confi
 
     return 0;
 }
-int assemble_struct_method_bodies(AssemblyData* context, Configuration* config, Program* program){
+int assemble_struct_method_bodies(AssemblyData* context, Config* config, Program* program){
     // NOTE: All pointers are assumed to be valid
 
     for(Struct& structure : program->structures){

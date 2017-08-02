@@ -115,7 +115,7 @@ std::string External::toString(){
 }
 
 ModuleDependency::ModuleDependency(const std::string& filename, const std::string& target_bc, const std::string& target_obj,
-                                   Configuration* config, bool is_nothing){
+                                   Config* config, bool is_nothing){
     this->filename = filename;
     this->target_bc = target_bc;
     this->target_obj = target_obj;
@@ -229,7 +229,7 @@ Program::~Program(){
         delete constant.value;
     }
 }
-int Program::import_merge(Configuration* config, Program& other, bool public_import, ErrorHandler& errors){
+int Program::import_merge(Config* config, Program& other, bool public_import, ErrorHandler& errors){
     // TODO: SPEED: This method is probably the slowest in the entire compiler
 
     // Merge Dependencies
@@ -245,7 +245,7 @@ int Program::import_merge(Configuration* config, Program& other, bool public_imp
 
         if(!already_exists){
             ModuleDependency created_dependency = new_dependency;
-            created_dependency.config = new Configuration(*new_dependency.config);
+            created_dependency.config = new Config(*new_dependency.config);
             dependencies.push_back(created_dependency);
         }
     }
@@ -724,7 +724,9 @@ int Program::function_typename_to_type(const std::string& type_name, AssemblyDat
         return 0;
     }
 }
-void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers) const {
+void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program::TypeModifier>& modifiers, const std::vector<int>& fixed_array_sizes) const {
+    size_t fixed_array_sizes_index = 0;
+
     for(const std::vector<Program::TypeModifier>::const_reverse_iterator i = modifiers.rbegin(); i != modifiers.rend(); ++i){
         switch(*i){
         case Program::TypeModifier::Pointer:
@@ -732,6 +734,9 @@ void Program::apply_type_modifiers(llvm::Type** type, const std::vector<Program:
             break;
         case Program::TypeModifier::Array:
             *type = llvm_array_type;
+            break;
+        case Program::TypeModifier::FixedArray:
+            *type = llvm::ArrayType::get(*type, (uint64_t) fixed_array_sizes[fixed_array_sizes_index++]);
             break;
         }
     }
@@ -750,7 +755,7 @@ void Program::generate_type_aliases(){
 }
 int Program::generate_types(AssemblyData& context){
     llvm::LLVMContext& llvm_context = context.context;
-    std::vector<Type>& types = context.types;
+    std::vector<AssembleType>& types = context.types;
 
     // NOTE: Requires types vector to be empty
     ensure(context.types.size() == 0);
@@ -760,40 +765,40 @@ int Program::generate_types(AssemblyData& context){
     llvm_array_type = llvm::StructType::create(elements, ".arr");
 
     // Standard language types
-    types.push_back( Type("void", llvm::Type::getVoidTy(llvm_context)) );
-    types.push_back( Type("bool", llvm::Type::getInt1Ty(llvm_context)) );
-    types.push_back( Type("ptr", llvm::Type::getInt8PtrTy(llvm_context)) );
-    types.push_back( Type("int", llvm::Type::getInt32Ty(llvm_context)) );
-    types.push_back( Type("uint", llvm::Type::getInt32Ty(llvm_context)) );
-    types.push_back( Type("double", llvm::Type::getDoubleTy(llvm_context)) );
-    types.push_back( Type("float", llvm::Type::getFloatTy(llvm_context)) );
-    types.push_back( Type("half", llvm::Type::getHalfTy(llvm_context)) );
-    types.push_back( Type("byte", llvm::Type::getInt8Ty(llvm_context)) );
-    types.push_back( Type("ubyte", llvm::Type::getInt8Ty(llvm_context)) );
-    types.push_back( Type("short", llvm::Type::getInt16Ty(llvm_context)) );
-    types.push_back( Type("ushort", llvm::Type::getInt16Ty(llvm_context)) );
-    types.push_back( Type("long", llvm::Type::getInt64Ty(llvm_context)) );
-    types.push_back( Type("ulong", llvm::Type::getInt64Ty(llvm_context)) );
+    types.push_back( AssembleType("void", llvm::Type::getVoidTy(llvm_context)) );
+    types.push_back( AssembleType("bool", llvm::Type::getInt1Ty(llvm_context)) );
+    types.push_back( AssembleType("ptr", llvm::Type::getInt8PtrTy(llvm_context)) );
+    types.push_back( AssembleType("int", llvm::Type::getInt32Ty(llvm_context)) );
+    types.push_back( AssembleType("uint", llvm::Type::getInt32Ty(llvm_context)) );
+    types.push_back( AssembleType("double", llvm::Type::getDoubleTy(llvm_context)) );
+    types.push_back( AssembleType("float", llvm::Type::getFloatTy(llvm_context)) );
+    types.push_back( AssembleType("half", llvm::Type::getHalfTy(llvm_context)) );
+    types.push_back( AssembleType("byte", llvm::Type::getInt8Ty(llvm_context)) );
+    types.push_back( AssembleType("ubyte", llvm::Type::getInt8Ty(llvm_context)) );
+    types.push_back( AssembleType("short", llvm::Type::getInt16Ty(llvm_context)) );
+    types.push_back( AssembleType("ushort", llvm::Type::getInt16Ty(llvm_context)) );
+    types.push_back( AssembleType("long", llvm::Type::getInt64Ty(llvm_context)) );
+    types.push_back( AssembleType("ulong", llvm::Type::getInt64Ty(llvm_context)) );
 
     for(Enum& inum : enums){
         if(inum.fields.size() <= 256){
             inum.bits = 8;
-            types.push_back( Type(inum.name, llvm::Type::getInt8Ty(llvm_context)) );
+            types.push_back( AssembleType(inum.name, llvm::Type::getInt8Ty(llvm_context)) );
             continue;
         }
         if(inum.fields.size() <= 65536){
             inum.bits = 16;
-            types.push_back( Type(inum.name, llvm::Type::getInt16Ty(llvm_context)) );
+            types.push_back( AssembleType(inum.name, llvm::Type::getInt16Ty(llvm_context)) );
             continue;
         }
         if(inum.fields.size() <= 4294967296){
             inum.bits = 32;
-            types.push_back( Type(inum.name, llvm::Type::getInt32Ty(llvm_context)) );
+            types.push_back( AssembleType(inum.name, llvm::Type::getInt32Ty(llvm_context)) );
             continue;
         }
 
         inum.bits = 64;
-        types.push_back( Type(inum.name, llvm::Type::getInt64Ty(llvm_context)) );
+        types.push_back( AssembleType(inum.name, llvm::Type::getInt64Ty(llvm_context)) );
     }
 
     size_t start_of_structs = types.size();
@@ -801,7 +806,7 @@ int Program::generate_types(AssemblyData& context){
     // Create listing of all structures
     // TODO: SPEED: This is definitely not very efficient
     for(Struct& structure : structures){
-        types.push_back( Type(structure.name, llvm::StructType::create(llvm_context, structure.name)) );
+        types.push_back( AssembleType(structure.name, llvm::StructType::create(llvm_context, structure.name)) );
     }
 
     // Fill in llvm structures from struct data
@@ -831,8 +836,9 @@ int Program::generate_types(AssemblyData& context){
 int Program::find_type(const std::string& name, AssemblyData& context, llvm::Type** type) const {
     ensure(type != NULL);
 
-    std::vector<Type>& types = context.types;
+    std::vector<AssembleType>& types = context.types;
     std::vector<TypeModifier> type_modifiers;
+    std::vector<int> fixed_array_sizes;
 
     std::string type_name;
     size_t type_i = 0;
@@ -844,9 +850,18 @@ int Program::find_type(const std::string& name, AssemblyData& context, llvm::Typ
             type_modifiers.push_back(TypeModifier::Pointer);
             break;
         case '[':
-            type_i += 1; // Next character is assumed to be ']'
-            type_modifiers.push_back(TypeModifier::Array);
-            break;
+            if(name[type_i+1] == ']'){
+                type_i += 1;
+                type_modifiers.push_back(TypeModifier::Array);
+                break;
+            }
+            else {
+                std::string int_string;
+                while(name[type_i] != ']') int_string += name[type_i++];
+                type_modifiers.push_back(TypeModifier::FixedArray);
+                fixed_array_sizes.push_back(to_int(int_string));
+                break;
+            }
         }
     }
 
@@ -859,9 +874,18 @@ int Program::find_type(const std::string& name, AssemblyData& context, llvm::Typ
             type_modifiers.push_back(TypeModifier::Pointer);
             break;
         case '[':
-            alias_type_i += 1; // Next character is assumed to be ']'
-            type_modifiers.push_back(TypeModifier::Array);
-            break;
+            if(type_name[alias_type_i+1] == ']'){
+                alias_type_i += 1;
+                type_modifiers.push_back(TypeModifier::Array);
+                break;
+            }
+            else {
+                std::string int_string;
+                while(type_name[alias_type_i] != ']') int_string += type_name[alias_type_i++];
+                type_modifiers.push_back(TypeModifier::FixedArray);
+                fixed_array_sizes.push_back(to_int(int_string));
+                break;
+            }
         }
     }
     type_name = type_name.substr(alias_type_i, type_name.length()-alias_type_i);
@@ -869,15 +893,15 @@ int Program::find_type(const std::string& name, AssemblyData& context, llvm::Typ
     if(Program::is_function_typename(type_name)){
         // Return after handling function pointer type
         if(this->function_typename_to_type(type_name, context, type) != 0) return 1;
-        this->apply_type_modifiers(type, type_modifiers);
+        this->apply_type_modifiers(type, type_modifiers, fixed_array_sizes);
         return 0;
     }
 
-    for(Type& t : types){
+    for(AssembleType& t : types){
         if(t.name == type_name){
             if(type != NULL){
                 *type = t.type;
-                this->apply_type_modifiers(type, type_modifiers);
+                this->apply_type_modifiers(type, type_modifiers, fixed_array_sizes);
             }
             return 0;
         }

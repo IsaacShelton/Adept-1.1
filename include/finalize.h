@@ -8,7 +8,7 @@
 #include "../include/tokens.h"
 #include "../include/asmdata.h"
 
-int finalize(AssemblyData& assemble, Configuration& config, Program& program, ErrorHandler& errors);
+int finalize(AssemblyData& assemble, Config& config, Program& program, ErrorHandler& errors);
 int shutdown();
 
 #endif // FINALIZE_H_INCLUDED

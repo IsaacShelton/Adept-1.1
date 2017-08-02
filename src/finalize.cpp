@@ -9,7 +9,7 @@
 #include "../include/assemble.h"
 #include "../include/finalize.h"
 
-int finalize(AssemblyData& context, Configuration& config, Program& program, ErrorHandler& errors){
+int finalize(AssemblyData& context, Config& config, Program& program, ErrorHandler& errors){
     if(config.time_verbose and !config.silent){
         config.time_verbose_clock.print_since_start("DONE", filename_name(config.filename));
         config.time_verbose_clock.remember();

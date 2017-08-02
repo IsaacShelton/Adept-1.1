@@ -3,17 +3,16 @@
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include "../include/die.h"
-#include "../include/type.h"
-#include "../include/build.h"
 #include "../include/parse.h"
 #include "../include/lexer.h"
 #include "../include/errors.h"
 #include "../include/search.h"
 #include "../include/strings.h"
+#include "../include/buildapi.h"
 #include "../include/mangling.h"
 #include "llvm/Support/DynamicLibrary.h"
 
-int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandler& errors){
+int parse(Config& config, TokenList* tokens, Program& program, ErrorHandler& errors){
     if(config.time_verbose) config.time_verbose_clock.remember();
 
     // Generate standard type aliases
@@ -52,7 +51,7 @@ int parse(Configuration& config, TokenList* tokens, Program& program, ErrorHandl
     return 0;
 }
 
-int parse_word(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_word(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // a_word <unknown syntax follows>
     //   ^
 
@@ -73,7 +72,7 @@ int parse_word(Configuration& config, TokenList& tokens, Program& program, size_
 
     return 0;
 }
-int parse_keyword(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_keyword(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // a_keyword <unknown syntax follows>
     //     ^
 
@@ -158,7 +157,7 @@ int parse_keyword(Configuration& config, TokenList& tokens, Program& program, si
 
     return 0;
 }
-int parse_enum(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_enum(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // enum enum_name { ... }
     //          ^
 
@@ -211,7 +210,7 @@ int parse_enum(Configuration& config, TokenList& tokens, Program& program, size_
     program.enums.push_back( Enum(name, fields, attr_info.is_public, &program.origin_info) );
     return 0;
 }
-int parse_struct(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_struct(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // struct struct_name { ... }
     //             ^
 
@@ -343,7 +342,7 @@ int parse_struct(Configuration& config, TokenList& tokens, Program& program, siz
 
     return 0;
 }
-int parse_type_alias(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_type_alias(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // type type_alias = some_type
     //          ^
 
@@ -384,8 +383,8 @@ int parse_type_alias(Configuration& config, TokenList& tokens, Program& program,
     program.type_aliases.push_back( TypeAlias(name, binding, attr_info.is_public, &program.origin_info) );
     return 0;
 }
-int parse_function(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
-    // def func_name() ret_type { <some code> }   |   def func_name(name a_type) one_type, two_type { <some code> }
+int parse_function(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+    // def func_name() ret_type { <some code> }   |   def func_name(name a_type) (one_type, two_type) { <some code> }
     //         ^
 
     bool multiple_return = false;
@@ -509,7 +508,7 @@ int parse_function(Configuration& config, TokenList& tokens, Program& program, s
 
     return 0;
 }
-int parse_method(Configuration& config, TokenList& tokens, Program& program, size_t& i, Struct* structure, size_t struct_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_method(Config& config, TokenList& tokens, Program& program, size_t& i, Struct* structure, size_t struct_offset_plus_one, const AttributeInfo& attr_info, ErrorHandler& errors){
     // def method_name() ret_type { <some code> }
     //           ^
 
@@ -638,7 +637,7 @@ int parse_method(Configuration& config, TokenList& tokens, Program& program, siz
         return 0;
     }
 }
-int parse_external(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_external(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // foreign func_name() ret_type
     //            ^
 
@@ -660,7 +659,13 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
         if(parse_type(config, tokens, program, i, type, errors) != 0) return 1;
         next_index(i, tokens.size());
 
-        if(tokens[i].id != TOKENID_CLOSE) next_index(i, tokens.size());
+        if(tokens[i].id == TOKENID_NEXT){
+            next_index(i, tokens.size());
+        }
+        else if(tokens[i].id != TOKENID_CLOSE){
+            errors.panic("Expected ',' after type '" + type + "'");
+        }
+
         arguments.push_back(type);
     }
 
@@ -672,7 +677,7 @@ int parse_external(Configuration& config, TokenList& tokens, Program& program, s
     program.externs.push_back( External(name, arguments, return_type, attr_info.is_public, false, attr_info.is_stdcall, false, &program.origin_info) );
     return 0;
 }
-int parse_attribute(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
+int parse_attribute(Config& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
     // <attribute> <unknown syntax follows>
     //      ^
 
@@ -726,7 +731,7 @@ int parse_attribute(Configuration& config, TokenList& tokens, Program& program, 
 
     return 0;
 }
-int parse_import(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_import(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // import PackageName
     //             ^
 
@@ -739,7 +744,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
 
     std::string name = tokens[i].getString();
     TokenList* import_tokens;
-    Configuration* import_config = new Configuration(config);
+    Config* import_config = new Config(config);
     Program* import_program;
     std::string target_bc;
     std::string target_obj;
@@ -819,7 +824,7 @@ int parse_import(Configuration& config, TokenList& tokens, Program& program, siz
     program.dependencies.push_back( ModuleDependency(source_filename, target_bc, target_obj, import_config, is_nothing) );
     return 0;
 }
-int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
+int parse_lib(Config& config, TokenList& tokens, Program& program, size_t& i, ErrorHandler& errors){
     // link "filename.a"
     //           ^
 
@@ -847,7 +852,7 @@ int parse_lib(Configuration& config, TokenList& tokens, Program& program, size_t
     program.extra_libs.push_back(name);
     return 0;
 }
-int parse_constant(Configuration& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_constant(Config& config, TokenList& tokens, Program& program, size_t& i, const AttributeInfo& attr_info, ErrorHandler& errors){
     // constant $CONSTANT_NAME <expression>
     //                 ^
 
@@ -865,7 +870,7 @@ int parse_constant(Configuration& config, TokenList& tokens, Program& program, s
     i--;
     return 0;
 }
-int parse_global(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string name, const AttributeInfo& attr_info, ErrorHandler& errors){
+int parse_global(Config& config, TokenList& tokens, Program& program, size_t& i, const std::string& name, const AttributeInfo& attr_info, ErrorHandler& errors){
     // name str = "Hello World"
     //       ^
 
@@ -906,7 +911,7 @@ int parse_global(Configuration& config, TokenList& tokens, Program& program, siz
 
     return 0;
 }
-int parse_type(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors){
+int parse_type(Config& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, ErrorHandler& errors){
     //  **some_type   |   def (int, int) int   |   another_type   |   [] int   |   *@TypeName
     //  ^                  ^                            ^             ^            ^
 
@@ -919,11 +924,25 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
         }
         else if(prefix_token_id == TOKENID_BRACKET_OPEN){
             next_index(i, tokens.size());
-            if(tokens[i].id != TOKENID_BRACKET_CLOSE){
-                errors.panic("Expected ']' after '[' in type");
+
+            if(tokens[i].id == TOKENID_BRACKET_CLOSE){
+                output_type += "[]";
+            }
+            else if(tokens[i].id == TOKENID_INT){
+                int int_value = tokens[i].getInt();
+                next_index(i, tokens.size());
+
+                if(tokens[i].id != TOKENID_BRACKET_CLOSE){
+                    errors.panic("Expected ']' after fixed array length in type");
+                    return 1;
+                }
+
+                output_type += "[" + to_str(int_value) + "]";
+            }
+            else {
+                errors.panic("Expected ']' or integer literal after '[' in type");
                 return 1;
             }
-            output_type += "[]";
         }
 
         next_index(i, tokens.size());
@@ -951,7 +970,7 @@ int parse_type(Configuration& config, TokenList& tokens, Program& program, size_
 
     return 0;
 }
-int parse_type_funcptr(Configuration& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, const std::string& keyword, ErrorHandler& errors){
+int parse_type_funcptr(Config& config, TokenList& tokens, Program& program, size_t& i, std::string& output_type, const std::string& keyword, ErrorHandler& errors){
     // def (int, int) int     |     stdcall def (... string) void
     //  ^                              ^
 
@@ -1060,7 +1079,7 @@ int parse_type_funcptr(Configuration& config, TokenList& tokens, Program& progra
     }
 }
 
-int parse_block(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
+int parse_block(Config& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
     // { some code; some more code; }
     //    ^
 
@@ -1090,7 +1109,7 @@ int parse_block(Configuration& config, TokenList& tokens, Program& program, Stat
 
     return 0;
 }
-int parse_block_keyword(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string keyword, ErrorHandler& errors){
+int parse_block_keyword(Config& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, const std::string& keyword, ErrorHandler& errors){
     // keyword <unknown syntax follows>
     //    ^
 
@@ -1331,7 +1350,7 @@ int parse_block_keyword(Configuration& config, TokenList& tokens, Program& progr
 
     return 0;
 }
-int parse_block_word(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
+int parse_block_word(Config& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
     // word <unknown syntax follows>
     //  ^
 
@@ -1345,7 +1364,7 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
     case TOKENID_NEXT:
     case TOKENID_NOT:
         // Variable Definition
-        if(parse_block_variable_declaration(config, tokens, program, statements, defer_statements, i, name, errors) != 0) return 1;
+        if(parse_block_declaration(config, tokens, program, statements, defer_statements, i, name, errors) != 0) return 1;
         break;
     case TOKENID_OPEN:
         // Function Call
@@ -1364,12 +1383,45 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
         if(parse_block_word_member(config, tokens, program, statements, i, name, errors) != 0) return 1;
         break;
     case TOKENID_BRACKET_OPEN:
-        next_index(i, tokens.size());
         if(tokens[i].id == TOKENID_BRACKET_CLOSE){
-            if(parse_block_variable_declaration(config, tokens, program, statements, defer_statements, --i, name, errors) != 0) return 1;
+            next_index(i, tokens.size());
+            if(parse_block_declaration(config, tokens, program, statements, defer_statements, --i, name, errors) != 0) return 1;
         }
         else {
-            if(parse_block_word_expression(config, tokens, program, statements, --i, name, 0, errors) != 0) return 1;
+            // SPEED: This look ahead is kinda slow (7/31/17 -IS)
+            // SYNTAX: Maybe change fixed-array declaration syntax so we don't have to do this crap (7/31/17 -IS)
+
+            size_t peek = i;
+            size_t balance = 0;
+
+            while(tokens[peek].id == TOKENID_BRACKET_OPEN){
+                next_index(peek, tokens.size());
+
+                while(balance != 0 or tokens[peek].id != TOKENID_BRACKET_CLOSE){
+                    if(tokens[peek].id == TOKENID_BRACKET_OPEN){
+                        balance++;
+                    }
+                    else if(tokens[peek].id == TOKENID_BRACKET_CLOSE){
+                        balance--;
+                    }
+
+                    next_index(peek, tokens.size());
+                }
+
+                next_index(peek, tokens.size());
+            }
+
+            next_index(peek, tokens.size());
+
+            // SPEED: BADCODE: This check could be improved
+            if( (tokens[peek-1].id == TOKENID_WORD or tokens[peek-1].id == TOKENID_MULTIPLY) and (tokens[peek].id == TOKENID_NEWLINE or tokens[peek].id == TOKENID_ASSIGN) ){
+                // Fixed sized array declaration
+                if(parse_block_declaration(config, tokens, program, statements, defer_statements, i, name, errors) != 0) return 1;
+            }
+            else {
+                // Performing an operation on an array expression
+                if(parse_block_word_expression(config, tokens, program, statements, i, name, 0, errors) != 0) return 1;
+            }
         }
         break;
     default:
@@ -1379,9 +1431,9 @@ int parse_block_word(Configuration& config, TokenList& tokens, Program& program,
 
     return 0;
 }
-int parse_block_variable_declaration(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, std::string name, ErrorHandler& errors){
+int parse_block_declaration(Config& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, const std::string& name, ErrorHandler& errors){
     // name str = "Hello World"   |   name, another_name str = "Greetings World"
-    //       ^
+    //       ^                            ^
 
     std::string type;
     std::vector<std::string> multiple_names;
@@ -1447,7 +1499,7 @@ int parse_block_variable_declaration(Configuration& config, TokenList& tokens, P
     }
     return 0;
 }
-int parse_block_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
+int parse_block_call(Config& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, const std::string& name, ErrorHandler& errors){
     // name(arg1, arg2)
     //     ^
 
@@ -1476,9 +1528,9 @@ int parse_block_call(Configuration& config, TokenList& tokens, Program& program,
     next_index(i, tokens.size());
     return 0;
 }
-int parse_block_word_expression(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, int loads, ErrorHandler& errors){
+int parse_block_word_expression(Config& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, const std::string& name, int loads, ErrorHandler& errors){
     // name += 10 * 3 / 4   |   name[i] = 10 * 3 / 4   |   name.member *= 10 * 3 / 4   |   name.member.call()
-    //      ^                      ^                          ^                              ^
+    //      ^                       ^                          ^                               ^
 
     // NOTE: This function also parses assignment related things
 
@@ -1582,7 +1634,7 @@ int parse_block_word_expression(Configuration& config, TokenList& tokens, Progra
 
     return 0;
 }
-int parse_block_dereference(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
+int parse_block_dereference(Config& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
     // *value = expression
     //    ^
 
@@ -1605,7 +1657,7 @@ int parse_block_dereference(Configuration& config, TokenList& tokens, Program& p
     if(parse_block_word_expression(config, tokens, program, statements, i, name, deref_count, errors) != 0) return 1;
     return 0;
 }
-int parse_block_conditional(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, uint16_t conditional_type, ErrorHandler& errors){
+int parse_block_conditional(Config& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, uint16_t conditional_type, ErrorHandler& errors){
     // conditional <condition> { ... }
     //      ^
 
@@ -1721,7 +1773,7 @@ int parse_block_conditional(Configuration& config, TokenList& tokens, Program& p
 
     return 0;
 }
-int parse_block_word_member(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, std::string name, ErrorHandler& errors){
+int parse_block_word_member(Config& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, const std::string& name, ErrorHandler& errors){
     // word.<unknown syntax follows>
     //     ^
 
@@ -1747,7 +1799,7 @@ int parse_block_word_member(Configuration& config, TokenList& tokens, Program& p
 
     return 0;
 }
-int parse_block_member_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, PlainExp* value, std::string func_name, ErrorHandler& errors){
+int parse_block_member_call(Config& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, PlainExp* value, const std::string& func_name, ErrorHandler& errors){
     // a_variable.a_member.a_method ( ... )
     //                              ^
 
@@ -1775,7 +1827,7 @@ int parse_block_member_call(Configuration& config, TokenList& tokens, Program& p
     next_index(i, tokens.size());
     return 0;
 }
-int parse_block_switch(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
+int parse_block_switch(Config& config, TokenList& tokens, Program& program, StatementList& statements, StatementList& defer_statements, size_t& i, ErrorHandler& errors){
     // switch <condition> { .... }
     //    ^
 
@@ -1886,7 +1938,7 @@ int parse_block_switch(Configuration& config, TokenList& tokens, Program& progra
     next_index(i, tokens.size());
     return 0;
 }
-int parse_block_multireturn_call(Configuration& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
+int parse_block_multireturn_call(Config& config, TokenList& tokens, Program& program, StatementList& statements, size_t& i, ErrorHandler& errors){
     // (variable1, variable2) = functionCall(arg1, arg2, arg3)
     // ^
 
@@ -1969,7 +2021,7 @@ int parse_block_multireturn_call(Configuration& config, TokenList& tokens, Progr
     }
 }
 
-int parse_expression(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
+int parse_expression(Config& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
     // 10 + 3 * 6
     // ^
 
@@ -1977,7 +2029,7 @@ int parse_expression(Configuration& config, TokenList& tokens, Program& program,
     if(parse_expression_operator_right(config, tokens, program, i, 0, expression, false, errors) != 0) return 1;
     return 0;
 }
-int parse_expression_primary(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
+int parse_expression_primary(Config& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
     while(tokens[i].id == TOKENID_NEWLINE){
         next_index(i, tokens.size());
         errors.line++;
@@ -2325,7 +2377,7 @@ int parse_expression_primary(Configuration& config, TokenList& tokens, Program& 
         return 1;
     }
 }
-int parse_expression_operator_right(Configuration& config, TokenList& tokens, Program& program, size_t& i, int precedence, PlainExp** left, bool keep_mutable, ErrorHandler& errors) {
+int parse_expression_operator_right(Config& config, TokenList& tokens, Program& program, size_t& i, int precedence, PlainExp** left, bool keep_mutable, ErrorHandler& errors) {
     while(i != tokens.size()) {
         int token_precedence = tokens[i].getPrecedence();
         int operation;
@@ -2434,7 +2486,7 @@ int parse_expression_operator_right(Configuration& config, TokenList& tokens, Pr
 
     return 0;
 }
-int parse_expression_call(Configuration& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
+int parse_expression_call(Config& config, TokenList& tokens, Program& program, size_t& i, PlainExp** expression, ErrorHandler& errors){
     // call(arg, arg, arg) + 132
     //  ^
 

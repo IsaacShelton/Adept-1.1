@@ -41,3 +41,14 @@ AssembleVariable* AssembleFunction::findVariable(const std::string& name){
 
     return NULL;
 }
+
+
+AssembleType::AssembleType(const AssembleType& other){
+    name = other.name;
+    type = other.type;
+}
+
+AssembleType::AssembleType(std::string n, llvm::Type* t){
+    name = n;
+    type = t;
+}
