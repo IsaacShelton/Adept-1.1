@@ -142,6 +142,7 @@ int tokenize_code(const std::string& code, std::vector<Token>& tokens, ErrorHand
             }
 
             if(peek_char == '*'){
+                i++;
                 while(++i != code_size){
                     if(code[i] == '\n'){
                         tokens.push_back(TOKEN_NEWLINE);

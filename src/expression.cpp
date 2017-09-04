@@ -2578,9 +2578,24 @@ llvm::Value* DynamicAllocExp::assemble_plain(Program& program, Function& func, A
     llvm::Value* amount_llvm_value = amount->assemble_immutable(program, func, context, &amount_typename);
     if(amount_llvm_value == NULL) return NULL;
 
+    // TECHNICALLY THE WAY WE SHOULD DO IT BUT WE CAN TAKE A SHORTCUT
+    /*
     program.resolve_if_alias(amount_typename);
     if(!Program::is_integer_typename(amount_typename)){
-        errors.panic("The expression type specified to 'new " + this->type_name + " * ' isn't an integer.\n    Received the type: '" + amount_typename + "'");
+        errors.panic("Expression type specified to 'new " + this->type_name + " * (...)' must be 'usize', received type '" + amount_typename + "'");
+        return NULL;
+    }
+
+    if(assemble_merge_types_oneway(context, program, amount_typename, "usize", &amount_llvm_value, llvm::Type::getInt64Ty(context.context), &amount_typename) != 0){
+        errors.panic("Expression type specified to 'new " + this->type_name + " * (...)' must be 'usize', received type '" + amount_typename + "'");
+        return NULL;
+    }
+    */
+
+    // THE SHORTCUT VERSION (ASSUMES NOTHING IS COMPATIBLE WITH USIZE ACCEPT ITSELF AND ALIASES OF ITSELF)
+    program.resolve_if_alias(amount_typename);
+    if(amount_typename != "usize"){
+        errors.panic("Expression type specified to 'new " + this->type_name + " * (...)' must be 'usize', received type '" + amount_typename + "'");
         return NULL;
     }
 
@@ -2632,9 +2647,24 @@ llvm::Value* DynamicAllocExp::assemble_elements(Program& program, Function& func
     llvm::Value* amount_llvm_value = amount->assemble_immutable(program, func, context, &amount_typename);
     if(amount_llvm_value == NULL) return NULL;
 
+    // TECHNICALLY THE WAY WE SHOULD DO IT BUT WE CAN TAKE A SHORTCUT
+    /*
     program.resolve_if_alias(amount_typename);
     if(!Program::is_integer_typename(amount_typename)){
-        errors.panic("The expression type specified to 'new [...] " + this->type_name + " * ' isn't an integer.\n    Received the type: '" + amount_typename + "'");
+        errors.panic("Expression type specified to 'new [...] " + this->type_name + " * (...)' must be 'usize', received type '" + amount_typename + "'");
+        return NULL;
+    }
+
+    if(assemble_merge_types_oneway(context, program, amount_typename, "usize", &amount_llvm_value, llvm::Type::getInt64Ty(context.context), &amount_typename) != 0){
+        errors.panic("Expression type specified to 'new [...] " + this->type_name + " * (...)' must be 'usize', received type '" + amount_typename + "'");
+        return NULL;
+    }
+    */
+
+    // THE SHORTCUT VERSION (ASSUMES NOTHING IS COMPATIBLE WITH USIZE ACCEPT ITSELF AND ALIASES OF ITSELF)
+    program.resolve_if_alias(amount_typename);
+    if(amount_typename != "usize"){
+        errors.panic("Expression type specified to 'new [...] " + this->type_name + " * ' must be 'usize', received type '" + amount_typename + "'");
         return NULL;
     }
 
