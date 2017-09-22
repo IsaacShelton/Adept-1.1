@@ -1,3 +1,7 @@
+
+# Newer versions
+A rewrite is currently in progress which you can check out [here](https://github.com/IsaacShelton/Adept)<br/><br/>
+
 # The Adept programming language
 ## A blazing fast low-level language
 Adept is designed for performace and simplicity.<br/>
@@ -5,9 +9,6 @@ Generally it runs as fast or faster than C code.<br/>
 
 [Download Adept 1.1 Installer 64-bit](https://github.com/IsaacShelton/Adept-1.1/raw/master/installer/Adept%201.1%20Installer%2064-bit.exe)<br/>
 ![adept_logo](https://github.com/IsaacShelton/Adept-1.1/blob/master/res/adept.png)<br/>
-
-# Rewriting Adept
-A rewrite is currently in progress which you can check out [here](https://github.com/IsaacShelton/Adept)
 
 # Examples
 
